@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Nikhil Kaza">
+<meta name="dcterms.date" content="2026-07-21">
+
+<title>10. Comparing Shape Indices: North Carolina Counties</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="j-nc-counties-comparison_files/libs/clipboard/clipboard.min.js"></script>
+<script src="j-nc-counties-comparison_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="j-nc-counties-comparison_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="j-nc-counties-comparison_files/libs/quarto-html/popper.min.js"></script>
+<script src="j-nc-counties-comparison_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="j-nc-counties-comparison_files/libs/quarto-html/anchor.min.js"></script>
+<link href="j-nc-counties-comparison_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="j-nc-counties-comparison_files/libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="j-nc-counties-comparison_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="j-nc-counties-comparison_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="j-nc-counties-comparison_files/libs/bootstrap/bootstrap-1a9011c99ff3470dca5095ea45ed0705.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a></li>
+  <li><a href="#indices-point-to-stories-about-geography-and-history" id="toc-indices-point-to-stories-about-geography-and-history" class="nav-link" data-scroll-target="#indices-point-to-stories-about-geography-and-history"><span class="header-section-number">2</span> Indices point to stories about geography and history</a></li>
+  <li><a href="#how-do-the-indices-relate-to-each-other" id="toc-how-do-the-indices-relate-to-each-other" class="nav-link" data-scroll-target="#how-do-the-indices-relate-to-each-other"><span class="header-section-number">3</span> How do the indices relate to each other?</a></li>
+  <li><a href="#weighting-a-collection-the-triangle-counties-by-population" id="toc-weighting-a-collection-the-triangle-counties-by-population" class="nav-link" data-scroll-target="#weighting-a-collection-the-triangle-counties-by-population"><span class="header-section-number">4</span> Weighting a collection: the Triangle counties by population</a></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">5</span> Conclusion</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">10. Comparing Shape Indices: North Carolina Counties</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Nikhil Kaza </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">July 21, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="cell" data-layout-align="center">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(shapeindices)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggalign)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">theme_set</span>(<span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">11</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<section id="introduction" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
+<p>The other vignettes in this package derive each index in isolation, on synthetic shapes built to isolate one property at a time. This one runs some of the indices on a real dataset: the North Carolina county boundaries bundled with <code>sf</code>) <a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> The vignette is primarily to show how the indices perform on a real dataset with varying shapes and weights.</p>
+</section>
+<section id="indices-point-to-stories-about-geography-and-history" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Indices point to stories about geography and history</h1>
+<p>County lines are surveyed straight lines and coastlines, not organic growth boundaries, so the shapes here test something specific: how much does an index notice a barrier island, a diagonal sliver, or a county that’s convex but stretched?</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th"></th>
+<th style="text-align: center;" data-quarto-table-cell-role="th"><img src="data:image/png;base64,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" style="vertical-align:middle" width="60" height="60"><br>
+Caswell</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAEDmlDQ1BrQ0dDb2xvclNwYWNlR2VuZXJpY1JHQgAAOI2NVV1oHFUUPpu5syskzoPUpqaSDv41lLRsUtGE2uj+ZbNt3CyTbLRBkMns3Z1pJjPj/KRpKT4UQRDBqOCT4P9bwSchaqvtiy2itFCiBIMo+ND6R6HSFwnruTOzu5O4a73L3PnmnO9+595z7t4LkLgsW5beJQIsGq4t5dPis8fmxMQ6dMF90A190C0rjpUqlSYBG+PCv9rt7yDG3tf2t/f/Z+uuUEcBiN2F2Kw4yiLiZQD+FcWyXYAEQfvICddi+AnEO2ycIOISw7UAVxieD/Cyz5mRMohfRSwoqoz+xNuIB+cj9loEB3Pw2448NaitKSLLRck2q5pOI9O9g/t/tkXda8Tbg0+PszB9FN8DuPaXKnKW4YcQn1Xk3HSIry5ps8UQ/2W5aQnxIwBdu7yFcgrxPsRjVXu8HOh0qao30cArp9SZZxDfg3h1wTzKxu5E/LUxX5wKdX5SnAzmDx4A4OIqLbB69yMesE1pKojLjVdoNsfyiPi45hZmAn3uLWdpOtfQOaVmikEs7ovj8hFWpz7EV6mel0L9Xy23FMYlPYZenAx0yDB1/PX6dledmQjikjkXCxqMJS9WtfFCyH9XtSekEF+2dH+P4tzITduTygGfv58a5VCTH5PtXD7EFZiNyUDBhHnsFTBgE0SQIA9pfFtgo6cKGuhooeilaKH41eDs38Ip+f4At1Rq/sjr6NEwQqb/I/DQqsLvaFUjvAx+eWirddAJZnAj1DFJL0mSg/gcIpPkMBkhoyCSJ8lTZIxk0TpKDjXHliJzZPO50dR5ASNSnzeLvIvod0HG/mdkmOC0z8VKnzcQ2M/Yz2vKldduXjp9bleLu0ZWn7vWc+l0JGcaai10yNrUnXLP/8Jf59ewX+c3Wgz+B34Df+vbVrc16zTMVgp9um9bxEfzPU5kPqUtVWxhs6OiWTVW+gIfywB9uXi7CGcGW/zk98k/kmvJ95IfJn/j3uQ+4c5zn3Kfcd+AyF3gLnJfcl9xH3OfR2rUee80a+6vo7EK5mmXUdyfQlrYLTwoZIU9wsPCZEtP6BWGhAlhL3p2N6sTjRdduwbHsG9kq32sgBepc+xurLPW4T9URpYGJ3ym4+8zA05u44QjST8ZIoVtu3qE7fWmdn5LPdqvgcZz8Ww8BWJ8X3w0PhQ/wnCDGd+LvlHs8dRy6bLLDuKMaZ20tZrqisPJ5ONiCq8yKhYM5cCgKOu66Lsc0aYOtZdo5QCwezI4wm9J/v0X23mlZXOfBjj8Jzv3WrY5D+CsA9D7aMs2gGfjve8ArD6mePZSeCfEYt8CONWDw8FXTxrPqx/r9Vt4biXeANh8vV7/+/16ffMD1N8AuKD/A/8leAvFY9bLAAAAOGVYSWZNTQAqAAAACAABh2kABAAAAAEAAAAaAAAAAAACoAIABAAAAAEAAAA8oAMABAAAAAEAAAA8AAAAAKgXy2YAAASQSURBVGgF7ZpLSFRRGMfvOE91xjFfNc1MDqkLs4UgKj7QkQohWxdJLbRVJEXRKgisoFr0oEXSQhBahRuzVtFDRRGEbMQwYnoITRI6JOhMY6Pz6H/EK7eL07XpnuMk58LlPOee7/d93zn3+64KAr+4BrgGuAa4BrgGuAa4BrgGtokGqqur920lShrLxevr68/o9fqpiooKK8t1pWsxBY5Gox6tVruSmZl5XioEyzpT4MXFxdeA1ms0mosul8vEElRciynw1NTUsslkepufn69xOp1tohAsS6bABGxlZeW5w+Ew6XS6y2gyX1/LUrtkLQKblpbWgsPLmJOT4/X5fO9YysBcw4FA4OXMzIzV7/dbjEbjbZawZC3mwJOTkz9weJlh5Ztw7z14VblZQjMHJnAEGtc1Uodr3yIlq2tLgAnc+Ph4CK+ns7ByRW1t7f5tB1xWVmaG+x6UgoVCoQdoR7GXmVlZIxVAzToJLGw2Wx1c9hDuI7BkCcACcOWO0dHRR+JasO5J7OeHGHeOjY19FftplVSAAVEOCA8CjIWioqLMwsJCnd1uF5aWloTu7u7lSCTSOTw8fGMNSgPLBxFy9g8NDbXSAhWfS2sP2wsKChba2tqsDQ0NOgALCDQEi8UitLe3G+Lx+HUIICo7HovFWhFyHgf4DlEwWiUVYBxGZsCJQL/JbrVaycn8E16QLw7AxftRn8Pvrop9tEpawLsAbEgktNlsDsPlndJxWPkcLN9RV1dnkfarXacCDBgbgBNmQ8S1AeiQwpCDDH2dgG6W9qtd16n9QPI8uKwrIyMj4aOzs7MNUMpvwGQy+t6geIKbyBXFrfpFy8IOJPkJhQVwOuBc8gkjIyNPSR8Or1PyMbXaVIDhljv/BIw9LBgMhpKNIHBw3UH/3Y3G1Oij4tLhcHh3X19fCMk+eedqy8vLzVVVVeundlZWloDXUPFGAFDWPfRfgJXdsPjgRnP+pY+KhYPBoAtp4IHZ2dmW+fn5k4ODgxr0rcuJiCoIpdxf75BUAOkjTURlq8mFZEiVKhULezweP6Qj9+rV2NjY29XVdRRWXkZMbUDSTxTwUByXlXG4+ww8gEpCQcXCMgABIeMxADgmJiZ6e3p6BOzTKyRFlM8T24irDdgK2WL7vy6xN/cqAbjd7oGmpqYRpXnJjDOxsFQw7NHP0naCugtWfp9g7J+6mQNvRlq4vw3zPm5m7t/OSUlgvJqMuDfjCX/Ly/4jnpKE+LuTnszBwfZJaW4y4ylnYYScuwgI9vDXZICUfpNywHgH24nQCE7mlIRPZjzlgLF3XWsg8WSAlH6TcsAki8L9XUnwZMdTDhggJTiwviQLpPQ7KrG00qLycXIyI1k4nJ6efhpJRTPew9sTuLKy0om8+RL27Ym8vLwY0sis6enpsNfrfSxXilrtLbNwTU1NMb5FfygtLY3k5ubqkEEFBgYGlpA0RAD3Qi1A+XPWk3L5AM02/pOnBN+9vGQNuPI3fLx7BVd+hsNqCLE2NXemyaT4bHyObYJLrwYZipP5BK4BrgGuAa4BrgGuAa4BroH/QAO/AABOY3G0TUn6AAAAAElFTkSuQmCC" style="vertical-align:middle" width="60" height="60"><br>
+Dare</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th"><img src="data:image/png;base64,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" style="vertical-align:middle" width="60" height="60"><br>
+Currituck</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th"><img src="data:image/png;base64,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" style="vertical-align:middle" width="60" height="60"><br>
+Camden</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th"><img src="data:image/png;base64,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" style="vertical-align:middle" width="60" height="60"><br>
+Lincoln</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Convexity</td>
+<td style="text-align: center;">1.00</td>
+<td style="text-align: center;">0.74</td>
+<td style="text-align: center;">0.80</td>
+<td style="text-align: center;">0.99</td>
+<td style="text-align: center;">1.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Moment of inertia</td>
+<td style="text-align: center;">0.95</td>
+<td style="text-align: center;">0.23</td>
+<td style="text-align: center;">0.36</td>
+<td style="text-align: center;">0.32</td>
+<td style="text-align: center;">0.56</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Moment isotropy</td>
+<td style="text-align: center;">0.91</td>
+<td style="text-align: center;">0.19</td>
+<td style="text-align: center;">0.18</td>
+<td style="text-align: center;">0.04</td>
+<td style="text-align: center;">0.11</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Directional balance</td>
+<td style="text-align: center;">1.00</td>
+<td style="text-align: center;">0.79</td>
+<td style="text-align: center;">0.90</td>
+<td style="text-align: center;">0.95</td>
+<td style="text-align: center;">0.99</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Span</td>
+<td style="text-align: center;">0.98</td>
+<td style="text-align: center;">0.54</td>
+<td style="text-align: center;">0.64</td>
+<td style="text-align: center;">0.61</td>
+<td style="text-align: center;">0.79</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Radial concentration</td>
+<td style="text-align: center;">0.98</td>
+<td style="text-align: center;">0.60</td>
+<td style="text-align: center;">0.65</td>
+<td style="text-align: center;">0.61</td>
+<td style="text-align: center;">0.79</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Depth</td>
+<td style="text-align: center;">0.89</td>
+<td style="text-align: center;">0.60</td>
+<td style="text-align: center;">0.37</td>
+<td style="text-align: center;">0.51</td>
+<td style="text-align: center;">0.68</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Hull ratio</td>
+<td style="text-align: center;">1.00</td>
+<td style="text-align: center;">0.26</td>
+<td style="text-align: center;">0.55</td>
+<td style="text-align: center;">0.86</td>
+<td style="text-align: center;">0.99</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Polsby-Popper</td>
+<td style="text-align: center;">0.79</td>
+<td style="text-align: center;">0.08</td>
+<td style="text-align: center;">0.10</td>
+<td style="text-align: center;">0.34</td>
+<td style="text-align: center;">0.58</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Width-length ratio</td>
+<td style="text-align: center;">0.99</td>
+<td style="text-align: center;">0.45</td>
+<td style="text-align: center;">0.96</td>
+<td style="text-align: center;">0.76</td>
+<td style="text-align: center;">0.37</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Reock</td>
+<td style="text-align: center;">0.63</td>
+<td style="text-align: center;">0.09</td>
+<td style="text-align: center;">0.17</td>
+<td style="text-align: center;">0.17</td>
+<td style="text-align: center;">0.34</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Detour</td>
+<td style="text-align: center;">0.89</td>
+<td style="text-align: center;">0.41</td>
+<td style="text-align: center;">0.56</td>
+<td style="text-align: center;">0.60</td>
+<td style="text-align: center;">0.77</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Exchange</td>
+<td style="text-align: center;">0.91</td>
+<td style="text-align: center;">0.65</td>
+<td style="text-align: center;">0.51</td>
+<td style="text-align: center;">0.45</td>
+<td style="text-align: center;">0.62</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>Caswell</strong> is the baseline: a simple, nearly-rectangular Piedmont county with no natural features at the boundary. The county is created from bisecting Orange county and then again to form Caswell adn Pearson. Convexity, hull ratio, and width-length ratio are all at or near 1. Even here, Reock only reaches 0.63 (a perfect square’s Reock score is exactly <span class="math inline">\(2/\pi \approx 0.637\)</span>).Truly, disk shaped counties are hard to come by and Reock penalised any deviation from the circle much more heavily than other indices.</p>
+<p><strong>Dare and Currituck</strong> are the opposite extreme - Outer Banks counties where a compact mainland piece connects to a long barrier-island strip only across open sound water. Every index except one recognises this as badly shaped: convexity 0.74/0.80, hull ratio 0.26/0.55, Polsby-Popper as low as 0.10 for Currituck.</p>
+<p>On the other hand, <code>width_length_ratio</code> disagrees sharply: 0.45 for Dare and a nearly perfect 0.96 for Currituck - because the combined bounding box of a mainland piece plus an offshore strip happens to come out roughly square, exactly the multi-part blind spot documented on that index: only outer bounding box is considered for this index. <code>directional_balance_index</code> also flags them, and does so more sharply than almost anything else in the dataset: Dare’s 0.794 and Currituck’s 0.896 are the lowest and second-lowest of all 100 counties. That’s exactly the shape this index is built to catch: a compact mainland body plus a strip of barrier-island mass reaching out in essentially one direction only, unlike the symmetric-dumbbell blind spot described in its own vignette (<code>vignette("g-understanding-directional-balance-index")</code>), where a similar two-piece shape can score perfectly <em>if</em> the second piece reaches out in the opposite direction instead.</p>
+<p><strong>Camden</strong> is the classic split: convexity 0.99, essentially convex, no real notches for a line to cross. But moment of inertia is only 0.320, and span/radial concentration agree (0.61/0.61): Camden is a long, narrow diagonal sliver, and convexity/ MOI/span/radial-concentration agree broadly. On the other hand, <code>moment_isotropy_index</code> isolates that elongation directly and puts a sharp number on it: 0.036, the lowest of these five counties - Camden’s own principal moments differ by roughly 27-to-1.</p>
+<p><strong>Lincoln</strong> sharpens that same point with no boundary complexity at all involved: convexity is a perfect 1.00 and hull ratio 0.99. Yet Reock is 0.34, width-length ratio 0.37, and moment isotropy 0.11; all three elongation-sensitive measures still penalise it for being stretched, each via a different route (bounding circle, bounding box, mass tensor). <strong>Convex and compact are different properties</strong>, and a shape can score perfectly on one while scoring poorly on the other.</p>
+</section>
+<section id="how-do-the-indices-relate-to-each-other" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> How do the indices relate to each other?</h1>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="j-nc-counties-comparison_files/figure-html/nc-corr-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Across these 100 counties, the indices condense into three primary behaviors rather than a single continuum, dominated by whether they respond to elongation or boundary shape. The core <strong>Elongation Cluster</strong>—comprising Moment of Inertia (MOI), span, radial concentration, and Reock—behaves almost interchangeably (0.99 to 1.00), as county-level elongation swamps the theoretical differences between their formulas. Sub-measures fold into this group via distinct mechanics: <code>exchange_index</code> reads elongation via area overlap (0.96 with MOI), <code>detour_index</code> captures hull-level stretching (0.94 with span), and <code>depth_index</code> aligns with boundary complexity (0.93 with Polsby-Popper). Moment isotropy belongs to this family but sits slightly apart (0.74 with MOI) because it isolates pure axis elongation, remaining structurally blind to dispersal or boundary noise.</p>
+<p><strong>Convexity and hull ratio</strong> form a second, distinct cluster (0.84) that isolates concave boundary departures while ignoring elongation entirely. The near-zero correlation between moment isotropy and convexity (0.24) provides clean empirical proof that elongation and concavity are independent structural properties on real geography rather than redundant descriptions. Similarly, directional balance tracks first-harmonic bearing preference rather than axis shape; its weak tie to moment isotropy (0.46) confirms that bearing preference and mass-distribution symmetry operate as independent axes despite both belonging to the elongation-adjacent family.</p>
+<p>Connecting these groups, <strong>Polsby-Popper</strong> acts as a hybrid bridge between the convexity and elongation clusters (0.90 with hull ratio; 0.84 with MOI) because perimeter length is inherently inflated by both boundary roughness and stretched geometries. Standing alone as a complete outlier, <strong><code>width_length_ratio_index</code></strong> registers its highest—yet still weak—correlation with moment isotropy (0.55) and Reock (0.41). While this weak alignment suggests bounding-box and mass-distribution elongation tap into a similar underlying signal, bounding-box sensitivity to orientation and multi-part geometries leaves <code>width_length_ratio_index</code> isolated from every other index in the dataset (0.20 to 0.37 across depth, detour, and exchange).</p>
+</section>
+<section id="weighting-a-collection-the-triangle-counties-by-population" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Weighting a collection: the Triangle counties by population</h1>
+<p><code>shape_indices_sf(byrow = FALSE)</code> treats a whole collection of rows as sub-polygons of one weighted shape (see <code>vignette("a-basic-usage")</code> for the mechanics). Wake, Durham, Orange, and Chatham counties (the Research Triangle) are geographically contiguous. Only the six mesh-based indices have a genuine weighted form worth comparing this way.</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th"></th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">convexity_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">moment_of_inertia_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">moment_isotropy_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">directional_balance_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">span_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">radial_concentration_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">total_weight</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">weighted by area</td>
+<td style="text-align: right;">0.98</td>
+<td style="text-align: right;">0.82</td>
+<td style="text-align: right;">0.51</td>
+<td style="text-align: right;">0.98</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">5811314465</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">weighted by births</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">0.70</td>
+<td style="text-align: right;">0.64</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">0.85</td>
+<td style="text-align: right;">0.85</td>
+<td style="text-align: right;">27264</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Weighted by each county’s own area (<code>weights = NULL</code>, the default), the four-county union scores convexity 0.983 and MOI 0.815. Switching the weight to 1974 births, so that Wake dominates in one part of the union, moves MOI, span, and radial concentration all <em>down</em> together (0.697, 0.849, 0.852). Convexity moves the other way, slightly <em>up</em> (0.990). It does not depend on where the centre of mass is at all and therefore behaves as expected.</p>
+<p>Reweighting the mesh by population reveals that moment isotropy and directional balance capture fundamentally different spatial mechanisms when mass shifts toward a dominant county like Wake. <strong>Moment isotropy moves up</strong> (0.507 to 0.643), shifting opposite to MOI, span, and radial concentration. This isn’t a contradiction: while center-relative metrics penalize how far mass drifts from the union’s geometric middle, moment isotropy evaluates only the <em>shape</em> of the distribution around its own center—concentrating weight into Wake (a relatively round county within a long four-county strip) makes the core mass footprint more isotropic even as its center drifts. Conversely, <strong>directional balance moves down</strong> (0.984 to 0.960), tracking alongside MOI and span because shifting weight toward Wake creates an asymmetric angular pull from the new centroid. Moment isotropy acts as the lone outlier here precisely because it ignores center-relative displacement, proving it operates as an independent axis rather than a redundant metric. <em>(Note: <code>total_weight</code> reflects raw area in <span class="math inline">\(m^2\)</span> versus total births, so row totals represent different scales).</em></p>
+</section>
+<section id="conclusion" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Conclusion</h1>
+<p>No single shape index here is redundant: real-world geographies split metrics into distinct structural behaviors rather than a simple continuum. While Moment of Inertia (MOI), span, and radial concentration cluster tightly around overall elongation, measures like convexity and hull ratio track a fundamentally different property—concavity—explaining why a shape can be nearly convex (e.g., Lincoln) while scoring poorly on circle-referenced compactness. Moment isotropy sits loosely in the elongation group but acts as an independent axis: it is virtually immune to boundary concavity and can shift in the opposite direction from its cluster under population reweighting because it ignores centroid offset entirely, evaluating only the symmetry of the mass footprint itself.</p>
+<p>Directional balance is about angular bearing preference (whether mass leans toward one direction) rather than axis preference (whether mass aligns along a line), yielding a remarkably weak correlation with moment isotropy (0.46). Under mesh reweighting, directional balance aligns with MOI and span because all three respond to centroid-relative mass drift—making it uniquely sensitive to split geometries like Dare and Currituck’s mainland-and-barrier-island shapes. Ultimately, width_length_ratio_index remains an extreme outlier capturing little of what the other twelve indices measure, proving that population-weighting doesn’t just tweak scores—it fundamentally alters which spatial property each index reveals.</p>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>It is probably useful to think about the history of how the shapes came to be and how they changed over time: see Kelly, S. R. 2015. “The Boundary Hunters Uncovering North Carolina’s Lost Borders.” Technology. The Atlantic, October 6. https://www.theatlantic.com/technology/archive/2015/10/north-carolina-lost-county-lines/409090/.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

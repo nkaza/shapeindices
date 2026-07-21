@@ -1,0 +1,18 @@
+url: https://nkaza.github.io/shapeindices/
+template:
+  bootstrap: 5
+articles:
+- title: Articles
+  navbar: ~
+  contents:
+  - a-basic-usage
+  - b-understanding-convexity-index
+  - c-understanding-moment-of-inertia-index
+  - d-understanding-span-index
+  - e-understanding-radial-concentration-index
+  - f-understanding-moment-isotropy-index
+  - g-understanding-directional-balance-index
+  - h-understanding-depth-index
+  - i-understanding-classical-indices
+  - j-nc-counties-comparison
+

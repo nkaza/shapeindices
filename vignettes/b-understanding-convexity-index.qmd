@@ -1,0 +1,777 @@
+---
+title: "2. Understanding Convexity Index"
+author: "Nikhil Kaza"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    number-sections: true
+    theme: flatly
+vignette: >
+  %\VignetteIndexEntry{2. Understanding Convexity Index}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                       fig.align = "center", cache = TRUE)
+```
+
+```{r load, cache=FALSE, echo=TRUE}
+#| code-fold: true
+library(shapeindices)
+library(sf)
+library(ggplot2)
+library(stringr)
+
+theme_set(theme_minimal(base_size = 11))
+theme_gallery <- theme_void(base_size = 10) +
+  theme(strip.text = element_text(size = 9, face = "bold"),
+        legend.position = "bottom")
+
+# defined here (quietly) so every inline `r CI_DETERMINISTIC_MAX_TRI` /
+# ci_auto() reference resolves regardless of where in the prose it first
+# appears - re-shown, deliberately identical, in "The convexity index"
+# section below for readers, since inline code is evaluated in document
+# order and a chunk further down the file is too late for text that
+# references it earlier
+CI_DETERMINISTIC_MAX_TRI <- 25
+ci_auto <- function(poly, prep = NULL) {
+  if (is.null(prep)) prep <- prepare_polygon(poly)
+  n_tri <- if (is.null(prep$tri)) 0 else nrow(prep$tri)
+  deterministic <- n_tri <= CI_DETERMINISTIC_MAX_TRI
+  # n_quad isn't passed explicitly - convexity_index()'s own default is
+  # n_quad = 3, so the deterministic = TRUE branch here already gets the
+  # quadrature refinement without asking for it
+  res <- suppressWarnings(convexity_index(poly, deterministic = deterministic,
+                                           n_lines = 5000, prep = prep))
+  res$deterministic_used <- deterministic
+  res
+}
+```
+
+```{r shapes, echo=TRUE}
+#| code-fold: true
+square <- st_polygon(list(rbind(c(0,0), c(10,0), c(10,10), c(0,10), c(0,0))))
+
+c_shape <- st_polygon(list(rbind(
+  c(0,0), c(10,0), c(10,10), c(0,10), c(0,7), c(7,7),
+  c(7,3), c(0,3), c(0,0))))
+
+# turtle-graphics path: turn by a fixed angle each step, optionally growing
+# the step length - the basis for the spiral below.
+make_turtle_path <- function(n_steps, angle_deg, step0 = 1, step_growth = 0) {
+  angle <- 0
+  pos   <- c(0, 0)
+  pts   <- matrix(pos, ncol = 2)
+  step  <- step0
+  for (i in seq_len(n_steps)) {
+    angle <- angle + angle_deg * pi / 180
+    pos   <- pos + step * c(cos(angle), sin(angle))
+    pts   <- rbind(pts, pos)
+    step  <- step + step_growth
+  }
+  st_linestring(pts)
+}
+
+# spiral: a turtle spiral (fixed turn angle, growing step length) buffered
+# into a thick corridor - a single spiral notch instead of many small ones.
+spiral <- st_buffer(
+  make_turtle_path(n_steps = 48, angle_deg = 24, step0 = 0.35, step_growth = 0.09),
+  dist = 0.35, endCapStyle = "FLAT", joinStyle = "MITRE", mitreLimit = 3
+)
+
+# maze: a proper grid maze (recursive-backtracker, like a Pac-Man board),
+# rendered as blocky corridors - lots of turns, branches and dead ends,
+# unlike the spiral's single winding path.
+make_maze <- function(n_rows = 6, n_cols = 6, cell = 1, corridor = 0.6, seed = 1) {
+  set.seed(seed)
+  visited    <- matrix(FALSE, n_rows, n_cols)
+  open_right <- matrix(FALSE, n_rows, n_cols)
+  open_down  <- matrix(FALSE, n_rows, n_cols)
+
+  # recursive backtracker: carve a spanning-tree maze by random depth-first
+  # search, tracking the path on a stack so it can back up at dead ends
+  stack <- matrix(c(1L, 1L), ncol = 2)
+  visited[1, 1] <- TRUE
+  while (nrow(stack) > 0) {
+    r <- stack[nrow(stack), 1]; cc <- stack[nrow(stack), 2]
+    cand <- list()
+    if (r > 1      && !visited[r - 1, cc]) cand[[length(cand) + 1]] <- c(r - 1L, cc, 1L)
+    if (r < n_rows && !visited[r + 1, cc]) cand[[length(cand) + 1]] <- c(r + 1L, cc, 2L)
+    if (cc > 1     && !visited[r, cc - 1]) cand[[length(cand) + 1]] <- c(r, cc - 1L, 3L)
+    if (cc < n_cols && !visited[r, cc + 1]) cand[[length(cand) + 1]] <- c(r, cc + 1L, 4L)
+    if (length(cand) == 0) {
+      stack <- stack[-nrow(stack), , drop = FALSE]   # dead end: backtrack
+    } else {
+      pick <- cand[[sample.int(length(cand), 1)]]
+      nr <- pick[1]; nc <- pick[2]; dir <- pick[3]
+      if (dir == 1) open_down[nr, cc] <- TRUE
+      if (dir == 2) open_down[r, cc]  <- TRUE
+      if (dir == 3) open_right[r, nc] <- TRUE
+      if (dir == 4) open_right[r, cc] <- TRUE
+      visited[nr, nc] <- TRUE
+      stack <- rbind(stack, c(nr, nc))
+    }
+  }
+
+  # render cells as squares and carved openings as connecting bridges, then
+  # union into one blocky corridor polygon
+  half <- corridor / 2
+  make_square <- function(cx, cy) st_polygon(list(rbind(
+    c(cx - half, cy - half), c(cx + half, cy - half),
+    c(cx + half, cy + half), c(cx - half, cy + half), c(cx - half, cy - half)
+  )))
+  make_bridge <- function(cx1, cy1, cx2, cy2) {
+    xr <- range(cx1, cx2); yr <- range(cy1, cy2)
+    st_polygon(list(rbind(
+      c(xr[1] - half, yr[1] - half), c(xr[2] + half, yr[1] - half),
+      c(xr[2] + half, yr[2] + half), c(xr[1] - half, yr[2] + half),
+      c(xr[1] - half, yr[1] - half)
+    )))
+  }
+
+  pieces <- list()
+  for (r in seq_len(n_rows)) for (cc in seq_len(n_cols)) {
+    cx <- cc * cell; cy <- -r * cell
+    pieces[[length(pieces) + 1]] <- make_square(cx, cy)
+    if (open_right[r, cc]) pieces[[length(pieces) + 1]] <- make_bridge(cx, cy, cx + cell, cy)
+    if (open_down[r, cc])  pieces[[length(pieces) + 1]] <- make_bridge(cx, cy, cx, cy - cell)
+  }
+  st_union(st_sfc(pieces))[[1]]
+}
+maze <- make_maze()
+
+# combs: a base bar with several thin rectangular teeth - many deep,
+# straight-sided notches rather than the stars' angled ones.
+make_comb <- function(n_teeth = 6, base_height = 1, tooth_width = 0.6,
+                       tooth_gap = 0.6, tooth_height = 4) {
+  total_width <- n_teeth * tooth_width + (n_teeth - 1) * tooth_gap
+  base <- st_polygon(list(rbind(
+    c(0, 0), c(total_width, 0), c(total_width, base_height), c(0, base_height), c(0, 0)
+  )))
+  teeth <- lapply(seq_len(n_teeth) - 1, function(i) {
+    x0 <- i * (tooth_width + tooth_gap)
+    st_polygon(list(rbind(
+      c(x0, base_height), c(x0 + tooth_width, base_height),
+      c(x0 + tooth_width, base_height + tooth_height), c(x0, base_height + tooth_height),
+      c(x0, base_height)
+    )))
+  })
+  st_union(st_sfc(c(list(base), teeth)))[[1]]
+}
+comb <- make_comb()
+
+make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
+  n <- n_points * 2
+  angles <- seq(pi/2, pi/2 + 2*pi, length.out = n + 1)[1:n]
+  radii  <- rep(c(r_outer, r_inner), n_points)
+  x <- center[1] + radii * cos(angles)
+  y <- center[2] + radii * sin(angles)
+  coords <- rbind(cbind(x, y), c(x[1], y[1]))
+  st_polygon(list(coords))
+}
+
+n_seq     <- c(3, 4, 5, 6, 8, 10, 15, 20)
+stars_n   <- lapply(n_seq, make_star, r_outer = 1, r_inner = 0.5)
+names(stars_n) <- sprintf("n = %d", n_seq)
+
+ratio_seq <- c(0.9, 0.7, 0.5, 0.3, 0.15, 0.05)
+stars_r   <- lapply(ratio_seq, function(r) make_star(6, 1, r))
+names(stars_r) <- sprintf("ratio = %.2f", ratio_seq)
+
+# urchin: like make_star, but arms can be irregularly spaced (jitter_frac > 0)
+# and/or have different lengths (r_outer as a vector, one entry per arm)
+# rather than evenly spaced and equal - used to isolate symmetry from notch
+# depth/count, since make_star's evenly-spaced, equal-length arms always
+# have an exact opposite.
+make_urchin <- function(n_arms, r_outer = 1, r_inner = 0.02, jitter_frac = 0, seed = 1) {
+  set.seed(seed)
+  n <- n_arms * 2
+  base_angles <- seq(0, 2 * pi, length.out = n + 1)[1:n]
+  jitter <- if (jitter_frac > 0) runif(n, -jitter_frac, jitter_frac) * (2 * pi / n) else 0
+  angles <- base_angles + jitter
+  radii <- numeric(n)
+  radii[seq(1, n, by = 2)] <- rep(r_outer, length.out = n_arms)
+  radii[seq(2, n, by = 2)] <- r_inner
+  x <- radii * cos(angles); y <- radii * sin(angles)
+  coords <- rbind(cbind(x, y), c(x[1], y[1]))
+  st_polygon(list(coords))
+}
+
+# even vs odd arm count, same (matched) notch depth, equal-length arms and no
+# angular jitter - isolates the effect of an exact opposite arm existing or not
+urchin_even <- make_urchin(8, r_inner = 0.03, jitter_frac = 0)
+urchin_odd  <- make_urchin(7, r_inner = 0.03, jitter_frac = 0)
+
+# irregular arm angles (no exact opposites at all) plus a much deeper notch -
+# used later to show that symmetry, not notch depth, was the floor
+urchin_asym <- make_urchin(17, r_inner = 0.004, jitter_frac = 0.35, seed = 3)
+
+# evenly-spaced angles (like make_star) but a different length per arm - a
+# distinct kind of asymmetry from urchin_asym's irregular angles
+urchin_varylen <- make_urchin(7, r_outer = c(1, 0.55, 1.3, 0.7, 1.15, 0.6, 0.9), r_inner = 0.15)
+
+# organic irregular polygon: random radius at each of a set of sorted angles
+# around a centre - no repeating angular unit at all, structurally distinct
+# from the whole star/urchin family
+make_blob <- function(n_vertices = 12, seed = 1, roughness = 0.75) {
+  set.seed(seed)
+  angles <- sort(runif(n_vertices, 0, 2 * pi))
+  radii  <- 1 + roughness * (runif(n_vertices) - 0.5) * 2
+  x <- radii * cos(angles); y <- radii * sin(angles)
+  coords <- rbind(cbind(x, y), c(x[1], y[1]))
+  st_polygon(list(coords))
+}
+blob <- make_blob(12, seed = 3, roughness = 0.75)
+
+star_demo <- make_star(6, 1, 0.3)   # used later in the diagnostic-figure gallery
+hexagon_demo <- make_star(6, 1, 1)
+# a family of shapes that are ALL convex, so any drop in convexity_index
+# below 1 here would be a bug, not a feature - these isolate "shape"
+# (elongation, vertex count) from "boundary complexity" (notches)
+basic_shapes <- list(
+  "square"             = square,
+  "rectangle 10x2"     = st_polygon(list(rbind(c(0,0), c(10,0), c(10,2), c(0,2), c(0,0)))),
+  "rectangle 20x1"     = st_polygon(list(rbind(c(0,0), c(20,0), c(20,1), c(0,1), c(0,0)))),
+  "triangle"           = st_polygon(list(rbind(c(0,0), c(10,0), c(5,10), c(0,0)))),
+  "regular hexagon"    = make_star(6, 1, 1),   # ratio = 1 -> no notch -> regular polygon
+  "near-circle"        = st_buffer(st_sfc(st_point(c(0, 0))), dist = 5, nQuadSegs = 30)[[1]]
+)
+
+make_square_with_hole <- function(outer_half = 5, hole_frac = 0) {
+  outer <- rbind(c(-outer_half, -outer_half), c(outer_half, -outer_half),
+                 c(outer_half,  outer_half),  c(-outer_half,  outer_half),
+                 c(-outer_half, -outer_half))
+  if (hole_frac <= 0) return(st_polygon(list(outer)))
+  hh <- outer_half * sqrt(hole_frac)   # so hole area / outer area == hole_frac
+  hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
+  st_polygon(list(outer, hole))
+}
+
+hole_fracs <- c(0, 0.1, 0.3, 0.5, 0.7)
+holes      <- lapply(hole_fracs, function(hf) make_square_with_hole(hole_frac = hf))
+names(holes) <- sprintf("hole = %.0f%%", 100 * hole_fracs)
+
+hole_demo <- make_square_with_hole(5, 0.3)   # used later in the diagnostic-figure gallery
+
+make_dispersed <- function(gap) {
+  if (gap <= 0) {
+    return(st_polygon(list(rbind(c(0,0), c(6,0), c(6,6), c(0,6), c(0,0)))))
+  }
+  r1 <- rbind(c(0, 0), c(3, 0), c(3, 6), c(0, 6), c(0, 0))
+  r2 <- rbind(c(3 + gap, 0), c(6 + gap, 0), c(6 + gap, 6), c(3 + gap, 6), c(3 + gap, 0))
+  st_multipolygon(list(list(r1), list(r2)))
+}
+
+gaps <- c(0, 0.5, 1, 2, 4, 8)
+disp <- lapply(gaps, make_dispersed)
+names(disp) <- sprintf("gap = %.1f", gaps)
+
+dispersed_demo <- make_dispersed(2)   # used later in the diagnostic-figure gallery
+
+# the same (non-convex) shape at different absolute sizes, to check that
+# convexity_index() is scale-invariant
+size_factors <- c(1, 3, 10)
+size_shapes  <- lapply(size_factors, function(f) c_shape * f)
+names(size_shapes) <- sprintf("%gx", size_factors)
+
+# rasterize any target polygon: keep every grid cell whose centre falls
+# inside it, then union the cells - a faithful stand-in for what you get
+# from vectorizing a raster/classification mask, without needing a raster
+# package at all.
+rasterize_polygon <- function(target, cell = 1) {
+  target_sfc <- st_sfc(target)
+  bb <- st_bbox(target_sfc)
+  xs <- seq(bb["xmin"] + cell / 2, bb["xmax"], by = cell)
+  ys <- seq(bb["ymin"] + cell / 2, bb["ymax"], by = cell)
+  g   <- expand.grid(x = xs, y = ys)
+  pts <- st_as_sf(g, coords = c("x", "y"))
+  keep <- lengths(st_intersects(pts, target_sfc)) > 0
+  g <- g[keep, , drop = FALSE]
+  if (nrow(g) == 0) return(NULL)   # cell too big relative to target: no cell centres fall inside
+
+  half <- cell / 2
+  make_cell <- function(cx, cy) {
+    st_polygon(list(rbind(
+      c(cx - half, cy - half), c(cx + half, cy - half),
+      c(cx + half, cy + half), c(cx - half, cy + half),
+      c(cx - half, cy - half)
+    )))
+  }
+  cells <- mapply(make_cell, g$x, g$y, SIMPLIFY = FALSE)
+  st_union(st_sfc(cells))[[1]]
+}
+
+make_rotated_rect <- function(width = 14, height = 8, angle = 20, center = c(0, 0)) {
+  ang <- angle * pi / 180
+  corners <- rbind(c(-width/2, -height/2), c(width/2, -height/2),
+                    c(width/2,  height/2), c(-width/2,  height/2),
+                    c(-width/2, -height/2))
+  rot <- matrix(c(cos(ang), sin(ang), -sin(ang), cos(ang)), 2, 2)
+  corners <- sweep(corners %*% rot, 2, center, "+")
+  st_polygon(list(corners))
+}
+
+# the three "true" (un-pixelated) shapes we'll rasterize at several
+# resolutions: a smooth circle, a 6-point star, and a rectangle deliberately
+# rotated relative to the pixel grid (an axis-aligned rectangle would
+# rasterize with perfectly straight edges and defeat the point - real-world
+# footprints are almost never grid-aligned either).
+raster_targets <- list(
+  circle    = st_buffer(st_sfc(st_point(c(0, 0))), dist = 8, nQuadSegs = 30)[[1]],
+  star      = make_star(6, r_outer = 8, r_inner = 4),
+  rectangle = make_rotated_rect(width = 14, height = 8, angle = 20)
+)
+
+# each true shape, rasterized at several different grid-cell sizes -
+# "levels of pixellation" from coarse to fine. Chosen wide enough (4 down to
+# 0.25, against shapes ~16 units across) to actually separate the coarse and
+# fine ends - a narrower sweep (e.g. cell = 1 vs 0.5) barely moves the index
+# at all, which is exactly the "pixelation doesn't seem to matter" trap this
+# section exists to correct.
+res_levels <- c(4, 1, 0.25)
+raster_by_res <- lapply(raster_targets, function(target) {
+  r <- lapply(res_levels, function(cell) rasterize_polygon(target, cell = cell))
+  names(r) <- sprintf("cell = %s", res_levels)
+  r
+})
+```
+
+# Introduction
+
+This tutorial covers a shape index called `convexity_index` (CI). A polygon is convex when a line between any two interior points never crosses its boundary. CI turns that into a continuous measure: what fraction of such lines stay entirely inside?
+
+In practice: build a **constrained Delaunay triangulation (CDT)**, draw a line between every pair of triangle representative points, and take the area-weighted fraction that stays inside. A score of 1 means every line stayed inside; a single convex blob. The sections below show where the index gets this wrong and compare it to indices from the literature.
+
+This construction - the probability that a random pair of interior points stays connected by a straight line - matches the convexity measure introduced by Zunic & Rosin (2004).[^zunic-rosin] Two comparison indices recur throughout this tutorial: `moment_of_inertia_index` (roundness, not convexity) and `hull_ratio_index` (a simpler, more boundary-sensitive convexity proxy) - both introduced in full below.
+
+The rest of the tutorial works through how shape features affect CI: boundary complexity, overall shape, size, symmetry, holes, multi-part polygons, raster resolution. These are the properties that matter for choosing a shape indicator that holds up on real data.
+
+[^zunic-rosin]: Zunic, J., & Rosin, P. L. (2004). A New Convexity Measure for Polygons. *IEEE Transactions on Pattern Analysis and Machine Intelligence*, 26(7), 923-934.
+
+# Constrained Delaunay triangulation
+
+"Delaunay triangulation" converts a set of *points* into well-shaped triangles, using the empty-circumcircle property to avoid long, sliver-shaped ones. Applied naively to a polygon's vertices, it will happily fill in triangles across holes and gaps, since it only sees points, not edges.
+
+A **constrained** Delaunay triangulation (CDT) instead treats the polygon's edges and hole boundaries as constraints every triangle must respect. The triangulation covers exactly the polygon's true interior, as shown below.
+
+```{r cdt-helper}
+cdt_compare_plot <- function(poly, subtitle = "") {
+  title_a <- "Unconstrained Delaunay\n(only sees the points)"
+  title_b <- "Constrained Delaunay (CDT)\n(respects the boundary)"
+
+  verts         <- st_cast(st_geometry(poly), "MULTIPOINT")
+  unconstrained <- st_collection_extract(st_triangulate(verts), "POLYGON", warn = FALSE)
+  constrained   <- st_geometry(cdt_triangles(poly))
+
+  poly_df <- rbind(
+    st_sf(method = title_a, color = "black", fill = NA,        geometry = st_sfc(poly)),
+    st_sf(method = title_b, color = "black", fill = "grey92",  geometry = st_sfc(poly))
+  )
+  tri_df <- rbind(
+    st_sf(method = title_a, color = "firebrick", fill = NA,        geometry = unconstrained),
+    st_sf(method = title_b, color = "steelblue", fill = "lightblue", geometry = constrained)
+  )
+  poly_df$method <- factor(poly_df$method, levels = c(title_a, title_b))
+  tri_df$method  <- factor(tri_df$method,  levels = c(title_a, title_b))
+
+  ggplot() +
+    geom_sf(data = poly_df, aes(color = color, fill = fill), linewidth = 0.9) +
+    geom_sf(data = tri_df,  aes(color = color, fill = fill), linewidth = 0.3) +
+    scale_color_identity() +
+    scale_fill_identity() +
+    facet_wrap(~ method) +
+    labs(title = subtitle) +
+    theme_gallery
+}
+```
+
+```{r cdt-vs-unconstrained, fig.width=10, fig.height=5}
+cdt_compare_plot(c_shape, "C-shaped polygon")
+```
+
+
+# The convexity index
+
+**Definition.** For a mass distribution with density $\rho$ and total mass $W = \int_P \rho$, let $s, t \in P$ be two independent points drawn from $\rho/W$, and let $f(s,t) \in [0,1]$ be the fraction of the segment $\overline{st}$ lying outside $P$ - a purely geometric quantity fixed by $P$'s own shape, independent of $\rho$. (Here $s$ and $t$ are whole points of the polygon $P$, not scalar coordinates.) Define
+
+$$\text{CI}(\rho) = 1 - \mathbb{E}[f(s,t)] = 1 - \frac{1}{W^2}\iint_{P \times P} \rho(s)\,\rho(t)\,f(s,t)\; ds\, dt$$
+
+Unweighted, $\rho$ is just $P$'s own indicator function and $W = A$ (area) - not a different definition, just $\rho \equiv 1$ on $P$. $\text{CI} = 1$ exactly when $P$ is convex, since every interior segment then stays inside ($f \equiv 0$ on all of $P \times P$). It falls as more of $\rho(s)\rho(t)$'s mass sits on point pairs with $f$ near 1.
+
+**Decomposition.** Triangulate $P$ (constrained Delaunay triangulation, CDT) into triangles $T_1, \dots, T_n$, and let $\rho$ be piecewise-constant, $\rho \equiv \rho_i$ on $T_i$; write $w_i = \rho_i \cdot \text{area}(T_i)$ for that triangle's own mass ($w_i = \text{area}(T_i)$ exactly, unweighted - `convexity_index()`'s own `weight` argument is literally this $w_i$). Splitting the double integral by triangle,
+
+$$\iint_{P \times P} \rho(s)\rho(t)\,f(s,t)\,ds\,dt = \sum_{i=1}^n \sum_{j=1}^n w_i w_j\, g_{ij}, \qquad g_{ij} = \frac{1}{\text{area}(T_i)\,\text{area}(T_j)}\iint_{T_i \times T_j} f(s,t)\, ds\, dt$$
+
+This is exact; no approximation yet, and no assumption about $\rho$ beyond piecewise-constant. Two facts about $f$ - not $\rho$ - simplify it further, also exactly. First, $g_{ii} = 0$: every $T_i$ is convex, so a segment between two of its own points never leaves it, regardless of how $\rho$ weights $T_i$. Second, $g_{ij} = g_{ji}$, since $f$ is symmetric in its arguments. The double sum over all $n^2$ ordered pairs therefore collapses to a sum over the $\binom{n}{2}$ unordered pairs with $i \ne j$, each counted twice:
+
+$$\sum_{i,j} w_i w_j\, g_{ij} = \sum_{i \ne j} w_i w_j\, g_{ij} = 2\sum_{i<j} w_i w_j\, g_{ij}$$
+
+Expanding $W^2 = \big(\sum_i w_i\big)^2 = \sum_i w_i^2 + 2\sum_{i<j} w_i w_j$ splits the denominator the same way, so, exactly,
+
+$$\text{CI}(\rho) = 1 - \frac{\sum_{i<j} w_i w_j\, g_{ij}}{\tfrac{1}{2}\sum_i w_i^2 \;+\; \sum_{i<j} w_i w_j} = 1 - \frac{\sum_{i<j} w_i w_j\, g_{ij}}{W^2/2}$$
+
+The $\tfrac{1}{2}\sum_i w_i^2$ term isn't a correction bolted on afterward - it's just the diagonal of $W^2 = \iint_{P \times P} \rho(s)\rho(t)\,ds\,dt$, falling out of the general formula automatically: $g_{ii}=0$ zeroes it out of the numerator, but it was never weighted by $f$ in the denominator to begin with. This is a cleaner situation than `moment_of_inertia_index()`'s or `span_index()`'s own weighted references, where the analogous same-piece term is a genuine positive quantity needing its own numerical treatment - here it vanishes from the numerator exactly, because $f$ itself is identically zero on the diagonal, not because some optimal-arrangement argument makes it negligible.
+
+**Estimation.** The only approximation is in $g_{ij}$ itself, and it never depends on $\rho$ or $w_i$ at all - a double integral over $T_i \times T_j$ with no closed form in general. `convexity_index()` estimates it as $\hat g_{ij}$ by placing $q$ quadrature points in each triangle. The default, $q = 3$, is a Hammer-Stroud rule at barycentric coordinates $(2/3, 1/6, 1/6)$ and its two permutations rather than $q = 1$ at the centroid alone; it connects all $q^2$ point-pairs between $T_i$ and $T_j$ and averages the fraction of each segment's length outside $P$. Substituting $\hat g_{ij}$ for $g_{ij}$ gives the computed index
+
+$$\widehat{\text{CI}}(\rho) = 1 - \frac{\sum_{i<j} w_i w_j\, \hat g_{ij}}{W^2/2}$$
+
+Larger $q$ makes $\hat g_{ij}$ a better estimate of $g_{ij}$: $q=1$ is a coarse stand-in for the integral (one point per triangle), $q=3$ closes most of that gap, at roughly 9x the cost. `convexity_index()` defaults to `n_quad = 3`; drop to `n_quad = 1` on meshes of more than a few hundred triangles, where the resulting $O(9n^2)$ cost starts to matter (see "Does polygonization matter?" for measured numbers). The $W^2/2$ denominator itself is exact and unaffected by $q$; it comes from $g_{ii}=0$ and $g_{ij}=g_{ji}$ above, not from any approximation, and cannot be disabled.
+
+**Deterministic vs. sampled.** The procedure above is deterministic (a fixed quadrature grid, not literally exact - see `convexity_index()`'s own documentation for why it's named `deterministic`, not `exact`) over all $\binom{n}{2}$ triangle pairs, $O(9n^2)$ with the default $q$, which grows expensive fast on complex meshes. `deterministic = FALSE` instead estimates $\text{CI}(\rho)$ directly by Monte Carlo: draw `n_lines` independent pairs $(s, t) \sim \rho/W$ (uniformly when unweighted, or from the per-triangle weighted density otherwise) and average $f(s,t)$ - a direct, unbiased estimate of the defining integral above, with no triangulation or quadrature approximation at all. Checked against the deterministic method, the two agree within a couple of percentage points except at the deepest notches on the sparsest meshes.[^rli-approx] This tutorial switches to it automatically above `r CI_DETERMINISTIC_MAX_TRI` triangles, low enough that most "complicated" shapes below (maze, spiral, the finer rasterised meshes, the most irregular urchin) use it; only small meshes get the deterministic treatment.
+
+```{r ci-auto-helper, echo=TRUE}
+CI_DETERMINISTIC_MAX_TRI <- 25
+
+#' Dispatcher for every CI number below: deterministic = TRUE
+#' (convexity_index()'s own n_quad = 3 default applies automatically) for
+#' meshes with CI_DETERMINISTIC_MAX_TRI triangles or fewer,
+#' deterministic = FALSE (5000 lines) above that. Adds `deterministic_used`
+#' so callers can flag approximated values or draw the right kind of line
+#' in a diagnostic plot.
+ci_auto <- function(poly, prep = NULL) {
+  if (is.null(prep)) prep <- prepare_polygon(poly)
+  n_tri <- if (is.null(prep$tri)) 0 else nrow(prep$tri)
+  deterministic <- n_tri <= CI_DETERMINISTIC_MAX_TRI
+  res <- suppressWarnings(convexity_index(poly, deterministic = deterministic,
+                                           n_lines = 5000, prep = prep))
+  res$deterministic_used <- deterministic
+  res
+}
+```
+
+[^rli-approx]: Any CI value here for a mesh over `r CI_DETERMINISTIC_MAX_TRI` triangles used `deterministic = FALSE` (5000 random lines) rather than the deterministic method; see above for how closely the two agree. One note here covers every affected value rather than flagging each individually.
+
+Two comparison indices recur throughout: `moment_of_inertia_index` (IMI, for Index of Moment of Inertia)[^moi] and `hull_ratio_index` (HRI)[^hri]. IMI relies on triangulation; HRI doesn't need it at all.
+
+[^moi]: Sums each triangle's contribution to the polygon's polar second moment of area about its own centroid, and compares it to the minimum achieved by a disk of the same area: $\text{IMI} = A^2 / (2\pi J)$, where $J = I_{xx} + I_{yy}$ is the polar second moment of area about the centroid and $A$ is total area. Also bounded in $(0, 1]$ with 1 = a perfect disk, but it measures compactness/roundness, not convexity; an elongated convex shape can score low on IMI while scoring a full 1 on CI. This index is not particularly sensitive to boundary errors. See `vignette("c-understanding-moment-of-inertia-index")`'s Introduction for IMI's origin and full citation.
+
+[^hri]: The ratio of a polygon's area to the area of its convex hull: $\text{HRI} = \text{area(polygon)} / \text{area(convex hull)}$. Also 1 for a convex shape, falling as more of the hull is empty territory the polygon doesn't cover. This index is very sensitive to extreme vertices, since a single long narrow sliver can drag the convex hull out to enormous size.
+
+For the square, every line tested (its one triangle-pair, tested via 9 quadrature sub-lines) stays inside, so convexity is exactly 1. For the C-shape, the holed square, and the dispersed pair, several lines cut across a concavity and land outside, and the score reflects that.
+
+The pixellated circle shown here (cell = 1, `r nrow(cdt_triangles(raster_by_res$circle[["cell = 1"]]))` triangles) is past this tutorial's deterministic/random threshold, so its lines are a random sample rather than the exhaustive set. Some still cross the stairstep boundary, but because the index averages over area (or, for the random-line index, samples in proportion to it), those slivers barely move the score either way, and it stays close to 1.
+
+The star is where the index starts to look unreliable. Visually it's heavily non-convex, all spikes, but only a few of its quadrature-pair lines actually cross the boundary; most stay within the interior. The result is a score near 0.9: the convex middle dominates, and the spiky tendrils barely register.
+
+```{r helper-diagnostic}
+#| code-fold: true
+# geom_sf can't do free facet scales, so normalise each shape onto a
+# common bounding box (center it, scale to unit span) before faceting
+normalize_geom <- function(geom, center, scale) {
+  (geom - center) * scale
+}
+
+diagnostic_layers <- function(named_shapes) {
+  rows_poly <- rows_tri <- rows_edge <- list()
+  lbl_levels <- character(0)
+  for (nm in names(named_shapes)) {
+    poly <- named_shapes[[nm]]
+    # ci_auto() draws whichever lines were actually tested; each panel is
+    # its own independent draw, so an approximated value can wobble
+    # slightly from the same shape's value quoted in text (expected
+    # Monte Carlo spread, see the deterministic = FALSE footnote above)
+    res  <- ci_auto(poly)
+    lbl  <- sprintf("%s\nCI = %.3f", nm, res$index)
+    lbl_levels <- c(lbl_levels, lbl)
+
+    poly_geom_raw <- st_sfc(poly)
+    poly_u        <- st_union(poly_geom_raw)
+    bb        <- st_bbox(poly_geom_raw)
+    center    <- unname(c((bb["xmin"] + bb["xmax"]) / 2, (bb["ymin"] + bb["ymax"]) / 2))
+    span      <- max(bb["xmax"] - bb["xmin"], bb["ymax"] - bb["ymin"])
+    scale     <- if (span > 0) 1 / span else 1
+
+    poly_geom <- normalize_geom(poly_geom_raw, center, scale)
+    tri_geom  <- normalize_geom(st_geometry(res$triangles), center, scale)
+
+    rows_poly[[nm]] <- st_sf(shape = lbl, geometry = poly_geom)
+    rows_tri[[nm]]  <- st_sf(shape = lbl, geometry = tri_geom)
+
+    # a shape that triangulates to a single triangle (e.g. a plain triangle)
+    # has no centroid pair at all, so convexity_index() returns edges = NULL;
+    # skip the edge layer for that shape rather than erroring
+    if (!is.null(res$edges)) {
+      e   <- res$edges
+      seg <- st_geometry(e)
+
+      # split each line at the polygon boundary, so only the portion that is
+      # actually outside gets coloured red - a line that pokes 5% outside
+      # should not read as "5% inside, 95% one solid red line". Lines fully
+      # inside (the common case) are kept as-is with no extra geometry work;
+      # only the minority that cross the boundary need st_intersection /
+      # st_difference at all.
+      cross_idx <- which(e$frac_outside > 0)
+      inside_parts  <- list(seg[e$frac_outside == 0])
+      outside_parts <- list()
+      for (k in cross_idx) {
+        ins <- suppressWarnings(st_collection_extract(
+          st_intersection(seg[k], poly_u), "LINESTRING", warn = FALSE))
+        out <- suppressWarnings(st_collection_extract(
+          st_difference(seg[k], poly_u), "LINESTRING", warn = FALSE))
+        if (length(ins) > 0) inside_parts[[length(inside_parts) + 1]]   <- ins
+        if (length(out) > 0) outside_parts[[length(outside_parts) + 1]] <- out
+      }
+      inside_sfc  <- do.call(c, Filter(function(x) length(x) > 0, inside_parts))
+      outside_sfc <- if (length(outside_parts) > 0) do.call(c, outside_parts) else NULL
+
+      seg_rows <- list(st_sf(shape = lbl, status = "inside",
+                              geometry = normalize_geom(inside_sfc, center, scale)))
+      if (!is.null(outside_sfc)) {
+        seg_rows[[2]] <- st_sf(shape = lbl, status = "outside",
+                                geometry = normalize_geom(outside_sfc, center, scale))
+      }
+      rows_edge[[nm]] <- do.call(rbind, seg_rows)
+    }
+  }
+  polys <- do.call(rbind, rows_poly)
+  tris  <- do.call(rbind, rows_tri)
+  edges <- do.call(rbind, rows_edge)
+
+  # facet_wrap() alphabetizes a character/factor `shape` column by default,
+  # which scrambles labels like "n = 3" ... "n = 20" (string sort puts
+  # "n = 10" before "n = 3"). Pin the factor levels to the order shapes were
+  # supplied in instead, so the gallery always reads left-to-right/top-to-
+  # bottom in the caller's intended order.
+  polys$shape <- factor(polys$shape, levels = lbl_levels)
+  tris$shape  <- factor(tris$shape,  levels = lbl_levels)
+  if (!is.null(edges)) edges$shape <- factor(edges$shape, levels = lbl_levels)
+
+  list(polys = polys, tris = tris, edges = edges)
+}
+
+plot_diagnostic_gallery <- function(named_shapes, ncol = NULL) {
+  d <- diagnostic_layers(named_shapes)
+  ggplot() +
+    geom_sf(data = d$polys, fill = "grey92", color = "grey40", linewidth = 0.6) +
+    geom_sf(data = d$tris,  fill = NA, color = "grey75", linewidth = 0.2) +
+    # alpha keeps a panel with thousands of overlapping random lines (the
+    # deterministic = FALSE case) legible rather than a solid smear; it
+    # costs little for the sparse deterministic = TRUE case, where lines
+    # rarely overlap
+    geom_sf(data = d$edges, aes(color = status), linewidth = 0.35, alpha = 0.3, key_glyph = "path") +
+    scale_color_manual(values = c("inside" = "steelblue", "outside" = "firebrick")) +
+    facet_wrap(~ shape, ncol = ncol) +
+    labs(color = NULL) +
+    theme_gallery
+}
+```
+
+```{r fig-lines-gallery, fig.width=11, fig.height=9}
+gallery_shapes <- list(
+  "square"                = square,
+   "convex polygon" = hexagon_demo,
+  "pixelated circle"       = raster_by_res$circle[["cell = 1"]],
+  "C-shape"                = c_shape,
+  "square, 30% hole"       = hole_demo,
+  "two parts, gap 2"       = dispersed_demo,
+  "6-pt star, ratio 0.3"   = star_demo,
+  "maze"                   = maze,
+  "comb"                  = comb
+)
+plot_diagnostic_gallery(gallery_shapes, ncol = 3)
+```
+
+```{r maze-combs-compute}
+res_maze   <- ci_auto(maze)
+ci_maze    <- res_maze$index
+hri_maze   <- hull_ratio_index(maze)$index
+res_comb   <- ci_auto(comb)
+ci_comb    <- res_comb$index
+hri_comb   <- hull_ratio_index(comb)$index
+res_spiral <- ci_auto(spiral)
+ci_spiral  <- res_spiral$index
+hri_spiral <- hull_ratio_index(spiral)$index
+```
+
+Complicated shapes such as maze, comb, and spiral have smaller CI. Maze scores `r sprintf("%.3f", ci_maze)`, comb scores `r sprintf("%.3f", ci_comb)`, and spiral scores `r sprintf("%.3f", ci_spiral)`, all far below the star (maze and spiral via the `deterministic = FALSE` approximation; see "The convexity index" section above).
+
+The key difference between the star and these shapes is the presence of a hub, a convex core that a lot of centroid lines pass straight through. Mazes, combs, and spirals have no such hub. That's also why HRI for the star is very different from CI, but quite similar to CI for these other shapes.
+
+# Impact of Shape Parameters
+
+
+## Shape independent of boundary complexity
+
+Everything in `basic_shapes` is convex: a square, two rectangles of very different elongation, a triangle, a regular hexagon, and a near-circle. CI is 1 for all of them, no matter how stretched, angular, or round:
+
+```{r basic-shapes-gallery, fig.width=11, fig.height=5}
+plot_diagnostic_gallery(basic_shapes, ncol = 3)
+```
+
+```{r basic-shapes-compute}
+res_basic <- lapply(basic_shapes, ci_auto)
+idx_basic <- vapply(res_basic, function(r) r$index, numeric(1))
+hr_basic  <- vapply(basic_shapes, function(s) hull_ratio_index(s)$index, numeric(1))
+moi_thin  <- moment_of_inertia_index(basic_shapes[["rectangle 20x1"]])$index
+```
+
+CI measures concavity, not roundness or aspect ratio: the very thin `rectangle 20x1` scores `r sprintf("%.3f", idx_basic["rectangle 20x1"])` on CI but only `r sprintf("%.3f", moi_thin)` on IMI, since IMI penalises elongation itself (area sitting far from the centroid). HRI, like CI, stays at 1 for all of these simple cases.
+
+
+## Size
+
+CI is built entirely from ratios: fraction of line length outside the polygon, weighted by the *product* of triangle areas and normalised by the sum of those weights. Scaling a shape up leaves it unchanged, as shown below; a direct consequence of the construction, not an empirical finding. IMI and HRI are scale-invariant too. That matters for datasets with wide variation in polygon size: none of the three indices need extra normalisation.
+
+```{r size-effect, fig.width=10, fig.height=4}
+# a shared xlim/ylim (taken from the LARGEST shape) across all three panels,
+# so the 1x shape is actually drawn small and the 10x shape fills the frame -
+# plotting each shape with its own auto-scaled axes (the default) would make
+# every panel fill the same physical space regardless of the shape's real
+# size, defeating the point of this figure.
+bb   <- st_bbox(st_sfc(size_shapes[[length(size_shapes)]]))
+pad  <- 0.05 * max(bb["xmax"] - bb["xmin"], bb["ymax"] - bb["ymin"])
+xlim <- c(bb["xmin"] - pad, bb["xmax"] + pad)
+ylim <- c(bb["ymin"] - pad, bb["ymax"] + pad)
+
+opar <- par(mfrow = c(1, 3), mar = c(2.5, 2.5, 2.2, 1))
+for (nm in names(size_shapes)) {
+  idx <- ci_auto(size_shapes[[nm]])$index
+  plot(size_shapes[[nm]], col = "grey85", border = "grey20", axes = TRUE,
+       xlim = xlim, ylim = ylim, asp = 1,
+       main = sprintf("%s\nCI = %.4f", nm, idx))
+}
+par(opar)
+```
+
+## Holes
+
+```{r hole-sweep, fig.width=12, fig.height=4}
+plot_diagnostic_gallery(holes, ncol = 5) + theme(legend.position = "bottom")
+```
+
+```{r hole-sweep-compute}
+res_conv_h <- lapply(holes, ci_auto)
+idx_h      <- vapply(res_conv_h, function(r) r$index, numeric(1))
+hr_h       <- vapply(holes, function(s) hull_ratio_index(s)$index, numeric(1))
+moi_h_end  <- moment_of_inertia_index(holes[[length(holes)]])$index
+```
+
+CI falls steadily as the hole grows, from `r sprintf("%.3f", idx_h[1])` with no hole to `r sprintf("%.3f", idx_h[length(idx_h)])` once the hole covers `r 100*hole_fracs[length(hole_fracs)]`% of the square's area: more centroid-pairs on opposite sides of the hole have their connecting line pass over it. IMI declines too (to `r sprintf("%.3f", moi_h_end)` at the largest hole), for a different reason: the remaining area sits farther from the centroid on average, and a ring is a less compact arrangement of area than a filled disk. HRI falls hardest of all, since the hole never touches the convex hull; its area is unaffected, so HRI tracks `1 - hole_frac` exactly.
+
+
+
+## Multi-part (dispersed) polygons
+
+
+```{r dispersed-sweep, fig.width=12, fig.height=4}
+plot_diagnostic_gallery(disp, ncol = 6) + theme(legend.position = "bottom")
+```
+
+```{r dispersed-sweep-compute}
+res_conv_d <- lapply(disp, ci_auto)
+idx_d      <- vapply(res_conv_d, function(r) r$index, numeric(1))
+hr_d       <- vapply(disp, function(s) hull_ratio_index(s)$index, numeric(1))
+moi_d_end  <- moment_of_inertia_index(disp[[length(disp)]])$index
+```
+
+For multi-part polygons, CI drops from `r sprintf("%.3f", idx_d[1])` (touching, gap = 0) to `r sprintf("%.3f", idx_d[length(idx_d)])` at the widest gap: every centroid-pair linking a triangle in one part to a triangle in the other now has to cross the empty space between them. IMI falls faster (to `r sprintf("%.3f", moi_d_end)` at the same gap), since it weights area by *squared* distance from the centroid; pulling the parts apart doesn't just send some lines outside, it pushes the whole shape's area farther from centre, and that penalty compounds quadratically rather than linearly.
+
+HRI drops to `r sprintf("%.3f", hr_d[length(hr_d)])` at the same gap, close to CI's `r sprintf("%.3f", idx_d[length(idx_d)])`, and nowhere near IMI's `r sprintf("%.3f", moi_d_end)`. The convex hull simply grows to enclose the widening gap, so HRI and CI agree here even though they disagreed for holes.
+
+
+
+## Boundary Complexity
+
+### More points, same notch depth
+
+
+```{r star-npoints, fig.width=11, fig.height=6}
+plot_diagnostic_gallery(stars_n, ncol = 4) + theme(legend.position = "bottom")
+```
+
+```{r star-npoints-compute}
+res_n  <- lapply(stars_n, ci_auto)
+idx_n  <- vapply(res_n, function(r) r$index, numeric(1))
+ntri_n <- vapply(stars_n, function(s) nrow(cdt_triangles(s)), integer(1))
+hr_n   <- vapply(stars_n, function(s) hull_ratio_index(s)$index, numeric(1))
+```
+
+Holding the inner/outer radius ratio fixed at 0.5 and increasing only the number of points (`stars_n`, built above) barely moves the index. That's a real weakness, since visually these stars get spikier, not less so. HRI has no such blind spot: at n = 4 it reads `r sprintf("%.3f", hr_n[2])`, at n = 5 `r sprintf("%.3f", hr_n[3])`, correctly flagging substantial non-convexity where CI still reports a near-perfect `r sprintf("%.2f", idx_n[2])`.
+
+### Same point count, deeper notches
+
+Holding the number of points fixed at 6 and varying only notch depth (`stars_r`, built above), the index behaves as expected.
+
+```{r star-depth, fig.width=12, fig.height=8}
+plot_diagnostic_gallery(stars_r, ncol = 3) + theme(legend.position = "bottom")
+```
+
+```{r star-depth-compute}
+res_r <- lapply(stars_r, ci_auto)
+idx_r <- vapply(res_r, function(r) r$index, numeric(1))
+hr_r  <- vapply(stars_r, function(s) hull_ratio_index(s)$index, numeric(1))
+```
+
+The index falls off smoothly and substantially, from `r sprintf("%.2f", idx_r[1])` at ratio `r ratio_seq[1]` to `r sprintf("%.2f", idx_r[length(idx_r)])` at ratio `r ratio_seq[length(ratio_seq)]`, with none of the resolution artefact seen above, since a fixed 6-point star always triangulates into the same 10 triangles regardless of ratio. Comparing the two sweeps: the index tracks notch *depth* cleanly, but its sensitivity to notch *count* depends on how much convex interior is left to average over.
+
+HRI falls much further over the same sweep, from `r sprintf("%.3f", hr_r[1])` to `r sprintf("%.3f", hr_r[length(hr_r)])` at the deepest notch, because `hull_ratio_index` counts every bit of the notch as lost area, with no averaging to soften it.
+
+### Raster resolution
+
+Polygons digitised from raster data (land cover, imperviousness masks, building footprints from a classified image) inherit the raster grid as their boundary, so every edge is a stairstep at the pixel resolution. Below: a smooth circle, a 6-point star, and a rotated rectangle, each rasterised at three grid-cell sizes, coarse to fine.
+
+```{r raster-res-gallery, fig.width=13, fig.height=9}
+raster_res_gallery <- do.call(c, lapply(names(raster_by_res), function(nm) {
+  s <- raster_by_res[[nm]]
+  names(s) <- sprintf("%s, %s", nm, names(s))
+  s[[sprintf("%s, true (unpixelated)", nm)]] <- raster_targets[[nm]]
+  s
+}))
+plot_diagnostic_gallery(raster_res_gallery, ncol = 4)
+```
+
+```{r raster-res-compute}
+res_true            <- lapply(raster_targets, ci_auto)
+idx_true            <- vapply(res_true, function(r) r$index, numeric(1))
+deterministic_true  <- vapply(res_true, function(r) r$deterministic_used, logical(1))
+res_by_res          <- lapply(raster_by_res, function(rs) lapply(rs, ci_auto))
+idx_by_res          <- lapply(res_by_res, function(rl) vapply(rl, function(r) r$index, numeric(1)))
+deterministic_by_res <- lapply(res_by_res, function(rl) vapply(rl, function(r) r$deterministic_used, logical(1)))
+hr_true      <- vapply(raster_targets, function(g) hull_ratio_index(g)$index, numeric(1))
+hr_by_res    <- lapply(raster_by_res, function(rs) vapply(rs, function(g) hull_ratio_index(g)$index, numeric(1)))
+```
+
+CI is largely impervious to boundary pixellation, with one caveat. If the pixellation is coarse enough to erase real boundary detail (a star's points blurring into a rectangle, say), the index for the resulting shape simply reflects that flatter shape. What matters is pixel size relative to the shape, not pixellation as such, worth remembering for small urban areas delineated by a coarse 1 km grid.
+
+HRI is far more sensitive to the same stairstep noise, since it has no averaging or area-weighting to dampen the effect. At the coarsest cell size, the circle's `hull_ratio_index` drops to `r sprintf("%.3f", hr_by_res$circle[1])` (true value `r sprintf("%.3f", hr_true["circle"])`) while CI barely moves (`r sprintf("%.3f", idx_by_res$circle[1])`); the rectangle shows the same pattern (`r sprintf("%.3f", hr_by_res$rectangle[1])` vs. `r sprintf("%.3f", idx_by_res$rectangle[1])`). The same pixellated geometry, in other words, can read as strongly non-convex or barely non-convex depending on which index you ask. IMI is less exposed to this kind of boundary noise too.
+
+At the finest cell size, every mesh here has well over `r CI_DETERMINISTIC_MAX_TRI` triangles, so these are all computed with the `deterministic = FALSE` approximation rather than the exhaustive method: circle reads `r sprintf("%.3f", idx_by_res$circle[3])` (true, unpixelated circle `r sprintf("%.3f", idx_true["circle"])`), star reads `r sprintf("%.3f", idx_by_res$star[3])`, rectangle reads `r sprintf("%.3f", idx_by_res$rectangle[3])`; all close to their coarser-mesh counterparts above, consistent with CI's general insensitivity to pixellation holding up under the approximation too.
+
+## Symmetry
+
+A real but modest effect, worth a mention rather than a deep dive. In a shape with an exact opposite (an even number of evenly-spaced arms, say), the line between two opposite arm-tips passes straight through the shared centre and stays inside: genuine interior, not an artefact. `urchin_even` and `urchin_odd` (8 vs 7 arms, matched notch depth) isolate it:
+
+```{r symmetry-gallery, fig.width=11, fig.height=9}
+plot_diagnostic_gallery(list("8 arms (even)" = urchin_even, "7 arms (odd)" = urchin_odd,
+                              "varying arm length" = urchin_varylen, "irregular blob" = blob), ncol = 2) +
+  theme(legend.position = "bottom")
+```
+
+```{r symmetry-compute}
+ci_even <- ci_auto(urchin_even)$index; hri_even <- hull_ratio_index(urchin_even)$index
+ci_odd  <- ci_auto(urchin_odd)$index;  hri_odd  <- hull_ratio_index(urchin_odd)$index
+ci_varylen <- ci_auto(urchin_varylen)$index; hri_varylen <- hull_ratio_index(urchin_varylen)$index
+ci_blob    <- ci_auto(blob)$index;           hri_blob    <- hull_ratio_index(blob)$index
+```
+
+Losing that one exact-opposite pair costs `r sprintf("%.3f", ci_even - ci_odd)` points of CI (`r sprintf("%.3f", ci_even)` vs `r sprintf("%.3f", ci_odd)`, about `r sprintf("%.0f%%", 100*(ci_even-ci_odd)/ci_even)` relative) - a real effect, but a modest one, partly because the same-piece diagonal term (see "The convexity index" above - a required part of the exact formula, not an optional correction) raises both values and compresses the gap between them. HRI, for comparison, barely reacts to parity at all (`r sprintf("%.3f", hri_even)` vs `r sprintf("%.3f", hri_odd)`).
+
+The other two panels show the same mechanism fading as regularity disappears. `urchin_varylen` keeps seven evenly-spaced arms but varies their length; no two arms alike, yet CI still runs `r sprintf("%.3f", ci_varylen - hri_varylen)` points above HRI, since angular spacing, not arm length, is what lets a line cut past a shorter arm. `blob` has no repeating angular unit at all, and that gap narrows to `r sprintf("%.3f", ci_blob - hri_blob)`. Worth a check on manufactured or engineered shapes with genuine symmetry; a minor consideration for organic, real-world footprints.
+
+# Key takeaways
+
+- CI is 1 for any convex shape and falls as a shape gets more concave, holed, or spatially dispersed.
+- Sensitivity to boundary notches depends on the mesh being fine enough to sample across them; a coarsely-vertexed but visually spiky polygon can score misleadingly close to 1. Notch *depth*, by contrast, is picked up cleanly.
+- `deterministic = TRUE` (the default) is a fixed quadrature grid, not literally exact - that's why the argument isn't called `exact`. The default (`n_quad = 3`) samples 3 points per triangle instead of the centroid alone, closing most of the gap to the index's true target at roughly 9x the cost, but a concavity small relative to triangle size can still slip between the fixed sample points. `deterministic = FALSE` (random-line Monte Carlo) converges to the true value as `n_lines` grows, and is what this tutorial uses above `r CI_DETERMINISTIC_MAX_TRI` triangles.
+- Symmetry has a real but modest effect: an exact-opposite pair of features gives the index one genuinely-interior line to lean on, worth a few points of CI (see "Symmetry" above). Worth a check on manufactured or engineered shapes; a minor consideration for organic footprints.
+- Overall shape (elongation, vertex count) and uniform scaling don't move the index as long as it stays convex; a direct consequence of being built entirely from ratios.
+- Holes and multi-part dispersal both drag the index down, since piece-pair lines are forced to cross excluded or missing territory.
+- Raster resolution cuts both ways: too coarse manufactures fake stairstep non-convexity on straight edges, or erases real concave detail entirely. Know the cell size relative to the smallest real feature.
+- IMI agrees with CI on direction (both drop for holes and dispersal) but not magnitude, and it also responds to elongation, which CI ignores entirely.
+- HRI catches real non-convexity in low-point-count stars that CI's mesh misses entirely, but it is far more sensitive to boundary digitisation errors.
+
+None of the three indices is a strictly better version of the others. Each fails differently.  So the right choice depends on which failure mode you can least afford.

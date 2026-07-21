@@ -1,0 +1,303 @@
+---
+title: "9. Understanding the Classical Compactness Metrics"
+author: "Nikhil Kaza"
+date: "`r Sys.Date()`"
+format:
+  html:
+    toc: true
+    number-sections: true
+    theme: flatly
+vignette: >
+  %\VignetteIndexEntry{9. Understanding the Classical Compactness Metrics}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+table {
+  width: auto !important;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                       fig.align = "center", cache = TRUE)
+```
+
+```{r load, cache=FALSE, echo=TRUE}
+#| code-fold: true
+library(shapeindices)
+library(sf)
+library(ggplot2)
+
+theme_set(theme_minimal(base_size = 11))
+theme_gallery <- theme_void(base_size = 10) +
+  theme(strip.text = element_text(size = 9, face = "bold"))
+```
+
+```{r glance-helper}
+# a small base64-embedded PNG of a shape, for use as a table cell in place
+# of a text label - knitr::image_uri() does the embedding, so no new
+# package dependency (it's already pulled in transitively via knitr, which
+# every vignette in this package already Suggests)
+shape_thumb <- function(geom, size_px = 40, col = "grey75") {
+  f <- tempfile(fileext = ".png")
+  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+  par(mar = c(0.5, 0.5, 0.5, 0.5))
+  plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
+  grDevices::dev.off()
+  uri <- knitr::image_uri(f)
+  unlink(f)
+  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
+}
+```
+
+# Introduction
+
+Six of this package's thirteen indices need no triangulation at all - just a polygon's own area, perimeter, convex hull, or bounding shapes, all cheap closed-form calculations: `hull_ratio_index()`, `polsby_popper_index()`, `width_length_ratio_index()`, `reock_index()`, `detour_index()`, and `exchange_index()`. This vignette covers all six together, the way `vignette("j-nc-counties-comparison")` covers the other ten together on real data - not deriving each from scratch (their math is well-established, cited below), but showing concretely how they behave, and where each one breaks.
+
+Each of these has a real history, reviewed comprehensively in Frolov (1975),[^frolov] MacEachren (1985),[^maceachren] and, most recently, Murray (2025).[^murray2025] MacEachren's own categorisation - perimeter/area, circle-related, comparison-to-a-reference-shape, dispersion-around-a-central-point - still organises the field: `polsby_popper_index()` is a perimeter/area measure, `reock_index()` and `width_length_ratio_index()` are circle- and box-related respectively, `hull_ratio_index()` and `detour_index()` compare the shape to its own convex hull, and `exchange_index()` compares it to a reference circle placed at its centroid.
+
+- **`hull_ratio_index()`**: area of the polygon over the area of its convex hull. First formalised by Dori & Ben-Bassat (1983);[^dori] MacEachren's "comparison to shape" category.
+- **`polsby_popper_index()`**: the isoperimetric quotient, $4\pi A/p^2$. The underlying fact - a circle has the least perimeter for a given area - goes back to Zenodorus and, per some accounts, Pythagoras;[^murray2025] the specific redistricting application is Polsby & Popper (1991),[^pp] itself building on Ritter's 1822 proposal reviewed in Frolov.
+- **`width_length_ratio_index()`**: the shorter over the longer extent of the axis-aligned bounding box. A common, informally-attributed redistricting metric with no single definitive origin in the reviews consulted here - included because it's simple, cheap, and widely used, not because of a strong literature pedigree.
+- **`reock_index()`**: area of the polygon over the area of its minimum bounding circle. Commonly attributed to Reock (1961),[^reock_index] with origins traced to Ehrenburg (1892) by Frolov.
+- **`detour_index()`** and **`exchange_index()`**: both Angel, Parent & Civco (2010),[^angel] covered together with the package's other ten indices in `vignette("d-understanding-span-index")`'s Introduction (Cohesion) and in this vignette's own sections below.
+
+[^frolov]: Frolov, Y. S. (1975). Measuring the shape of geographical phenomena: a history of the issue. *Soviet Geography*, 16(10), 676-687.
+[^maceachren]: MacEachren, A. M. (1985). Compactness of geographic shape: comparison and evaluation of measures. *Geografiska Annaler: Series B, Human Geography*, 67(1), 53-67.
+[^murray2025]: Murray, A. T. (2025). Geographical Compactness in Shape Assessment. *Geographical Analysis*, 57, 88-113.
+[^dori]: Dori, D., & Ben-Bassat, M. (1983). Efficient nonpolynomial computation of the ratio of area to inertia of a shape. *IEEE Transactions on Pattern Analysis and Machine Intelligence*, 5(4), 471-475.
+[^pp]: Polsby, D. D., & Popper, R. D. (1991). The third criterion: compactness as a procedural safeguard against partisan gerrymandering. *Yale Law and Policy Review*, 9(2), 301-353.
+[^reock_index]: Reock, E. C. (1961). A note: measuring compactness as a requirement of legislative apportionment. *Midwest Journal of Political Science*, 5(1), 70-74.
+[^angel]: Angel, S., Parent, J., & Civco, D. L. (2010). Ten compactness properties of circles: measuring shape in geography. *Canadian Geographer*, 54(4), 441-461.
+
+# Mathematical formulae
+
+Each of the six is a ratio comparing the actual polygon to some reference shape or bound. All are already provably in $(0, 1]$ (`width_length_ratio_index()`'s ceiling too), 1 = a circle, except where noted - the proofs are established results, not derived here.
+
+```{r formula-table}
+data.frame(
+  Index = c("`hull_ratio_index()`", "`polsby_popper_index()`", "`width_length_ratio_index()`",
+            "`reock_index()`", "`detour_index()`", "`exchange_index()`"),
+  Formula = c(
+    "$A(P) / A(\\text{hull}(P))$",
+    "$4\\pi A(P) / p(P)^2$",
+    "$\\min(w, h) / \\max(w, h)$",
+    "$A(P) / A(\\text{MBC})$",
+    "$2\\sqrt{\\pi A(P)} / p(\\text{hull}(P))$",
+    "$A(P \\cap C) / A(P)$"
+  ),
+  `1 means` = c(
+    "the polygon equals its own convex hull",
+    "the polygon is a circle",
+    "the bounding box is a square",
+    "the polygon equals its own minimum bounding circle",
+    "the convex hull is a circle",
+    "the polygon equals its own equal-area circle"
+  ),
+  check.names = FALSE
+) |> knitr::kable(format = "html", escape = FALSE)
+```
+
+$p$ is perimeter, $w$/$h$ the bounding-box width/height, MBC the minimum bounding circle (radius found by the classic Welzl-style incremental algorithm), and $C$ the circle of area $A(P)$ centred at $P$'s own centroid (`exchange_index()`'s reference). None of the six take a `weight` argument - see "Holes, multi-part shapes, and what weighting actually does" below for why.
+
+# Illustrations: canonical shapes
+
+```{r shapes, echo=TRUE}
+#| code-fold: true
+make_square <- function(half = 5) st_polygon(list(rbind(
+  c(-half, -half), c(half, -half), c(half, half), c(-half, half), c(-half, -half))))
+make_rectangle <- function(w, h) st_polygon(list(rbind(
+  c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
+make_disk <- function(r = 5, n = 60) st_buffer(st_sfc(st_point(c(0, 0))), dist = r, nQuadSegs = n)[[1]]
+make_star <- function(n_points, r_outer, r_inner) {
+  n <- n_points * 2
+  angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+  radii  <- rep(c(r_outer, r_inner), n_points)
+  x <- radii * cos(angles); y <- radii * sin(angles)
+  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+}
+
+canonical <- list(
+  square         = make_square(5),
+  disk           = make_disk(5.64),   # same area as the square, for a fair side-by-side
+  `rect 2:1`     = make_rectangle(14.14, 7.07),
+  `rect 10:1`    = make_rectangle(31.6, 3.16),
+  `hexagon`      = st_polygon(list(rbind(t(sapply(seq(0, 300, 60) * pi / 180,
+                     function(a) c(5.5 * cos(a), 5.5 * sin(a)))), c(5.5, 0)))),
+  `star (mild)`  = make_star(6, 5.64, 3.5),
+  `star (sharp)` = make_star(6, 5.64, 0.6)
+)
+```
+
+```{r canonical-table}
+tbl <- do.call(rbind, lapply(names(canonical), function(nm) {
+  g <- st_sfc(canonical[[nm]])
+  data.frame(
+    shape = shape_thumb(canonical[[nm]]), name = nm,
+    hull_ratio_index = hull_ratio_index(g)$index, polsby_popper_index = polsby_popper_index(g)$index,
+    width_length_ratio_index = width_length_ratio_index(g)$index, reock_index = reock_index(g)$index,
+    detour_index = detour_index(g)$index, exchange_index = exchange_index(g)$index)
+}))
+knitr::kable(format = "html", tbl, digits = 3, row.names = FALSE, escape = FALSE)
+```
+
+The square and disk anchor the two ends familiar from every other vignette in this package: the disk reads at or near 1 on all six (its bounding box is the one exception to "1 = circle" - a circle's bounding box is already a square, so `width_length_ratio_index()` reads 1 for both), while the square is already informative on its own - `hull_ratio_index()`/`width_length_ratio_index()` read exactly 1 (a square is its own hull and its own bounding box), but `reock_index()` is capped at exactly $2/\pi \approx 0.637$ regardless of size, since a square's minimum bounding circle always wastes its four corners. Elongating the rectangle moves every index down together but at different rates, and the two stars - same six points, shrinking only the inner radius - separate the six most clearly; see "Key pathological properties" below for why.
+
+# Holes, multi-part shapes, and what weighting actually does
+
+```{r hole-multipart-shapes, echo=TRUE}
+make_square_with_hole <- function(outer_half = 5, hole_frac = 0.3) {
+  outer <- rbind(c(-outer_half, -outer_half), c(outer_half, -outer_half),
+                 c(outer_half, outer_half), c(-outer_half, outer_half), c(-outer_half, -outer_half))
+  hh <- outer_half * sqrt(hole_frac)
+  hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
+  st_polygon(list(outer, hole))
+}
+make_dumbbell_gap <- function(gap) {
+  sq1 <- st_polygon(list(rbind(c(0, 0), c(2, 0), c(2, 2), c(0, 2), c(0, 0))))
+  sq2 <- st_polygon(list(rbind(c(2 + gap, 0), c(4 + gap, 0), c(4 + gap, 2), c(2 + gap, 2), c(2 + gap, 0))))
+  st_union(st_sfc(sq1, sq2))
+}
+```
+
+```{r hole-table}
+hole_fracs <- c(0, 0.1, 0.3, 0.5, 0.7)
+tbl_hole <- do.call(rbind, lapply(hole_fracs, function(hf) {
+  g <- st_sfc(make_square_with_hole(5, hf))
+  data.frame(shape = shape_thumb(make_square_with_hole(5, hf)),
+             `hole %` = sprintf("%.0f%%", 100 * hf),
+             hull_ratio_index = hull_ratio_index(g)$index, polsby_popper_index = polsby_popper_index(g)$index,
+             width_length_ratio_index = width_length_ratio_index(g)$index, reock_index = reock_index(g)$index,
+             detour_index = detour_index(g)$index, exchange_index = exchange_index(g)$index,
+             check.names = FALSE)
+}))
+knitr::kable(format = "html", tbl_hole, digits = 3, row.names = FALSE, escape = FALSE)
+```
+
+```{r multipart-table}
+gaps <- c(0.5, 2, 5, 20)
+tbl_multi <- do.call(rbind, lapply(gaps, function(g) {
+  geom <- make_dumbbell_gap(g)
+  data.frame(shape = shape_thumb(geom), gap = g,
+             hull_ratio_index = hull_ratio_index(geom)$index, polsby_popper_index = polsby_popper_index(geom)$index,
+             width_length_ratio_index = width_length_ratio_index(geom)$index, reock_index = reock_index(geom)$index,
+             detour_index = detour_index(geom)$index, exchange_index = exchange_index(geom)$index)
+}))
+knitr::kable(format = "html", tbl_multi, digits = 3, row.names = FALSE, escape = FALSE)
+```
+
+A hole never touches the convex hull or the bounding box, so `hull_ratio_index()`/`width_length_ratio_index()` respond only through the numerator: `hull_ratio_index()` tracks `1 - hole_frac` exactly (the table above confirms this precisely), and `width_length_ratio_index()` doesn't move at all. `polsby_popper_index()` takes a double hit instead - the hole's own boundary adds directly to the total perimeter on top of the area loss - which is why it falls fastest of the six here. `reock_index()` degrades at the same rate as `hull_ratio_index()` (same mechanism, fixed denominator), and `detour_index()` more gently still (its denominator is hull *perimeter*, unaffected by the hole, while its numerator only shrinks with $\sqrt{\text{area}}$). `exchange_index()` falls hardest of all and reaches exactly 0 by a 70% hole here - a large, roughly-centred hole empties out exactly the region the reference circle would occupy, so the circle it draws around the centroid finds nothing left to overlap.
+
+For multi-part shapes, `polsby_popper_index()` shows something worth flagging on its own: it barely moves at all as the gap widens (`r sprintf("%.3f", polsby_popper_index(make_dumbbell_gap(0.5))$index)` at gap 0.5 vs. `r sprintf("%.3f", polsby_popper_index(make_dumbbell_gap(20))$index)` at gap 20) - both area and perimeter are simple sums over disjoint pieces, indifferent to how far apart those pieces actually are, so `polsby_popper_index()` is structurally blind to dispersal as long as the pieces don't touch. `reock_index()` moves the most: an ever-more-distant pair of squares needs an ever-larger minimum bounding circle to enclose both, so its area balloons quadratically with the gap even while the true combined area stays fixed. `exchange_index()` shows its own already-documented pathology here - a hard collapse to exactly 0, not merely a low score, once the reference circle can no longer reach either piece.
+
+**What weighting actually does to these six.** None of them take a `weight` argument - there's nothing for a per-triangle or per-row weight to attach to beyond a binary in/out decision (see `polsby_popper_index()`'s and `reock_index()`'s own roxygen for why a magnitude-based weighted form isn't mathematically defensible for either). The only way `weights` can move any of the six, via `shape_indices_sf(byrow = FALSE)`, is that a row weighted exactly 0 or `NA` is excluded as a hole *before* the union is built - changing which polygon is measured, not how it's measured:
+
+```{r weight-binarisation, echo=TRUE}
+sq1 <- st_polygon(list(rbind(c(0, 0), c(2, 0), c(2, 2), c(0, 2), c(0, 0))))
+sq2 <- st_polygon(list(rbind(c(2, 0), c(4, 0), c(4, 2), c(2, 2), c(2, 0))))
+x <- st_sf(name = c("a", "b"), geometry = st_sfc(sq1, sq2, crs = 3857))
+
+equal_weights   <- suppressWarnings(shape_indices_sf(x, byrow = FALSE, weights = c(1, 1),
+                                                       which = c("hull_ratio", "detour", "exchange"), id = "z"))
+unequal_weights <- suppressWarnings(shape_indices_sf(x, byrow = FALSE, weights = c(1, 1000),
+                                                       which = c("hull_ratio", "detour", "exchange"), id = "z"))
+zeroed_weight   <- suppressWarnings(shape_indices_sf(x, byrow = FALSE, weights = c(1, 0),
+                                                       which = c("hull_ratio", "detour", "exchange"), id = "z"))
+
+data.frame(
+  case = c("weights = c(1, 1)", "weights = c(1, 1000)", "weights = c(1, 0)"),
+  rbind(st_drop_geometry(equal_weights)[, c("hull_ratio_index", "detour_index", "exchange_index")],
+        st_drop_geometry(unequal_weights)[, c("hull_ratio_index", "detour_index", "exchange_index")],
+        st_drop_geometry(zeroed_weight)[, c("hull_ratio_index", "detour_index", "exchange_index")])
+) |> knitr::kable(format = "html", digits = 4, row.names = FALSE)
+```
+
+`weights = c(1, 1)` and `weights = c(1, 1000)` give *identical* results - a thousandfold difference in magnitude has zero effect, since both squares stay in the union either way. `weights = c(1, 0)` gives different numbers entirely, because the second square is dropped as a hole and only the first remains - binarisation, not weighting in any graduated sense.
+
+# Key pathological properties
+
+## Spikes: `width_length_ratio_index()`'s blind spot
+
+```{r spike-sweep}
+r_inners <- c(0.9, 0.6, 0.3, 0.1, 0.02) * 5.64
+tbl_spike <- do.call(rbind, lapply(r_inners, function(ri) {
+  g <- st_sfc(make_star(6, 5.64, ri))
+  data.frame(shape = shape_thumb(make_star(6, 5.64, ri)),
+             `r_inner / r_outer` = sprintf("%.2f", ri / 5.64),
+             hull_ratio_index = hull_ratio_index(g)$index, polsby_popper_index = polsby_popper_index(g)$index,
+             width_length_ratio_index = width_length_ratio_index(g)$index, reock_index = reock_index(g)$index,
+             detour_index = detour_index(g)$index, exchange_index = exchange_index(g)$index,
+             check.names = FALSE)
+}))
+knitr::kable(format = "html", tbl_spike, digits = 3, row.names = FALSE, escape = FALSE)
+```
+
+A regular 6-point star with fixed outer radius and shrinking inner radius goes from nearly solid to six needle-thin spikes - every index here falls toward 0 as the notches deepen, except one: `width_length_ratio_index()` barely moves (`r sprintf("%.3f", width_length_ratio_index(st_sfc(make_star(6, 5.64, 0.9*5.64)))$index)` to `r sprintf("%.3f", width_length_ratio_index(st_sfc(make_star(6, 5.64, 0.02*5.64)))$index)`). The six outer points never move, so the bounding box never changes shape regardless of how thin the arms between them get - `width_length_ratio_index()` only ever sees the envelope, never how much of it is actually filled. `polsby_popper_index()` falls hardest of the rest, since deepening notches add a great deal of perimeter for comparatively little area loss.
+
+## Boundary/fractal noise: `polsby_popper_index()` doesn't converge
+
+```{r pixelate-helper}
+# rasterize a target polygon at a given cell size: keep every grid cell
+# whose centre falls inside it, then union the cells - a stand-in for
+# vectorizing a raster/classification mask, without needing a raster
+# package at all
+rasterize_polygon <- function(target, cell) {
+  target_sfc <- st_sfc(target)
+  bb <- st_bbox(target_sfc)
+  xs <- seq(bb["xmin"] + cell / 2, bb["xmax"], by = cell)
+  ys <- seq(bb["ymin"] + cell / 2, bb["ymax"], by = cell)
+  g <- expand.grid(x = xs, y = ys)
+  pts <- st_as_sf(g, coords = c("x", "y"))
+  keep <- lengths(st_intersects(pts, target_sfc)) > 0
+  g <- g[keep, , drop = FALSE]
+  half <- cell / 2
+  make_cell <- function(cx, cy) st_polygon(list(rbind(
+    c(cx - half, cy - half), c(cx + half, cy - half),
+    c(cx + half, cy + half), c(cx - half, cy + half), c(cx - half, cy - half))))
+  st_union(st_sfc(mapply(make_cell, g$x, g$y, SIMPLIFY = FALSE)))[[1]]
+}
+```
+
+```{r pixelate-table}
+true_circle <- make_disk(8, n = 30)
+cells <- c(4, 1, 0.25)
+tbl_px <- do.call(rbind, c(
+  list(data.frame(shape = shape_thumb(true_circle), resolution = "true (unpixelated)",
+                   hull_ratio_index = hull_ratio_index(st_sfc(true_circle))$index,
+                   polsby_popper_index = polsby_popper_index(st_sfc(true_circle))$index,
+                   width_length_ratio_index = width_length_ratio_index(st_sfc(true_circle))$index,
+                   reock_index = reock_index(st_sfc(true_circle))$index,
+                   detour_index = detour_index(st_sfc(true_circle))$index,
+                   exchange_index = exchange_index(st_sfc(true_circle))$index)),
+  lapply(cells, function(cell) {
+    px <- rasterize_polygon(true_circle, cell)
+    g <- st_sfc(px)
+    data.frame(shape = shape_thumb(px), resolution = sprintf("cell = %.2f", cell),
+               hull_ratio_index = hull_ratio_index(g)$index, polsby_popper_index = polsby_popper_index(g)$index,
+               width_length_ratio_index = width_length_ratio_index(g)$index, reock_index = reock_index(g)$index,
+               detour_index = detour_index(g)$index, exchange_index = exchange_index(g)$index)
+  })
+))
+knitr::kable(format = "html", tbl_px, digits = 3, row.names = FALSE, escape = FALSE)
+```
+
+Rasterizing a smooth circle at finer and finer grid resolutions is a stand-in for real vectorized raster/classification boundaries. Five of the six indices here converge cleanly back toward 1 as the pixel grid gets finer - they're all area-based, and the stairstep noise this introduces is a vanishing fraction of total area at fine resolution. `polsby_popper_index()` does not: `r sprintf("%.3f", tbl_px$polsby_popper_index[2])` at the coarsest resolution shown, `r sprintf("%.3f", tbl_px$polsby_popper_index[4])` at the finest - stuck well below 1, not steadily improving. This is the classical staircase phenomenon: a stairstep boundary's total perimeter does not converge to the smooth curve's true length as the steps shrink, because each step's own edges never point in the curve's actual tangent direction, however small the steps get. Any perimeter-based measure inherits this - `polsby_popper_index()` is the one index in this package's whole collection genuinely vulnerable to it. `width_length_ratio_index()` stays at exactly 1 throughout, for an unrelated reason: a circle's bounding box is a square at any pixelation coarse enough to still resemble the original extent.
+
+## Holes and multi-part shapes: `exchange_index()`'s two distinct failure modes
+
+`exchange_index()` already showed the worse of its two pathologies above: an exact collapse to 0 once a multi-part shape's pieces separate far enough that the reference circle can't reach either one (`vignette("i-understanding-classical-indices")`'s own hole/multi-part tables above; Angel et al. note the identical failure mode for real districts split by water). The second, shown in the hole table above, is distinct in mechanism though similar in effect: a large, roughly-centred hole can empty out exactly the region the shrinking reference circle would occupy, driving the index to 0 there too - not because the shape has separated into pieces, but because the one piece it has has a void precisely where the index looks. Both are documented, both are kept rather than omitted, matching this package's existing precedent with `width_length_ratio_index()`'s own multi-part/hole blind spots.
+
+# Key takeaways
+
+- All six classical metrics are cheap and closed-form - area, perimeter, convex hull, or a bounding circle/box - with no CDT triangulation and no weighted form; a `weight` can only exclude a row as a hole before union, never scale an index's own magnitude.
+- `hull_ratio_index()` and `width_length_ratio_index()` respond to holes only through their numerator (`hull_ratio_index()` tracks `1 - hole_frac` exactly; `width_length_ratio_index()` doesn't move at all, since neither the hull nor the bounding box ever reaches into a hole).
+- `polsby_popper_index()` is the most exposed to boundary/fractal noise of any index in this package - a stairstepped (rasterized) boundary inflates its perimeter and keeps it inflated even at very fine pixel resolution, a real mathematical fact about approximating curves with axis-aligned steps, not a fixable artifact of coarse data.
+- `polsby_popper_index()` is also structurally blind to multi-part dispersal specifically: area and perimeter are simple sums over disjoint pieces, unaffected by how far apart those pieces sit, as long as they don't touch.
+- `width_length_ratio_index()` is blind to notch/spike depth in the opposite sense - a shape can go from solid to needle-thin spiked without moving its own bounding box at all.
+- `exchange_index()` has two distinct failure modes, both ending in an exact 0 rather than merely a low score: multi-part separation past the reference circle's reach, and a large hole occupying the same ground the reference circle would.
+- `reock_index()` degrades the most severely of the six under multi-part dispersal, since its own reference (the minimum bounding circle) must grow to enclose ever more distant pieces, ballooning in area quadratically with the separation.

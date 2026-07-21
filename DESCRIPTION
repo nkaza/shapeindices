@@ -1,0 +1,47 @@
+Package: shapeindices
+Title: Shape Indices for (Multi)Polygons via Constrained Delaunay Triangulation
+Version: 0.3.0
+Authors@R:
+    person("Nikhil", "Kaza", , "nkaza@unc.edu", role = c("aut", "cre"))
+Description: Computes convexity, moment-of-inertia compactness, moment
+    isotropy (elongation), directional balance (angular concentration of
+    mass about its own centroid), span (mean-pairwise-distance), radial
+    concentration (mean-distance-to-geometric-median), and depth (mean
+    distance from interior points to the boundary) indices for
+    (multi)polygons using constrained Delaunay triangulation (CDT). In addition, it computes 
+    classic boundary/hull/bounding-box compactness scores from the literature (convex-hull ratio, Polsby-Popper,
+    width-length ratio, Reock, Detour, Exchange) that need no
+    triangulation at all.
+    Supports an exact, exhaustive all-pairs method and a Monte Carlo (random-line)
+    estimator for large meshes, optional per-triangle or per-sub-polygon
+    weighting (e.g. by population), and batch computation over 'sf' data
+    frames, including weighted aggregation of a collection of sub-polygons
+    into one overall shape.
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 3.5)
+Imports:
+    RTriangle,
+    sf,
+    sfdct,
+    stats,
+    utils
+Suggests:
+    sfheaders,
+    future,
+    furrr,
+    ggplot2,
+    ggalign,
+    dplyr,
+    stringr,
+    knitr,
+    quarto,
+    rmarkdown,
+    testthat (>= 3.1.4)
+VignetteBuilder: quarto
+Config/testthat/edition: 3
+URL: https://github.com/nkaza/shapeindices, https://nkaza.github.io/shapeindices/
+BugReports: https://github.com/nkaza/shapeindices/issues
+Config/roxygen2/version: 8.0.0

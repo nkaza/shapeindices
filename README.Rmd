@@ -1,0 +1,43 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# shapeindices
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of shapeindices is to create 3 convexity and compactness indices for sf polygons. It does so by triangulating the polygon as well as creating a convex hull. It accounts for holes and multi-polygons
+
+## Installation
+
+You can install the development version of shapeindices 
+
+``` r
+devtools::install_github(nkaza/shapeindices)
+```
+
+## Example
+
+Here is a basic example of usage.
+
+```{r example}
+library(shapeindices)
+
+square <- sf::st_polygon(list(rbind(c(0,0), c(10,0), c(10,10), c(0,10), c(0,0))))
+moment_of_inertia_index(square)
+convexity_index(square)
+hull_ratio_index(square)
+```
+
