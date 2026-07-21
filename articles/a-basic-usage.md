@@ -533,8 +533,8 @@ knitr::kable(format = "html", timing, digits = 2, row.names = FALSE)
 
 | mode                             | elapsed | speedup |
 |:---------------------------------|--------:|--------:|
-| parallel_rows = FALSE            |   32.48 |    1.00 |
-| parallel_rows = TRUE (4 workers) |   15.86 |    2.05 |
+| parallel_rows = FALSE            |   32.01 |    1.00 |
+| parallel_rows = TRUE (4 workers) |   15.73 |    2.04 |
 
 ``` r
 

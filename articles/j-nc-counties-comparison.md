@@ -93,12 +93,13 @@ to moment isotropy (0.46) confirms that bearing preference and
 mass-distribution symmetry operate as independent axes despite both
 belonging to the elongation-adjacent family.
 
-Connecting these groups, **Polsby-Popper** acts as a hybrid bridge
-between the convexity and elongation clusters (0.90 with hull ratio;
-0.84 with MOI) because perimeter length is inherently inflated by both
-boundary roughness and stretched geometries. Standing alone as a
-complete outlier, **`width_length_ratio_index`** registers its
-highest—yet still weak—correlation with moment isotropy (0.55) and Reock
+Connecting these groups, Polsby-Popper acts as a hybrid bridge between
+the convexity and elongation clusters (0.90 with hull ratio; 0.84 with
+MOI) because perimeter length is inherently inflated by both boundary
+roughness and stretched geometries.
+
+Standing alone as a complete outlier, width length ratio registers its
+highest but weak correlation with moment isotropy (0.55) and Reock
 (0.41). While this weak alignment suggests bounding-box and
 mass-distribution elongation tap into a similar underlying signal,
 bounding-box sensitivity to orientation and multi-part geometries leaves
@@ -115,15 +116,24 @@ Research Triangle) are geographically contiguous. Only the six
 mesh-based indices have a genuine weighted form worth comparing this
 way.
 
-|                            | weighted by area | weighted by births |
-|:---------------------------|-----------------:|-------------------:|
-| convexity_index            |             0.98 |               0.99 |
-| moment_of_inertia_index    |             0.82 |               0.70 |
-| moment_isotropy_index      |             0.51 |               0.64 |
-| directional_balance_index  |             0.98 |               0.96 |
-| span_index                 |             0.92 |               0.85 |
-| radial_concentration_index |             0.92 |               0.85 |
-| total_weight               |    5811314465.44 |           27264.00 |
+Note that the CDT trianglulation is different in the weighted and
+unweigthed case. In the weighted case, the internal borders are
+respected so that the weight transfers from the sub polygon to mesh more
+cleanly, which increases the mesh count. Also note the assumption of
+constant density within the sub polygon, thus large triangle get higher
+weight in the same polygon.
+
+![](j-nc-counties-comparison_files/figure-html/nc-weighted-1.png)
+
+|                            | weights = NULL | weights = "BIR74" |
+|:---------------------------|---------------:|------------------:|
+| convexity_index            |           0.98 |              0.99 |
+| moment_of_inertia_index    |           0.82 |              0.70 |
+| moment_isotropy_index      |           0.51 |              0.64 |
+| directional_balance_index  |           0.98 |              0.96 |
+| span_index                 |           0.92 |              0.85 |
+| radial_concentration_index |           0.92 |              0.85 |
+| total_weight               |  5811314465.44 |          27264.00 |
 
 Weighted by each county’s own area (`weights = NULL`, the default), the
 four-county union scores convexity 0.983 and MOI 0.815. Switching the
