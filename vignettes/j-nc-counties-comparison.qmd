@@ -158,66 +158,46 @@ Connecting these groups, Polsby-Popper acts as a hybrid bridge between the conve
 
 `width_length_ratio_index` is no longer the outlier it once was. An earlier, axis-aligned version of this index correlated weakly with almost everything in this dataset, because its own orientation noise - which way a county happens to be drawn relative to the coordinate axes, not a property of its shape - swamped the real elongation signal underneath. With that noise removed, its strongest ties sit squarely inside the elongation cluster: `r sprintf("%.2f", cor_mat["width_length_ratio", "moment_isotropy"])` with moment isotropy, `r sprintf("%.2f", cor_mat["width_length_ratio", "exchange"])` with exchange, `r sprintf("%.2f", cor_mat["width_length_ratio", "moment_of_inertia"])` with moment of inertia. It still correlates more loosely with the boundary-complexity side of things (`r sprintf("%.2f", cor_mat["width_length_ratio", "convexity"])` with convexity, `r sprintf("%.2f", cor_mat["width_length_ratio", "hull_ratio"])` with hull ratio) - a bounding rectangle, however it's computed, still can't see concavity the way a convex-hull-based measure can - but it is a member of a real cluster now, not an island of its own.
 
-# Weighting a collection: the Triangle counties by population
 
-`shape_indices_sf(byrow = FALSE)` treats a whole collection of rows as sub-polygons of one weighted shape (see `vignette("a-basic-usage")` for the mechanics). Wake, Durham, Orange, and Chatham counties (the Research Triangle) are geographically contiguous. Only the six mesh-based indices have a genuine weighted form worth comparing this way. 
+# Weighting a collection of polygons
 
-Note that the CDT trianglulation is different in the weighted and unweigthed case. In the weighted case, the internal borders are respected so that the weight transfers from the sub polygon to mesh more cleanly, which increases the mesh count. Also note the assumption of constant density within the sub polygon, thus large triangle get higher weight in the same polygon.
+`byrow = FALSE` treats every row instead as a weighted sub-polygon of
+**one** overall shape (`st_union(x)`), returning a single-row result.
+`weights = NULL` (the default) weights each row by its own physical
+area, which reproduces the plain unweighted indices on the union; a
+column name or numeric vector weights rows by something else instead
+- here, births (`BIR74`) as a population proxy for four contiguous
+Research Triangle counties:
 
 ```{r nc-weighted}
-#| code-fold: TRUE
+triangle_counties <- nc[nc$NAME %in% c("Wake", "Durham", "Orange", "Chatham"), ]
 
-triangle <- nc %>% 
-            filter(NAME %in% c("Wake", "Durham", "Orange", "Chatham")) 
+by_area   <- shape_indices_sf(triangle_counties, byrow = FALSE, id = "weighted_by_area")
+by_births <- shape_indices_sf(triangle_counties, byrow = FALSE,
+                               weights = "BIR74", id = "weighted_by_births")
 
-### This is for demonstration of the triangulation only!
-wmA <- shapeindices:::.weighted_mesh(triangle, weights = NULL)
-triA <- wmA$pieces
-triA$straddles <- lengths(st_overlaps(triA, st_geometry(triangle))) > 1
-
-cwm <- shapeindices:::.constrained_weighted_mesh(triangle, weights = "BIR74")
-tri_to_sf <- function(P, T, crs) {
-  polys <- lapply(seq_len(nrow(T)), function(i) {
-    v <- P[T[i, ], , drop = FALSE]
-    st_polygon(list(rbind(v, v[1, ])))
-  })
-  st_sf(tri_id = seq_len(nrow(T)), geometry = st_sfc(polys, crs = crs))
-}
-triB <- tri_to_sf(cwm$P, cwm$T, cwm$crs)
-triB$weight <- cwm$tri_weight
-triB$straddles <- lengths(st_overlaps(triB, st_geometry(triangle))) > 1
-
-pal <- hcl.colors(100, "YlOrRd", rev = TRUE)
-w_scaled <- (triB$weight - min(triB$weight)) / (max(triB$weight) - min(triB$weight))
-triB$col <- pal[pmax(1, ceiling(w_scaled * 100))]
-
-par(mfrow = c(1, 2), mar = c(2, 1, 3, 1))
-plot(st_geometry(triA), border = ifelse(triA$straddles, "firebrick", "steelblue"),
-     col = NA, lwd = 0.6)
-plot(st_geometry(triangle), col = NA, border = "black", lwd = 2.5, add = TRUE)
-title(main = sprintf("weights = NULL\n%d/%d triangles straddle a county line",
-                      sum(triA$straddles), nrow(triA)), cex.main = 0.95)
-
-plot(st_geometry(triB), col = triB$col, border = "grey40", lwd = 0.6)
-plot(st_geometry(triangle), col = NA, border = "black", lwd = 2.5, add = TRUE)
-title(main = sprintf('weights = "BIR74"\n%d/%d triangles straddle a county line',
-                      sum(triB$straddles), nrow(triB)), cex.main = 0.95)
-####
-
-weighted_idx <- c("convexity", "moment_of_inertia", "moment_isotropy", "directional_balance",
-                   "span", "radial_concentration")
-
-by_area <- shape_indices_sf(triangle, byrow = FALSE, which = weighted_idx, id = "by_area")
-by_pop  <- shape_indices_sf(triangle, byrow = FALSE, which = weighted_idx,
-                             weights = "BIR74", id = "by_births")
-
-comparison <- rbind(st_drop_geometry(by_area), st_drop_geometry(by_pop))[, -1]
-
-rownames(comparison) <- c("weights = NULL", "weights = \"BIR74\"")
-options(scipen = 999)
-knitr::kable(format = "html", t(comparison), digits=2)
-options(scipen = 0)
+rbind(by_area, by_births) %>%
+  st_drop_geometry() %>%
+  knitr::kable(format = "html", digits = 3, row.names = FALSE)
 ```
+
+Same union geometry, same `hull_ratio_index` (it has no weighted form - it's
+a property of the convex hull's boundary, not a sum over pieces) -
+but `convexity_index`, `moment_of_inertia_index`, and `span_index` all
+shift once births, rather than raw land area, decide how much each
+county's shape "counts".
+
+Whenever rows genuinely differ in weight, each row's own boundary is
+supplied as a hard constraint on the combined triangulation, so no
+triangle can ever straddle two rows - density is allocated onto the
+mesh exactly, not approximated by averaging. This matters most for a
+handful of large, high-density rows sitting next to many small,
+low-density ones, where a single coarse triangle could otherwise span
+rows with very different weights. It falls back to the coarser,
+union-only mesh automatically (with a warning) if the kept rows
+genuinely overlap rather than just touch.
+
+
 
 Weighted by each county's own area (`weights = NULL`, the default), the four-county union scores convexity `r sprintf("%.3f", by_area$convexity_index)` and MOI `r sprintf("%.3f", by_area$moment_of_inertia_index)`. Switching the weight to 1974 births, so that Wake dominates in one part of the union, moves MOI, span, and radial concentration all *down* together (`r sprintf("%.3f", by_pop$moment_of_inertia_index)`, `r sprintf("%.3f", by_pop$span_index)`, `r sprintf("%.3f", by_pop$radial_concentration_index)`). Convexity moves the other way, slightly *up* (`r sprintf("%.3f", by_pop$convexity_index)`). It does not  depend on where the centre of mass is at all and therefore behaves as expected.
 

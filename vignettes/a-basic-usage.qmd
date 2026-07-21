@@ -28,14 +28,7 @@ library(dplyr)
 theme_set(theme_minimal(base_size = 11))
 ```
 
-This vignette is a practical, code-first tour of the package: build a
-few synthetic shapes, run the indices on them, see what the
-`deterministic` argument changes, then move on to a real `sf` data
-frame - first row by row, then as a single weighted collection - and
-finish with the parallelisation option for larger jobs. For the
-mathematical derivation of the indices themselves (what "convexity"
-even means here, and where each index breaks down), see
-`vignette("b-understanding-convexity-index", package = "shapeindices")`.
+This vignette is a practical, code-first tour of the package `shapeindices`. The goal of the package is to provide indices for `sf`, `sfc` objects that describe the shape/mass configurations. In this package, we demonstrate some key indices and approaches. For deep dive into specific index, see the corresponding vigenette.
 
 # Three basic shapes
 
@@ -118,11 +111,147 @@ ggplot(shapes_sf) +
   theme(strip.text = element_text(face = "bold"))
 ```
 
+
 # The thirteen indices
 
-Each index has its own function `*_index()` that takes, sf or sfc objects as input.  The following table briefly describes the conceptual framing of the index and some shapes that achieve the maximum values.
+Each index has its own function `*_index()` that takes, sf or sfc objects as input.  The following table briefly describes the conceptual framing of the index and shows, as a thumbnail, a shape/mass distribution that achieves close to the maximum value. These are just some examples and the emphasis is on showing some unexpected profiles that score high on these indices (rather than repeating a disk)
+
+```{r shape-thumb-helper, echo=FALSE}
+# a small base64-embedded PNG of a shape's own outline, embedded directly
+# in the table below and reused later as a column header
+shape_thumb <- function(geom, size_px = 60, col = "grey75") {
+  f <- tempfile(fileext = ".png")
+  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+  par(mar = c(0.5, 0.5, 0.5, 0.5))
+  plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
+  grDevices::dev.off()
+  uri <- knitr::image_uri(f)
+  unlink(f)
+  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/><br>', uri, size_px, size_px)
+}
+# index_fn, if supplied, appends that index's own actual value on this
+# exact shape to the label, so the table shows the claim, not just the
+# picture
+thumb_cell <- function(geom, label, index_fn = NULL, col = "grey75", size_px = 60, ...) {
+  lbl <- if (is.null(index_fn)) label else sprintf("%s (%.2f)", label, index_fn(geom, ...)$index)
+  paste0(shape_thumb(geom, size_px = size_px, col = col), lbl)
+}
+
+# a weighted counterpart: colours each triangle of a FINE mesh by its own
+# weight (coarse per-triangle weight can't resolve a smooth density field -
+# a raw CDT triangle of a disk already spans its full radius, so a single
+# weight per triangle can't "concentrate" anything - subdivide_mesh() first
+# so nearby triangles can actually carry different weights). index_fn, if
+# supplied, is called on that SAME fine mesh/weight - the number shown is
+# exactly what the picture depicts, not a separate, coarser calculation
+weighted_thumb <- function(geom, weight_fn, label, index_fn = NULL, size_px = 60,
+                            palette = "YlOrRd", max_depth = 4, ...) {
+  tri <- subdivide_mesh(geom, max_depth = max_depth)
+  ctr <- st_coordinates(st_centroid(st_union(st_sfc(geom))))
+  tc  <- st_coordinates(st_centroid(tri))
+  w   <- weight_fn(tc, ctr)
+  w_scaled <- (w - min(w)) / (max(w) - min(w) + 1e-9)
+  cols <- hcl.colors(20, palette, rev = TRUE)[pmax(1, ceiling(w_scaled * 20))]
+  f <- tempfile(fileext = ".png")
+  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+  par(mar = c(0.5, 0.5, 0.5, 0.5))
+  plot(st_geometry(tri), col = cols, border = NA)
+  plot(st_geometry(st_sfc(geom)), border = "grey20", lwd = 0.6, add = TRUE)
+  grDevices::dev.off()
+  uri <- knitr::image_uri(f)
+  unlink(f)
+  lbl <- label
+  if (!is.null(index_fn)) {
+    prep <- list(poly = st_geometry(st_sfc(geom)), tri = tri)
+    lbl <- sprintf("%s (%.3f)", label, index_fn(geom, prep = prep, weight = w, ...)$index)
+  }
+  paste0(sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/><br>', uri, size_px, size_px), lbl)
+}
+# a centre-heavy field (also symmetry-preserving, since it's a function of
+# radius alone) - satisfies every weighted example below except convexity's.
+# The tiny offset keeps every triangle's own weight strictly positive - a
+# handful of index functions divide by weight-derived quantities internally
+# and a hard zero at the shape's own edge can hit that
+radial_field <- function(tc, ctr, power = 2) {
+  d <- sqrt((tc[, 1] - ctr[1])^2 + (tc[, 2] - ctr[2])^2)
+  (1 - d / max(d))^power + 0.01
+}
+# convexity_index()'s own weighted form tolerates ANY weighting, not just a
+# symmetric one - a plain left-to-right gradient makes that point visually
+linear_field <- function(tc, ctr) (tc[, 1] - min(tc[, 1])) / (max(tc[, 1]) - min(tc[, 1])) + 0.01
+```
+
+The shapes below are the same canonical ones used throughout this
+package's other vignettes
 
 ```{r index-table, echo=FALSE}
+make_square <- function(half = 1) st_polygon(list(rbind(
+  c(-half, -half), c(half, -half), c(half, half), c(-half, half), c(-half, -half))))
+make_rectangle <- function(w, h) st_polygon(list(rbind(
+  c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
+make_regular_ngon <- function(n, r = 1) {
+  angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+  coords <- cbind(r * cos(angles), r * sin(angles))
+  st_polygon(list(rbind(coords, coords[1, ])))
+}
+make_disk <- function(r = 1, n = 96) st_buffer(st_sfc(st_point(c(0, 0))), dist = r, nQuadSegs = n)[[1]]
+make_star <- function(n_points, r_outer, r_inner) {
+  n <- n_points * 2
+  angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+  radii  <- rep(c(r_outer, r_inner), n_points)
+  x <- radii * cos(angles); y <- radii * sin(angles)
+  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+}
+make_pinwheel <- function(n_arms, arm_len = 5, arm_width = 0.7, hub_r = 0.3) {
+  angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
+  hub  <- st_buffer(st_sfc(st_point(c(0, 0))), dist = hub_r, nQuadSegs = 20)[[1]]
+  arms <- lapply(angles, function(a) {
+    rot  <- matrix(c(cos(a), sin(a), -sin(a), cos(a)), 2, 2)
+    rect <- st_polygon(list(rbind(c(0, -arm_width / 2), c(arm_len, -arm_width / 2),
+                                   c(arm_len, arm_width / 2), c(0, arm_width / 2), c(0, -arm_width / 2))))
+    rect * rot
+  })
+  Reduce(function(a, b) st_union(st_sfc(a))[[1]] |> st_union(st_sfc(b)[[1]]), arms, hub)
+}
+make_dumbbell <- function(r, cy = 5) {
+  top <- st_buffer(st_sfc(st_point(c(0, cy))), dist = r, nQuadSegs = 40)[[1]]
+  bot <- st_buffer(st_sfc(st_point(c(0, 0))), dist = r, nQuadSegs = 40)[[1]]
+  bar <- st_polygon(list(rbind(c(-0.15, 0), c(0.15, 0), c(0.15, cy), c(-0.15, cy), c(-0.15, 0))))
+  st_union(st_sfc(top, bot, bar))[[1]]
+}
+# width_length_ratio_index()'s own three-way blind spot, all still == 1:
+# a hole (make_square_with_hole(), same as vignette i), needle-thin spikes
+# (make_star() with a tiny inner radius, same as vignette i's own "Spikes"
+# section), and disconnected pieces (new here - none of the multi-part
+# shapes elsewhere in this package happen to have a square envelope, since
+# they're built to demonstrate a DIFFERENT pathology, dispersal, instead)
+make_square_with_hole <- function(outer_half = 1, hole_frac = 0.5) {
+  outer <- rbind(c(-outer_half, -outer_half), c(outer_half, -outer_half),
+                 c(outer_half, outer_half), c(-outer_half, outer_half), c(-outer_half, -outer_half))
+  hh <- outer_half * sqrt(hole_frac)
+  hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
+  st_polygon(list(outer, hole))
+}
+mk_corner_sq <- function(x0, y0, s) st_polygon(list(rbind(
+  c(x0, y0), c(x0 + s, y0), c(x0 + s, y0 + s), c(x0, y0 + s), c(x0, y0))))
+make_scattered_corners <- function() st_union(st_sfc(
+  mk_corner_sq(0, 0, 1.3), mk_corner_sq(2.7, 0, 1.3),
+  mk_corner_sq(2.6, 2.6, 1.4), mk_corner_sq(0, 3.4, 0.6)))
+
+ex_rect     <- make_rectangle(2, 1)
+ex_octagon  <- make_regular_ngon(8)
+ex_hexagon  <- make_regular_ngon(6)
+ex_square   <- make_square()
+ex_disk     <- make_disk()
+ex_pinwheel <- make_pinwheel(4)
+ex_dumbbell <- make_dumbbell(1)
+ex_star_mild <- make_star(6, 1, 0.65)
+ex_hole      <- make_square_with_hole()
+ex_spike     <- make_star(6, 1, 0.02)
+ex_parts     <- make_scattered_corners()
+
+warn_col <- "#e2725b"
+
 idx_table <- data.frame(
   fn = c("convexity_index()", "moment_of_inertia_index()", "moment_isotropy_index()",
          "directional_balance_index()", "span_index()", "radial_concentration_index()",
@@ -142,34 +271,49 @@ idx_table <- data.frame(
     "shape's own area shared with an equal-area circle at its centroid"
   ),
   ex_weighted = c(
-    "Any convex shape, any weighting (e.g. a square weighted by an asymmetric gradient)",
-    "Only a true disk - the reference is itself the optimal arrangement for any total mass",
-    "A >=3-fold-symmetric shape weighted by a symmetry-preserving field (e.g. a triangle weighted by distance from its own centroid)",
-    "A 180-degree-point-symmetric shape weighted by a symmetry-preserving field (e.g. a rectangle weighted by distance from its own centroid)",
-    "Only a disk with density concentrated toward its centre",
-    "Only a disk with density concentrated toward its centre",
-    "Only a disk with density concentrated toward its centre",
-    "No weighted form", "No weighted form", "No weighted form", "No weighted form", "No weighted form", "No weighted form"
+    weighted_thumb(ex_rect, linear_field, "rectangle, left-to-right gradient", index_fn = convexity_index, n_quad = 1),
+    weighted_thumb(ex_hexagon, radial_field, "hexagon, centre-weighted", index_fn = moment_of_inertia_index),
+    weighted_thumb(ex_pinwheel, radial_field, "pinwheel, centre-weighted", index_fn = moment_isotropy_index),
+    weighted_thumb(ex_dumbbell, radial_field, "dumbbell, centre-weighted", index_fn = directional_balance_index),
+    weighted_thumb(ex_disk, radial_field, "disk, centre-weighted", index_fn = span_index, n_quad = 1),
+    weighted_thumb(ex_disk, radial_field, "disk, centre-weighted", index_fn = radial_concentration_index),
+    weighted_thumb(ex_disk, radial_field, "disk, centre-weighted", index_fn = depth_index),
+    "No weighted form", "No weighted form", "No weighted form",
+    "No weighted form", "No weighted form", "No weighted form"
   ),
   ex_unweighted = c(
-    "Any convex shape (square, triangle, hexagon)",
-    "Only a true disk",
-    "Any >=3-fold-symmetric shape (equilateral triangle, square, regular hexagon)",
-    "Any 180-degree-point-symmetric shape (rectangle, square)",
-    "Only a true disk",
-    "Only a true disk",
-    "Only a true disk",
-    "Any convex shape (square, triangle, hexagon)",
-    "Only a true circle",
-    "A regular octogon (but not hexagon or pentagon)",
-    "Only a true circle",
-    "Only a true circle (its convex hull must itself be circular)",
-    "Only a true circle"
+    thumb_cell(ex_rect, "rectangle", index_fn = convexity_index),
+    thumb_cell(ex_hexagon, "hexagon", index_fn = moment_of_inertia_index),
+    thumb_cell(ex_pinwheel, "pinwheel", index_fn = moment_isotropy_index),
+    thumb_cell(ex_dumbbell, "dumbbell", index_fn = directional_balance_index),
+    thumb_cell(ex_star_mild, "star", index_fn = span_index),
+    thumb_cell(ex_octagon, "octagon", index_fn = radial_concentration_index),
+    thumb_cell(ex_disk, "disk", index_fn = depth_index),
+    thumb_cell(ex_square, "square", index_fn = hull_ratio_index),
+    thumb_cell(ex_disk, "disk", index_fn = polsby_popper_index),
+    paste(
+      thumb_cell(ex_hole, "hole punched through it", index_fn = width_length_ratio_index, col = warn_col, size_px = 48),
+      thumb_cell(ex_spike, "six needle-thin spikes", index_fn = width_length_ratio_index, col = warn_col, size_px = 48),
+      thumb_cell(ex_parts, "3 disconnected pieces", index_fn = width_length_ratio_index, col = warn_col, size_px = 48),
+      sep = "<br>"
+    ),
+    thumb_cell(ex_disk, "disk", index_fn = reock_index),
+    thumb_cell(ex_octagon, "octagon", index_fn = detour_index),
+    thumb_cell(ex_star_mild, "star", index_fn = exchange_index)
   )
 )
-knitr::kable(format = "html", idx_table,
+knitr::kable(format = "html", idx_table, escape = FALSE,
              col.names = c("Function", "Description", "Ex: weighted ~ 1", "Ex: unweighted ~ 1"))
 ```
+
+The three thumbnails on `width_length_ratio_index`'s own row aren't a
+*good* example, but a caveat. A hole punched clean through a
+shape, six needle-thin spikes, and a shape split into several pieces
+with nothing joining them all still score close to `1` here, because
+the index only ever looks at the four corners of the minimum-area
+bounding rectangle. See
+`vignette("i-understanding-classical-indices", package = "shapeindices")`
+for the other blind spots this family of indices shares.
 
 Called directly on a shape, for example,:
 
@@ -204,13 +348,11 @@ moving the same direction is the right behaviour here - but it's not a
 universal convention. Some Polsby-Popper implementations in the
 redistricting literature measure only the *outer* ring's length,
 treating interior holes (a small enclave, a data-digitisation artifact)
-as compactness-irrelevant. `polsby_popper_index()` has no `ignore_holes`
-argument to switch between the two conventions, deliberately - that
-would make the same function silently answer two different questions
-depending on a flag. If you need to match an outer-ring-only
-definition, strip interior rings from the input yourself first:
-`st_polygon(your_geometry[1])` keeps only the first (outer) ring of a
-single polygon.
+as compactness-irrelevant. This package prizes consistency of definition and leaves this data cleaning exercise to
+the user.
+
+
+
 
 # Deterministic vs. random estimation
 
@@ -219,7 +361,7 @@ single polygon.
 `deterministic` argument.`moment_of_inertia_index()`,
 - `moment_isotropy_index()`, and the six classic metrics don't have this argument.
 They are always computed directly off the CDT mesh / convex hull / bounding
-circle, unaffected by this choice.
+circle.
 
 `deterministic = TRUE` (the default for all five) computes the index
 over a **fixed grid** on the CDT mesh - `O(n^2)` in piece count for
@@ -248,6 +390,8 @@ boundary.
 Only `convexity_index()` ever actually builds line geometry. Sharing the argument name means one `n_lines` the sample count at once for all the five functions.
 
 ```{r deterministic-effect}
+#| code-fold: true
+
 det_compare <- do.call(rbind, lapply(names(basic_shapes), function(nm) {
   g <- basic_shapes[[nm]]
   data.frame(
@@ -277,19 +421,8 @@ det_compare <- do.call(rbind, lapply(names(basic_shapes), function(nm) {
 det_mat <- as.matrix(det_compare[, -1])
 rownames(det_mat) <- det_compare$shape
 
-# a small base64-embedded PNG of each shape's own outline, for use as a
-# column header - same pattern as vignette j's shape_thumb(), so no new
-# package dependency (already pulled in transitively via knitr)
-shape_thumb <- function(geom, size_px = 60, col = "grey75") {
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/><br>', uri, size_px, size_px)
-}
+# shape_thumb() (a small base64-embedded PNG of a shape's own outline) is
+# defined earlier, above the index table - reused here as a column header
 headers <- vapply(det_compare$shape, function(nm) {
   paste0(shape_thumb(basic_shapes[[nm]]), nm)
 }, character(1))
@@ -299,7 +432,7 @@ knitr::kable(format = "html", t(det_mat), digits = 2, row.names = TRUE,
 ```
 
 
-The Monte Carlo estimate is noisy, but close. relative to the deterministic one, and that
+The Monte Carlo estimate is noisy, but close to the deterministic one, and that
 noise shrinks as `n_lines` grows.
 
 # Standalone utilities: coarsening and refining the mesh
@@ -359,43 +492,52 @@ ggplot(pair_res) +
   labs(fill = "CI")
 ```
 
-# Weighting a collection of polygons
+# Polygonization is different in a weighting scheme.
 
-`byrow = FALSE` treats every row instead as a weighted sub-polygon of
-**one** overall shape (`st_union(x)`), returning a single-row result.
-`weights = NULL` (the default) weights each row by its own physical
-area, which reproduces the plain unweighted indices on the union; a
-column name or numeric vector weights rows by something else instead
-- here, births (`BIR74`) as a population proxy for four contiguous
-Research Triangle counties:
+`shape_indices_sf(byrow = FALSE)` treats a whole collection of rows as sub-polygons of one weighted shape (see `vignette("a-basic-usage")` for the mechanics). Wake, Durham, Orange, and Chatham counties (the Research Triangle) are geographically contiguous. Only the six mesh-based indices have a genuine weighted form worth comparing this way. 
+
+Note that the CDT trianglulation is different in the weighted and unweigthed case. In the weighted case, the internal borders are respected so that the weight transfers from the sub polygon to mesh more cleanly, which increases the mesh count. Also note the assumption of constant density within the sub polygon, thus large triangle get higher weight in the same polygon.
 
 ```{r nc-weighted}
-triangle_counties <- nc[nc$NAME %in% c("Wake", "Durham", "Orange", "Chatham"), ]
+#| code-fold: TRUE
 
-by_area   <- shape_indices_sf(triangle_counties, byrow = FALSE, id = "weighted_by_area")
-by_births <- shape_indices_sf(triangle_counties, byrow = FALSE,
-                               weights = "BIR74", id = "weighted_by_births")
+triangle <- nc %>% 
+            filter(NAME %in% c("Wake", "Durham", "Orange", "Chatham")) 
 
-rbind(by_area, by_births) %>%
-  st_drop_geometry() %>%
-  knitr::kable(format = "html", digits = 3, row.names = FALSE)
+### This is for demonstration of the triangulation only!
+wmA <- shapeindices:::.weighted_mesh(triangle, weights = NULL)
+triA <- wmA$pieces
+triA$straddles <- lengths(st_overlaps(triA, st_geometry(triangle))) > 1
+
+cwm <- shapeindices:::.constrained_weighted_mesh(triangle, weights = "BIR74")
+tri_to_sf <- function(P, T, crs) {
+  polys <- lapply(seq_len(nrow(T)), function(i) {
+    v <- P[T[i, ], , drop = FALSE]
+    st_polygon(list(rbind(v, v[1, ])))
+  })
+  st_sf(tri_id = seq_len(nrow(T)), geometry = st_sfc(polys, crs = crs))
+}
+triB <- tri_to_sf(cwm$P, cwm$T, cwm$crs)
+triB$weight <- cwm$tri_weight
+triB$straddles <- lengths(st_overlaps(triB, st_geometry(triangle))) > 1
+
+pal <- hcl.colors(100, "YlOrRd", rev = TRUE)
+w_scaled <- (triB$weight - min(triB$weight)) / (max(triB$weight) - min(triB$weight))
+triB$col <- pal[pmax(1, ceiling(w_scaled * 100))]
+
+par(mfrow = c(1, 2), mar = c(2, 1, 3, 1))
+plot(st_geometry(triA), border = ifelse(triA$straddles, "firebrick", "steelblue"),
+     col = NA, lwd = 0.6)
+plot(st_geometry(triangle), col = NA, border = "black", lwd = 2.5, add = TRUE)
+title(main = sprintf("weights = NULL\n%d/%d triangles straddle a county line",
+                      sum(triA$straddles), nrow(triA)), cex.main = 0.95)
+
+plot(st_geometry(triB), col = triB$col, border = "grey40", lwd = 0.6)
+plot(st_geometry(triangle), col = NA, border = "black", lwd = 2.5, add = TRUE)
+title(main = sprintf('weights = "BIR74"\n%d/%d triangles straddle a county line',
+                      sum(triB$straddles), nrow(triB)), cex.main = 0.95)
+
 ```
-
-Same union geometry, same `hull_ratio_index` (it has no weighted form - it's
-a property of the convex hull's boundary, not a sum over pieces) -
-but `convexity_index`, `moment_of_inertia_index`, and `span_index` all
-shift once births, rather than raw land area, decide how much each
-county's shape "counts".
-
-Whenever rows genuinely differ in weight, each row's own boundary is
-supplied as a hard constraint on the combined triangulation, so no
-triangle can ever straddle two rows - density is allocated onto the
-mesh exactly, not approximated by averaging. This matters most for a
-handful of large, high-density rows sitting next to many small,
-low-density ones, where a single coarse triangle could otherwise span
-rows with very different weights. It falls back to the coarser,
-union-only mesh automatically (with a warning) if the kept rows
-genuinely overlap rather than just touch.
 
 # 0/NA weights change the shape being measured
 
@@ -423,9 +565,16 @@ grid9 <- st_sf(pop = ifelse(ctr$x == 0 & ctr$y == 0, 0, 10),
 solid_block <- shape_indices_sf(grid9, byrow = FALSE, id = "solid_block")            # keeps all 9
 ring        <- shape_indices_sf(grid9, byrow = FALSE, weights = "pop", id = "ring")  # centre excluded
 
-rbind(solid_block, ring) %>%
-  st_drop_geometry() %>%
-  knitr::kable(format = "html", digits = 3, row.names = FALSE)
+## t() on a data.frame containing the character `id` column coerces the
+## WHOLE thing to a character matrix first (R's usual data.frame -> matrix
+## promotion rule), which silently defeats kable(digits=): there's nothing
+## numeric left to round, just already-stringified full-precision doubles.
+## Pulling `id` out as rownames first keeps the transposed matrix numeric.
+combined <- rbind(solid_block, ring) %>% st_drop_geometry()
+combined_mat <- as.matrix(combined[, -1])
+rownames(combined_mat) <- combined$id
+
+knitr::kable(format = "html", t(combined_mat), digits = 2, row.names = TRUE)
 ```
 
 ```{r hole-grid-plot, fig.width=7, fig.height=4}
@@ -496,12 +645,6 @@ timing$speedup <- timing$elapsed[1] / timing$elapsed
 knitr::kable(format = "html", timing, digits = 2, row.names = FALSE)
 ```
 
-```{r parallel-rows-plot, fig.width=5, fig.height=3.5}
-ggplot(timing, aes(x = mode, y = elapsed)) +
-  geom_col(fill = "steelblue", width = 0.6) +
-  labs(x = NULL, y = "elapsed, seconds") +
-  coord_flip()
-```
 
 Both modes agree on every county's indices (not shown - parallelising
 changes *how* the 100 rows get computed, not the values themselves);
@@ -516,7 +659,7 @@ headroom) and prefer `future::multicore` over `future::multisession`
 on Mac/Linux, which forks rather than starting fresh R sessions per
 worker.
 
-## `simplify_tolerance`: reducing boundary detail, not just mesh size
+# `simplify_tolerance`: reducing boundary detail, not just mesh size
 
 `prepare_polygon()`, `shape_indices()`, and `shape_indices_sf()` all
 accept a `simplify_tolerance` argument: an `st_simplify()` pass, applied
