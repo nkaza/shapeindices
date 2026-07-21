@@ -108,27 +108,27 @@ ggplot(shapes_sf) +
 
 ## 2 The thirteen indices
 
-Each index has its own function -
-[`convexity_index()`](https://nkaza.github.io/shapeindices/reference/convexity_index.md),
-[`moment_of_inertia_index()`](https://nkaza.github.io/shapeindices/reference/moment_of_inertia_index.md),
-[`moment_isotropy_index()`](https://nkaza.github.io/shapeindices/reference/moment_isotropy_index.md),
-[`directional_balance_index()`](https://nkaza.github.io/shapeindices/reference/directional_balance_index.md),
-[`span_index()`](https://nkaza.github.io/shapeindices/reference/span_index.md),
-[`radial_concentration_index()`](https://nkaza.github.io/shapeindices/reference/radial_concentration_index.md),
-[`depth_index()`](https://nkaza.github.io/shapeindices/reference/depth_index.md)
-(mesh-based: each needs its own CDT triangulation of the polygon), plus
-[`hull_ratio_index()`](https://nkaza.github.io/shapeindices/reference/hull_ratio_index.md),
-[`polsby_popper_index()`](https://nkaza.github.io/shapeindices/reference/polsby_popper_index.md),
-[`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md),
-[`reock_index()`](https://nkaza.github.io/shapeindices/reference/reock_index.md),
-[`detour_index()`](https://nkaza.github.io/shapeindices/reference/detour_index.md),
-and
-[`exchange_index()`](https://nkaza.github.io/shapeindices/reference/exchange_index.md)
-(classic redistricting-literature metrics: each needs only the polygon’s
-own boundary, convex hull, or minimum bounding circle, no triangulation
-at all) - and each returns a list with `index` plus supporting detail
-(the triangle mesh used, the evaluated lines, etc.). Called directly on
-a shape, for example,:
+Each index has its own function `*_index()` that takes, sf or sfc
+objects as input. The following table briefly describes the conceptual
+framing of the index and some shapes that achieve the maximum values.
+
+| Function | Description | Ex: weighted ~ 1 | Ex: unweighted ~ 1 |
+|:---|:---|:---|:---|
+| convexity_index() | Fraction of a connecting line between two mass-weighted random points that falls outside the shape | Any convex shape, any weighting (e.g. a square weighted by an asymmetric gradient) | Any convex shape (square, triangle, hexagon) |
+| moment_of_inertia_index() | Actual polar moment of inertia about the mass centroid vs. the same total mass optimally (radially) arranged | Only a true disk - the reference is itself the optimal arrangement for any total mass | Only a true disk |
+| moment_isotropy_index() | Ratio of the mass distribution's own principal moments (elongation only, ignoring overall compactness) | A \>=3-fold-symmetric shape weighted by a symmetry-preserving field (e.g. a triangle weighted by distance from its own centroid) | Any \>=3-fold-symmetric shape (equilateral triangle, square, regular hexagon) |
+| directional_balance_index() | First-harmonic bearing bias of the mass distribution about its own centroid | A 180-degree-point-symmetric shape weighted by a symmetry-preserving field (e.g. a rectangle weighted by distance from its own centroid) | Any 180-degree-point-symmetric shape (rectangle, square) |
+| span_index() | Mean distance between two mass-weighted random points vs. the same mass optimally arranged | Only a disk with density concentrated toward its centre | Only a true disk |
+| radial_concentration_index() | Mean distance from a mass-weighted random point to the shape's own geometric median, vs. optimal | Only a disk with density concentrated toward its centre | Only a true disk |
+| depth_index() | Mean distance from a mass-weighted random point to the boundary, vs. optimal | Only a disk with density concentrated toward its centre | Only a true disk |
+| hull_ratio_index() | polygon area / convex hull area | No weighted form | Any convex shape (square, triangle, hexagon) |
+| polsby_popper_index() | 4\*pi\*area / perimeter^2 | No weighted form | Only a true circle |
+| width_length_ratio_index() | minimum bounding rectangle: shorter side / longer side | No weighted form | A regular octogon (but not hexagon or pentagon) |
+| reock_index() | area / minimum bounding circle area | No weighted form | Only a true circle |
+| detour_index() | equal-area-circle perimeter / convex hull perimeter | No weighted form | Only a true circle (its convex hull must itself be circular) |
+| exchange_index() | shape's own area shared with an equal-area circle at its centroid | No weighted form | Only a true circle |
+
+Called directly on a shape, for example,:
 
 ``` r
 
@@ -159,23 +159,23 @@ might have implications for speed.
 
 ``` r
 
-sapply(basic_shapes, shape_indices)
+round(sapply(basic_shapes, shape_indices), digits = 3)
 ```
 
-                              star     spiral blob with hole
-    convexity            0.9444644 0.29966992      0.6953506
-    moment_of_inertia    0.7606930 0.22087199      0.4919841
-    moment_isotropy      1.0000000 0.82824998      0.7697713
-    directional_balance  0.9998800 0.99725177      0.9468156
-    span                 0.8823414 0.47014353      0.7050446
-    radial_concentration 0.9003461 0.46733463      0.6839780
-    depth                0.5118979 0.10206257      0.3181741
-    hull_ratio           0.4618802 0.26953133      0.5117867
-    polsby_popper        0.2241531 0.01836818      0.1286025
-    width_length_ratio   0.8660254 0.91940278      0.9892452
-    reock                0.3819719 0.23139241      0.3432286
-    detour               0.6472086 0.51092750      0.6574167
-    exchange             0.7722293 0.18221681      0.5395352
+                          star spiral blob with hole
+    convexity            0.944  0.300          0.695
+    moment_of_inertia    0.761  0.221          0.492
+    moment_isotropy      1.000  0.828          0.770
+    directional_balance  1.000  0.997          0.947
+    span                 0.882  0.470          0.705
+    radial_concentration 0.900  0.467          0.684
+    depth                0.512  0.102          0.318
+    hull_ratio           0.462  0.270          0.512
+    polsby_popper        0.224  0.018          0.129
+    width_length_ratio   0.866  0.922          0.901
+    reock                0.382  0.231          0.343
+    detour               0.647  0.511          0.657
+    exchange             0.772  0.182          0.540
 
 The spiral scores low on every index (a long, narrow, winding corridor
 is far from convex and far from disk-like); the blob’s hole drags its
@@ -276,14 +276,38 @@ det_compare <- do.call(rbind, lapply(names(basic_shapes), function(nm) {
     hull_ratio         = hull_ratio_index(g)$index
   )
 }))
-knitr::kable(format = "html", det_compare, digits = 2, row.names = FALSE)
+
+## t() on a data.frame containing the character `shape` column coerces
+## the WHOLE thing to a character matrix first (R's usual data.frame ->
+## matrix promotion rule), which silently defeats kable(digits=): there's
+## nothing numeric left to round, just already-stringified full-precision
+## doubles. Pulling `shape` out as column names first keeps the
+## transposed matrix genuinely numeric.
+det_mat <- as.matrix(det_compare[, -1])
+rownames(det_mat) <- det_compare$shape
+
+# a small base64-embedded PNG of each shape's own outline, for use as a
+# column header - same pattern as vignette j's shape_thumb(), so no new
+# package dependency (already pulled in transitively via knitr)
+shape_thumb <- function(geom, size_px = 60, col = "grey75") {
+  f <- tempfile(fileext = ".png")
+  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+  par(mar = c(0.5, 0.5, 0.5, 0.5))
+  plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
+  grDevices::dev.off()
+  uri <- knitr::image_uri(f)
+  unlink(f)
+  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/><br>', uri, size_px, size_px)
+}
+headers <- vapply(det_compare$shape, function(nm) {
+  paste0(shape_thumb(basic_shapes[[nm]]), nm)
+}, character(1))
+
+knitr::kable(format = "html", t(det_mat), digits = 2, row.names = TRUE,
+             col.names = headers, escape = FALSE)
 ```
 
-| shape | ci_deterministic | ci_random_line | span_deterministic | span_random_pair | rci_deterministic | rci_random_point | db_deterministic | db_random_point | depth_deterministic | depth_random_point | moi | moment_isotropy | hull_ratio |
-|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| star | 0.94 | 0.94 | 0.88 | 0.88 | 0.90 | 0.91 | 1.00 | 0.97 | 0.51 | 0.52 | 0.76 | 1.00 | 0.46 |
-| spiral | 0.30 | 0.30 | 0.47 | 0.47 | 0.47 | 0.46 | 1.00 | 0.97 | 0.10 | 0.10 | 0.22 | 0.83 | 0.27 |
-| blob with hole | 0.70 | 0.69 | 0.71 | 0.71 | 0.68 | 0.68 | 0.95 | 0.94 | 0.32 | 0.32 | 0.49 | 0.77 | 0.51 |
+[TABLE]
 
 The Monte Carlo estimate is noisy, but close. relative to the
 deterministic one, and that noise shrinks as `n_lines` grows.
@@ -398,8 +422,8 @@ rbind(by_area, by_births) %>%
 
 | id | convexity_index | moment_of_inertia_index | moment_isotropy_index | directional_balance_index | span_index | radial_concentration_index | depth_index | hull_ratio_index | polsby_popper_index | width_length_ratio_index | reock_index | detour_index | exchange_index | total_weight |
 |:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| weighted_by_area | 0.983 | 0.815 | 0.507 | 0.984 | 0.917 | 0.924 | 0.685 | 0.831 | 0.514 | 0.683 | 0.483 | 0.83 | 0.807 | 5811314465 |
-| weighted_by_births | 0.990 | 0.697 | 0.643 | 0.960 | 0.849 | 0.852 | 0.507 | 0.831 | 0.514 | 0.683 | 0.483 | 0.83 | 0.807 | 27264 |
+| weighted_by_area | 0.983 | 0.815 | 0.507 | 0.984 | 0.917 | 0.924 | 0.685 | 0.831 | 0.514 | 0.686 | 0.483 | 0.83 | 0.807 | 5811314465 |
+| weighted_by_births | 0.990 | 0.697 | 0.643 | 0.960 | 0.849 | 0.852 | 0.507 | 0.831 | 0.514 | 0.686 | 0.483 | 0.83 | 0.807 | 27264 |
 
 Same union geometry, same `hull_ratio_index` (it has no weighted form -
 it’s a property of the convex hull’s boundary, not a sum over pieces) -
@@ -533,8 +557,8 @@ knitr::kable(format = "html", timing, digits = 2, row.names = FALSE)
 
 | mode                             | elapsed | speedup |
 |:---------------------------------|--------:|--------:|
-| parallel_rows = FALSE            |   32.01 |    1.00 |
-| parallel_rows = TRUE (4 workers) |   15.73 |    2.04 |
+| parallel_rows = FALSE            |   34.87 |    1.00 |
+| parallel_rows = TRUE (4 workers) |   18.13 |    1.92 |
 
 ``` r
 

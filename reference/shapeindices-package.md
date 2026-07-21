@@ -21,8 +21,8 @@ Useful links:
 
 ## Author
 
-**Maintainer**: Nikhil Kaza <kaza@cs.unc.edu>
+**Maintainer**: Nikhil Kaza <nkaza@unc.edu>
 
 Authors:
 
-- Nikhil Kaza <kaza@cs.unc.edu>
+- Nikhil Kaza <nkaza@unc.edu>

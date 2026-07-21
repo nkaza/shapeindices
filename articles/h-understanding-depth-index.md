@@ -394,8 +394,8 @@ same six points with only the inner radius shrinking, separate sharply:
 reacts to spike depth here, unlike
 [`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md)
 ([`vignette("i-understanding-classical-indices")`](https://nkaza.github.io/shapeindices/articles/i-understanding-classical-indices.md)),
-whose bounding box never notices six needle-thin arms replacing six
-broad ones.
+whose bounding rectangle never notices six needle-thin arms replacing
+six broad ones.
 
 ### 4.2 Holes and multi-part shapes
 

@@ -123,7 +123,7 @@ shape_indices(wake)
 #>                depth           hull_ratio        polsby_popper 
 #>            0.7922441            0.9046430            0.6285667 
 #>   width_length_ratio                reock               detour 
-#>            0.9006867            0.5379165            0.8643451 
+#>            0.9595009            0.5379165            0.8643451 
 #>             exchange 
 #>            0.8233315 
 
@@ -150,7 +150,7 @@ shape_indices(wake, deterministic_max_tri = 5, n_lines = 2000, seed = 1)
 #>                depth           hull_ratio        polsby_popper 
 #>            0.7898759            0.9046430            0.6285667 
 #>   width_length_ratio                reock               detour 
-#>            0.9006867            0.5379165            0.8643451 
+#>            0.9595009            0.5379165            0.8643451 
 #>             exchange 
 #>            0.8233315 
 
@@ -165,7 +165,7 @@ shape_indices(wake, simplify_tolerance = 50)
 #>                depth           hull_ratio        polsby_popper 
 #>            0.7922886            0.9047569            0.6286460 
 #>   width_length_ratio                reock               detour 
-#>            0.9006867            0.5379842            0.8643995 
+#>            0.9595009            0.5379842            0.8643995 
 #>             exchange 
 #>            0.8233065 
 ```

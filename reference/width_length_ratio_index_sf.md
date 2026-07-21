@@ -29,5 +29,5 @@ res <- width_length_ratio_index_sf(nc[1:5, ])
 #> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4071, lon_0 = -76.0272) before computing - pass already-projected data instead if you need a specific CRS.
 #> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4224, lon_0 = -77.4105) before computing - pass already-projected data instead if you need a specific CRS.
 res$width_length_ratio_index
-#> [1] 0.8769336 0.5794896 0.7737690 0.9301474 0.5903964
+#> [1] 0.8481804 0.5753526 0.7771562 0.4328651 0.6122946
 ```

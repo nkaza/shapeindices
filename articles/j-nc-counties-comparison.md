@@ -44,9 +44,18 @@ piece connects to a long barrier-island strip across an open sound.
 Almost index penalises this geographical arrangement: convexity
 0.74/0.80, hull ratio 0.26/0.55, Polsby-Popper as low as 0.08 for Dare.
 
-On the other hand, width_length_ratio disagrees sharply for these two
-counties: 0.45 for Dare and a nearly perfect 0.96 for Currituck. This is
-because the combined bounding box happens to come out roughly square.
+Width-length ratio agrees too, now: 0.40 for Dare and 0.43 for
+Currituck, both low like every other elongation-sensitive measure here.
+That agreement is itself worth a note: this index used to score
+Currituck at 0.96 - nearly a perfect square - because its old
+axis-aligned bounding box happened to line up close to the coordinate
+axes, an accident of how the county is drawn on the map, not a property
+of its actual shape. Switching to the minimum-area bounding rectangle at
+any rotation
+([`sf::st_minimum_rotated_rectangle()`](https://r-spatial.github.io/sf/reference/geos_unary.html))
+fixes this: Currituck’s true elongation, independent of orientation, is
+close to Dare’s own, not the 0.96 the old orientation-sensitive version
+reported.
 
 **Camden** is the classic split: convexity 0.99, essentially convex, no
 real notches for a line to cross. Span/radial concentration agree
@@ -58,7 +67,7 @@ principal moments differ by roughly 27-to-1.
 
 **Lincoln** sharpens that same point with no boundary complexity at all
 involved: convexity is a perfect 1.00 and hull ratio 0.99. Yet Reock is
-0.34, width-length ratio 0.37, and moment isotropy 0.11; all three
+0.34, width-length ratio 0.30, and moment isotropy 0.11; all three
 elongation-sensitive measures still penalise it for being stretched,
 each via a different route (bounding circle, bounding box, mass tensor).
 **Convex and compact are different properties**, and a shape can score
@@ -68,7 +77,7 @@ perfectly on one while scoring poorly on the other.
 
 ![](j-nc-counties-comparison_files/figure-html/nc-corr-1.png)
 
-The above correlation matrix uses unwieghed indices and hierarchical
+The above correlation matrix uses unweighted indices and hierarchical
 clustering. Across these 100 counties, the indices condense into three
 primary behaviors dominated by whether they respond to elongation or
 boundary deformities. The core **Elongation Cluster**—comprising moment
@@ -77,10 +86,14 @@ interchangeably, as county-level elongation swamps the theoretical
 differences between their formulas. Other measures fold into this group
 via distinct mechanics: `exchange_index` reads elongation via area
 overlap (0.96 with MOI), `detour_index` captures hull-level stretching
-(0.94 with span), and `depth_index` aligns with boundary complexity
-(0.93 with Polsby-Popper). Moment isotropy belongs to this family but
-sits slightly apart (0.74 with MOI) because it isolates pure axis
-elongation, remaining structurally blind to dispersal or boundary noise.
+(0.94 with span), `depth_index` aligns with boundary complexity (0.93
+with Polsby-Popper), and `width_length_ratio_index` - since being
+corrected to use the minimum-area bounding rectangle at any rotation
+rather than an axis-aligned one - now tracks the same elongation cleanly
+(0.80 with moment isotropy, its own strongest tie in the whole matrix).
+Moment isotropy belongs to this family but sits slightly apart (0.74
+with MOI) because it isolates pure axis elongation, remaining
+structurally blind to dispersal or boundary noise.
 
 **Convexity and hull ratio** form a second, distinct cluster (0.84) that
 isolates concave boundary departures while ignoring elongation entirely.
@@ -98,13 +111,18 @@ the convexity and elongation clusters (0.90 with hull ratio; 0.84 with
 MOI) because perimeter length is inherently inflated by both boundary
 roughness and stretched geometries.
 
-Standing alone as a complete outlier, width length ratio registers its
-highest but weak correlation with moment isotropy (0.55) and Reock
-(0.41). While this weak alignment suggests bounding-box and
-mass-distribution elongation tap into a similar underlying signal,
-bounding-box sensitivity to orientation and multi-part geometries leaves
-`width_length_ratio_index` isolated from every other index in the
-dataset (0.20 to 0.37 across depth, detour, and exchange).
+`width_length_ratio_index` is no longer the outlier it once was. An
+earlier, axis-aligned version of this index correlated weakly with
+almost everything in this dataset, because its own orientation noise -
+which way a county happens to be drawn relative to the coordinate axes,
+not a property of its shape - swamped the real elongation signal
+underneath. With that noise removed, its strongest ties sit squarely
+inside the elongation cluster: 0.80 with moment isotropy, 0.78 with
+exchange, 0.76 with moment of inertia. It still correlates more loosely
+with the boundary-complexity side of things (0.31 with convexity, 0.31
+with hull ratio) - a bounding rectangle, however it’s computed, still
+can’t see concavity the way a convex-hull-based measure can - but it is
+a member of a real cluster now, not an island of its own.
 
 ## 4 Weighting a collection: the Triangle counties by population
 
@@ -182,10 +200,11 @@ isotropy (0.46). Under mesh reweighting, directional balance aligns with
 MOI and span because all three respond to centroid-relative mass
 drift—making it uniquely sensitive to split geometries like Dare and
 Currituck’s mainland-and-barrier-island shapes. Ultimately,
-width_length_ratio_index remains an extreme outlier capturing little of
-what the other twelve indices measure, proving that population-weighting
-doesn’t just tweak scores—it fundamentally alters which spatial property
-each index reveals.
+`width_length_ratio_index` - once corrected to use the minimum-area
+bounding rectangle at any rotation rather than an axis-aligned one -
+joins the elongation cluster rather than sitting apart from it, and
+population-weighting doesn’t just tweak scores across the mesh-based
+indices—it fundamentally alters which spatial property each one reveals.
 
 [^1]: It is probably useful to think about the history of how the shapes
     came to be and how they changed over time: see Kelly, S. R. 2015.

@@ -220,7 +220,7 @@ res_rli <- shape_indices_sf(nc[1:5, ], byrow = TRUE, deterministic_max_tri = 5,
 #> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4224, lon_0 = -77.4105) before computing - pass already-projected data instead if you need a specific CRS.
 #> Warning: n_lines (2000) is not substantially lower than the 465 triangle-pairs that deterministic = TRUE (31 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
 #> Warning: n_lines (2000) is not substantially lower than the 465 triangle-pairs that deterministic = TRUE (31 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
-#> Warning: UNRELIABLE VALUE: Future (<unnamed-3>) unexpectedly generated random numbers without specifying argument 'seed'. There is a risk that those random numbers are not statistically sound and the overall results might be invalid. To fix this, specify 'seed=TRUE'. This ensures that proper, parallel-safe random numbers are produced. To disable this check, use 'seed=NULL', or set option 'future.rng.onMisuse' to "ignore". [future <unnamed-3> (0e10e80dd040feef0c6fe3b953311dc3-3); on 0e10e80dd040feef0c6fe3b953311dc3@runnervm3jd5f<7713>]
+#> Warning: UNRELIABLE VALUE: Future (<unnamed-3>) unexpectedly generated random numbers without specifying argument 'seed'. There is a risk that those random numbers are not statistically sound and the overall results might be invalid. To fix this, specify 'seed=TRUE'. This ensures that proper, parallel-safe random numbers are produced. To disable this check, use 'seed=NULL', or set option 'future.rng.onMisuse' to "ignore". [future <unnamed-3> (4b38961428f50118bd00d2d045385f4a-3); on 4b38961428f50118bd00d2d045385f4a@runnervm3jd5f<7744>]
 res_rli$convexity_index
 #> [1] 0.9949545 0.9844751 0.9984327 0.8028660 0.9753344
 
@@ -241,7 +241,7 @@ shape_indices_sf(triangle, byrow = FALSE, id = "triangle_by_area")
 #>   radial_concentration_index depth_index hull_ratio_index polsby_popper_index
 #> 1                  0.9243383   0.6853179        0.8306064           0.5140176
 #>   width_length_ratio_index reock_index detour_index exchange_index total_weight
-#> 1                0.6832549   0.4828814    0.8297133      0.8073051   5812126377
+#> 1                0.6856106   0.4828814    0.8297133      0.8073051   5812126377
 #>                         geometry
 #> 1 POLYGON ((-25588.04 -0.0077...
 shape_indices_sf(triangle, byrow = FALSE, weights = "BIR74",
@@ -261,7 +261,7 @@ shape_indices_sf(triangle, byrow = FALSE, weights = "BIR74",
 #>   radial_concentration_index depth_index hull_ratio_index polsby_popper_index
 #> 1                  0.8519084   0.5074114        0.8306064           0.5140176
 #>   width_length_ratio_index reock_index detour_index exchange_index total_weight
-#> 1                0.6832549   0.4828814    0.8297133      0.8073051        27264
+#> 1                0.6856106   0.4828814    0.8297133      0.8073051        27264
 #>                         geometry
 #> 1 POLYGON ((-25588.04 -0.0077...
 
@@ -285,7 +285,7 @@ shape_indices_sf(triangle, byrow = FALSE, weights = w, id = "triangle_minus_chat
 #>   radial_concentration_index depth_index hull_ratio_index polsby_popper_index
 #> 1                  0.8571135   0.5421913        0.8359174           0.5477416
 #>   width_length_ratio_index reock_index detour_index exchange_index total_weight
-#> 1                0.8651049   0.4845069    0.8362334      0.7674118        25618
+#> 1                  0.73927   0.4845069    0.8362334      0.7674118        25618
 #>                         geometry
 #> 1 POLYGON ((-3989.542 -26212....
 

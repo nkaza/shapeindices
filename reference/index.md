@@ -70,6 +70,7 @@
 - [`tri_quad_points()`](https://nkaza.github.io/shapeindices/reference/tri_quad_points.md)
   : 3-point interior (Hammer-Stroud) quadrature rule for a triangle
 - [`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md)
-  : Width-length ratio of a (multi)polygon's bounding box
+  : Width-length ratio of a (multi)polygon's minimum-area bounding
+  rectangle
 - [`width_length_ratio_index_sf()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index_sf.md)
   : width_length_ratio_index() for every row of an sf data frame

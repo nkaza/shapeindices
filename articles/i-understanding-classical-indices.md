@@ -60,11 +60,14 @@ compares it to a reference circle placed at its centroid.
   redistricting application is Polsby & Popper (1991),[^6] itself
   building on Ritter’s 1822 proposal reviewed in Frolov.
 - **[`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md)**:
-  the shorter over the longer extent of the axis-aligned bounding box. A
-  common, informally-attributed redistricting metric with no single
-  definitive origin in the reviews consulted here - included because
-  it’s simple, cheap, and widely used, not because of a strong
-  literature pedigree.
+  the shorter over the longer side of the polygon’s minimum-area
+  bounding rectangle, at any rotation
+  ([`sf::st_minimum_rotated_rectangle()`](https://r-spatial.github.io/sf/reference/geos_unary.html)) -
+  not the axis-aligned bounding box, which would make the score depend
+  on orientation rather than shape alone. A common,
+  informally-attributed redistricting metric with no single definitive
+  origin in the reviews consulted here - included because it’s simple,
+  cheap, and widely used, not because of a strong literature pedigree.
 - **[`reock_index()`](https://nkaza.github.io/shapeindices/reference/reock_index.md)**:
   area of the polygon over the area of its minimum bounding circle.
   Commonly attributed to Reock (1961),[^7] with origins traced to
@@ -89,7 +92,7 @@ established results, not derived here.
 |:---|:---|:---|
 | \`hull_ratio_index()\` | \$A(P) / A(\text{hull}(P))\$ | the polygon equals its own convex hull |
 | \`polsby_popper_index()\` | \$4\pi A(P) / p(P)^2\$ | the polygon is a circle |
-| \`width_length_ratio_index()\` | \$\min(w, h) / \max(w, h)\$ | the bounding box is a square |
+| \`width_length_ratio_index()\` | \$\min(w, h) / \max(w, h)\$ | the minimum bounding rectangle is a square |
 | \`reock_index()\` | \$A(P) / A(\text{MBC})\$ | the polygon equals its own minimum bounding circle |
 | \`detour_index()\` | \$2\sqrt{\pi A(P)} / p(\text{hull}(P))\$ | the convex hull is a circle |
 | \`exchange_index()\` | \$A(P \cap C) / A(P)\$ | the polygon equals its own equal-area circle |
@@ -145,12 +148,14 @@ canonical <- list(
 
 The square and disk anchor the two ends familiar from every other
 vignette in this package: the disk reads at or near 1 on all six (its
-bounding box is the one exception to “1 = circle” - a circle’s bounding
-box is already a square, so
+minimum bounding rectangle is the one exception to “1 = circle” - a
+circle’s minimum bounding rectangle is a square regardless of how it’s
+drawn, so
 [`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md)
 reads 1 for both), while the square is already informative on its own -
 [`hull_ratio_index()`](https://nkaza.github.io/shapeindices/reference/hull_ratio_index.md)/[`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md)
-read exactly 1 (a square is its own hull and its own bounding box), but
+read exactly 1 (a square is its own hull and its own minimum bounding
+rectangle), but
 [`reock_index()`](https://nkaza.github.io/shapeindices/reference/reock_index.md)
 is capped at exactly $`2/\pi \approx 0.637`$ regardless of size, since a
 square’s minimum bounding circle always wastes its four corners.
@@ -192,7 +197,8 @@ make_dumbbell_gap <- function(gap) {
 | ![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAAKlBMVEUAAABGRkZOTk5NTU1KSkpOTk5NTU1MTExWVlZYWFhcXFxeXl6ZmZm/v79sNda3AAAADnRSTlMACw0hJqGiqv///////96oRUcAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABISURBVDiNY2AYBaNgSANGVnZ2djYmGJeJDchlZcSikJmDh4eHkwXGZeEEcjmYsSnk4uXl5UYo5AZyuShTSKzVRHtmFIyCIQQAIoACicKt1rwAAAAASUVORK5CYII=) | 5.0 | 0.444 | 0.393 | 0.222 | 0.120 | 0.456 | 0.000 |
 | ![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAAG1BMVEUAAAAAAABJSUlKSkpOTk5OTk5MTExSUlJgYGBp0GzRAAAACXRSTlMAARUfS1V4//9PnCXHAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAMElEQVQ4jWNgGAWjYGQARhZWJlQRJlYWRiwKmdk52FBF2DjYmSlRSLTVo2AUDEcAANO3AJH2v+FsAAAAAElFTkSuQmCC) | 20.0 | 0.167 | 0.393 | 0.083 | 0.018 | 0.193 | 0.000 |
 
-A hole never touches the convex hull or the bounding box, so
+A hole never touches the convex hull or the minimum bounding rectangle,
+so
 [`hull_ratio_index()`](https://nkaza.github.io/shapeindices/reference/hull_ratio_index.md)/[`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md)
 respond only through the numerator:
 [`hull_ratio_index()`](https://nkaza.github.io/shapeindices/reference/hull_ratio_index.md)
@@ -298,8 +304,8 @@ radius goes from nearly solid to six needle-thin spikes - every index
 here falls toward 0 as the notches deepen, except one:
 [`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md)
 barely moves (0.900 to 0.866). The six outer points never move, so the
-bounding box never changes shape regardless of how thin the arms between
-them get -
+minimum bounding rectangle never changes shape regardless of how thin
+the arms between them get -
 [`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md)
 only ever sees the envelope, never how much of it is actually filled.
 [`polsby_popper_index()`](https://nkaza.github.io/shapeindices/reference/polsby_popper_index.md)
@@ -333,8 +339,8 @@ is the one index in this package’s whole collection genuinely vulnerable
 to it.
 [`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md)
 stays at exactly 1 throughout, for an unrelated reason: a circle’s
-bounding box is a square at any pixelation coarse enough to still
-resemble the original extent.
+minimum bounding rectangle is a square at any pixelation coarse enough
+to still resemble the original extent.
 
 ### 5.3 Holes and multi-part shapes: `exchange_index()`’s two distinct failure modes
 
@@ -368,8 +374,8 @@ own multi-part/hole blind spots.
   ([`hull_ratio_index()`](https://nkaza.github.io/shapeindices/reference/hull_ratio_index.md)
   tracks `1 - hole_frac` exactly;
   [`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md)
-  doesn’t move at all, since neither the hull nor the bounding box ever
-  reaches into a hole).
+  doesn’t move at all, since neither the hull nor the minimum bounding
+  rectangle ever reaches into a hole).
 - [`polsby_popper_index()`](https://nkaza.github.io/shapeindices/reference/polsby_popper_index.md)
   is the most exposed to boundary/fractal noise of any index in this
   package - a stairstepped (rasterized) boundary inflates its perimeter
@@ -382,8 +388,13 @@ own multi-part/hole blind spots.
   far apart those pieces sit, as long as they don’t touch.
 - [`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md)
   is blind to notch/spike depth in the opposite sense - a shape can go
-  from solid to needle-thin spiked without moving its own bounding box
-  at all.
+  from solid to needle-thin spiked without moving its own minimum
+  bounding rectangle at all.
+- All six are orientation-invariant -
+  [`width_length_ratio_index()`](https://nkaza.github.io/shapeindices/reference/width_length_ratio_index.md)
+  uses the minimum-area bounding rectangle at any rotation, not the
+  axis-aligned bounding box, specifically so that rotating a shape in
+  place, without changing it at all otherwise, can’t move the index.
 - [`exchange_index()`](https://nkaza.github.io/shapeindices/reference/exchange_index.md)
   has two distinct failure modes, both ending in an exact 0 rather than
   merely a low score: multi-part separation past the reference circle’s
