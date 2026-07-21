@@ -12,14 +12,11 @@ library(dplyr)
 theme_set(theme_minimal(base_size = 11))
 ```
 
-This vignette is a practical, code-first tour of the package: build a
-few synthetic shapes, run the indices on them, see what the
-`deterministic` argument changes, then move on to a real `sf` data
-frame - first row by row, then as a single weighted collection - and
-finish with the parallelisation option for larger jobs. For the
-mathematical derivation of the indices themselves (what “convexity” even
-means here, and where each index breaks down), see
-[`vignette("b-understanding-convexity-index", package = "shapeindices")`](https://nkaza.github.io/shapeindices/articles/b-understanding-convexity-index.md).
+This vignette is a practical, code-first tour of the package
+`shapeindices`. The goal of the package is to provide indices for `sf`,
+`sfc` objects that describe the shape/mass configurations. In this
+package, we demonstrate some key indices and approaches. For deep dive
+into specific index, see the corresponding vigenette.
 
 ## 1 Three basic shapes
 
@@ -110,23 +107,24 @@ ggplot(shapes_sf) +
 
 Each index has its own function `*_index()` that takes, sf or sfc
 objects as input. The following table briefly describes the conceptual
-framing of the index and some shapes that achieve the maximum values.
+framing of the index and shows, as a thumbnail, a shape/mass
+distribution that achieves close to the maximum value. These are just
+some examples and the emphasis is on showing some unexpected profiles
+that score high on these indices (rather than repeating a disk)
 
-| Function | Description | Ex: weighted ~ 1 | Ex: unweighted ~ 1 |
-|:---|:---|:---|:---|
-| convexity_index() | Fraction of a connecting line between two mass-weighted random points that falls outside the shape | Any convex shape, any weighting (e.g. a square weighted by an asymmetric gradient) | Any convex shape (square, triangle, hexagon) |
-| moment_of_inertia_index() | Actual polar moment of inertia about the mass centroid vs. the same total mass optimally (radially) arranged | Only a true disk - the reference is itself the optimal arrangement for any total mass | Only a true disk |
-| moment_isotropy_index() | Ratio of the mass distribution's own principal moments (elongation only, ignoring overall compactness) | A \>=3-fold-symmetric shape weighted by a symmetry-preserving field (e.g. a triangle weighted by distance from its own centroid) | Any \>=3-fold-symmetric shape (equilateral triangle, square, regular hexagon) |
-| directional_balance_index() | First-harmonic bearing bias of the mass distribution about its own centroid | A 180-degree-point-symmetric shape weighted by a symmetry-preserving field (e.g. a rectangle weighted by distance from its own centroid) | Any 180-degree-point-symmetric shape (rectangle, square) |
-| span_index() | Mean distance between two mass-weighted random points vs. the same mass optimally arranged | Only a disk with density concentrated toward its centre | Only a true disk |
-| radial_concentration_index() | Mean distance from a mass-weighted random point to the shape's own geometric median, vs. optimal | Only a disk with density concentrated toward its centre | Only a true disk |
-| depth_index() | Mean distance from a mass-weighted random point to the boundary, vs. optimal | Only a disk with density concentrated toward its centre | Only a true disk |
-| hull_ratio_index() | polygon area / convex hull area | No weighted form | Any convex shape (square, triangle, hexagon) |
-| polsby_popper_index() | 4\*pi\*area / perimeter^2 | No weighted form | Only a true circle |
-| width_length_ratio_index() | minimum bounding rectangle: shorter side / longer side | No weighted form | A regular octogon (but not hexagon or pentagon) |
-| reock_index() | area / minimum bounding circle area | No weighted form | Only a true circle |
-| detour_index() | equal-area-circle perimeter / convex hull perimeter | No weighted form | Only a true circle (its convex hull must itself be circular) |
-| exchange_index() | shape's own area shared with an equal-area circle at its centroid | No weighted form | Only a true circle |
+The shapes below are the same canonical ones used throughout this
+package’s other vignettes
+
+[TABLE]
+
+The three thumbnails on `width_length_ratio_index`’s own row aren’t a
+*good* example, but a caveat. A hole punched clean through a shape, six
+needle-thin spikes, and a shape split into several pieces with nothing
+joining them all still score close to `1` here, because the index only
+ever looks at the four corners of the minimum-area bounding rectangle.
+See
+[`vignette("i-understanding-classical-indices", package = "shapeindices")`](https://nkaza.github.io/shapeindices/articles/i-understanding-classical-indices.md)
+for the other blind spots this family of indices shares.
 
 Called directly on a shape, for example,:
 
@@ -197,14 +195,8 @@ direction is the right behaviour here - but it’s not a universal
 convention. Some Polsby-Popper implementations in the redistricting
 literature measure only the *outer* ring’s length, treating interior
 holes (a small enclave, a data-digitisation artifact) as
-compactness-irrelevant.
-[`polsby_popper_index()`](https://nkaza.github.io/shapeindices/reference/polsby_popper_index.md)
-has no `ignore_holes` argument to switch between the two conventions,
-deliberately - that would make the same function silently answer two
-different questions depending on a flag. If you need to match an
-outer-ring-only definition, strip interior rings from the input yourself
-first: `st_polygon(your_geometry[1])` keeps only the first (outer) ring
-of a single polygon.
+compactness-irrelevant. This package prizes consistency of definition
+and leaves this data cleaning exercise to the user.
 
 ## 3 Deterministic vs. random estimation
 
@@ -218,8 +210,7 @@ of a single polygon.
   argument.[`moment_of_inertia_index()`](https://nkaza.github.io/shapeindices/reference/moment_of_inertia_index.md),
 - [`moment_isotropy_index()`](https://nkaza.github.io/shapeindices/reference/moment_isotropy_index.md),
   and the six classic metrics don’t have this argument. They are always
-  computed directly off the CDT mesh / convex hull / bounding circle,
-  unaffected by this choice.
+  computed directly off the CDT mesh / convex hull / bounding circle.
 
 `deterministic = TRUE` (the default for all five) computes the index
 over a **fixed grid** on the CDT mesh - `O(n^2)` in piece count for
@@ -255,6 +246,8 @@ Only
 ever actually builds line geometry. Sharing the argument name means one
 `n_lines` the sample count at once for all the five functions.
 
+Code
+
 ``` r
 
 det_compare <- do.call(rbind, lapply(names(basic_shapes), function(nm) {
@@ -286,19 +279,8 @@ det_compare <- do.call(rbind, lapply(names(basic_shapes), function(nm) {
 det_mat <- as.matrix(det_compare[, -1])
 rownames(det_mat) <- det_compare$shape
 
-# a small base64-embedded PNG of each shape's own outline, for use as a
-# column header - same pattern as vignette j's shape_thumb(), so no new
-# package dependency (already pulled in transitively via knitr)
-shape_thumb <- function(geom, size_px = 60, col = "grey75") {
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/><br>', uri, size_px, size_px)
-}
+# shape_thumb() (a small base64-embedded PNG of a shape's own outline) is
+# defined earlier, above the index table - reused here as a column header
 headers <- vapply(det_compare$shape, function(nm) {
   paste0(shape_thumb(basic_shapes[[nm]]), nm)
 }, character(1))
@@ -309,8 +291,8 @@ knitr::kable(format = "html", t(det_mat), digits = 2, row.names = TRUE,
 
 [TABLE]
 
-The Monte Carlo estimate is noisy, but close. relative to the
-deterministic one, and that noise shrinks as `n_lines` grows.
+The Monte Carlo estimate is noisy, but close to the deterministic one,
+and that noise shrinks as `n_lines` grows.
 
 ## 4 Standalone utilities: coarsening and refining the mesh
 
@@ -397,49 +379,65 @@ ggplot(pair_res) +
 
 ![](a-basic-usage_files/figure-html/nc-byrow-plot-1.png)
 
-## 6 Weighting a collection of polygons
+## 6 Polygonization is different in a weighting scheme.
 
-`byrow = FALSE` treats every row instead as a weighted sub-polygon of
-**one** overall shape (`st_union(x)`), returning a single-row result.
-`weights = NULL` (the default) weights each row by its own physical
-area, which reproduces the plain unweighted indices on the union; a
-column name or numeric vector weights rows by something else instead -
-here, births (`BIR74`) as a population proxy for four contiguous
-Research Triangle counties:
+`shape_indices_sf(byrow = FALSE)` treats a whole collection of rows as
+sub-polygons of one weighted shape (see
+[`vignette("a-basic-usage")`](https://nkaza.github.io/shapeindices/articles/a-basic-usage.md)
+for the mechanics). Wake, Durham, Orange, and Chatham counties (the
+Research Triangle) are geographically contiguous. Only the six
+mesh-based indices have a genuine weighted form worth comparing this
+way.
+
+Note that the CDT trianglulation is different in the weighted and
+unweigthed case. In the weighted case, the internal borders are
+respected so that the weight transfers from the sub polygon to mesh more
+cleanly, which increases the mesh count. Also note the assumption of
+constant density within the sub polygon, thus large triangle get higher
+weight in the same polygon.
+
+Code
 
 ``` r
 
-triangle_counties <- nc[nc$NAME %in% c("Wake", "Durham", "Orange", "Chatham"), ]
+triangle <- nc %>% 
+            filter(NAME %in% c("Wake", "Durham", "Orange", "Chatham")) 
 
-by_area   <- shape_indices_sf(triangle_counties, byrow = FALSE, id = "weighted_by_area")
-by_births <- shape_indices_sf(triangle_counties, byrow = FALSE,
-                               weights = "BIR74", id = "weighted_by_births")
+### This is for demonstration of the triangulation only!
+wmA <- shapeindices:::.weighted_mesh(triangle, weights = NULL)
+triA <- wmA$pieces
+triA$straddles <- lengths(st_overlaps(triA, st_geometry(triangle))) > 1
 
-rbind(by_area, by_births) %>%
-  st_drop_geometry() %>%
-  knitr::kable(format = "html", digits = 3, row.names = FALSE)
+cwm <- shapeindices:::.constrained_weighted_mesh(triangle, weights = "BIR74")
+tri_to_sf <- function(P, T, crs) {
+  polys <- lapply(seq_len(nrow(T)), function(i) {
+    v <- P[T[i, ], , drop = FALSE]
+    st_polygon(list(rbind(v, v[1, ])))
+  })
+  st_sf(tri_id = seq_len(nrow(T)), geometry = st_sfc(polys, crs = crs))
+}
+triB <- tri_to_sf(cwm$P, cwm$T, cwm$crs)
+triB$weight <- cwm$tri_weight
+triB$straddles <- lengths(st_overlaps(triB, st_geometry(triangle))) > 1
+
+pal <- hcl.colors(100, "YlOrRd", rev = TRUE)
+w_scaled <- (triB$weight - min(triB$weight)) / (max(triB$weight) - min(triB$weight))
+triB$col <- pal[pmax(1, ceiling(w_scaled * 100))]
+
+par(mfrow = c(1, 2), mar = c(2, 1, 3, 1))
+plot(st_geometry(triA), border = ifelse(triA$straddles, "firebrick", "steelblue"),
+     col = NA, lwd = 0.6)
+plot(st_geometry(triangle), col = NA, border = "black", lwd = 2.5, add = TRUE)
+title(main = sprintf("weights = NULL\n%d/%d triangles straddle a county line",
+                      sum(triA$straddles), nrow(triA)), cex.main = 0.95)
+
+plot(st_geometry(triB), col = triB$col, border = "grey40", lwd = 0.6)
+plot(st_geometry(triangle), col = NA, border = "black", lwd = 2.5, add = TRUE)
+title(main = sprintf('weights = "BIR74"\n%d/%d triangles straddle a county line',
+                      sum(triB$straddles), nrow(triB)), cex.main = 0.95)
 ```
 
-| id | convexity_index | moment_of_inertia_index | moment_isotropy_index | directional_balance_index | span_index | radial_concentration_index | depth_index | hull_ratio_index | polsby_popper_index | width_length_ratio_index | reock_index | detour_index | exchange_index | total_weight |
-|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| weighted_by_area | 0.983 | 0.815 | 0.507 | 0.984 | 0.917 | 0.924 | 0.685 | 0.831 | 0.514 | 0.686 | 0.483 | 0.83 | 0.807 | 5811314465 |
-| weighted_by_births | 0.990 | 0.697 | 0.643 | 0.960 | 0.849 | 0.852 | 0.507 | 0.831 | 0.514 | 0.686 | 0.483 | 0.83 | 0.807 | 27264 |
-
-Same union geometry, same `hull_ratio_index` (it has no weighted form -
-it’s a property of the convex hull’s boundary, not a sum over pieces) -
-but `convexity_index`, `moment_of_inertia_index`, and `span_index` all
-shift once births, rather than raw land area, decide how much each
-county’s shape “counts”.
-
-Whenever rows genuinely differ in weight, each row’s own boundary is
-supplied as a hard constraint on the combined triangulation, so no
-triangle can ever straddle two rows - density is allocated onto the mesh
-exactly, not approximated by averaging. This matters most for a handful
-of large, high-density rows sitting next to many small, low-density
-ones, where a single coarse triangle could otherwise span rows with very
-different weights. It falls back to the coarser, union-only mesh
-automatically (with a warning) if the kept rows genuinely overlap rather
-than just touch.
+![](a-basic-usage_files/figure-html/nc-weighted-1.png)
 
 ## 7 0/NA weights change the shape being measured
 
@@ -469,15 +467,34 @@ grid9 <- st_sf(pop = ifelse(ctr$x == 0 & ctr$y == 0, 0, 10),
 solid_block <- shape_indices_sf(grid9, byrow = FALSE, id = "solid_block")            # keeps all 9
 ring        <- shape_indices_sf(grid9, byrow = FALSE, weights = "pop", id = "ring")  # centre excluded
 
-rbind(solid_block, ring) %>%
-  st_drop_geometry() %>%
-  knitr::kable(format = "html", digits = 3, row.names = FALSE)
+## t() on a data.frame containing the character `id` column coerces the
+## WHOLE thing to a character matrix first (R's usual data.frame -> matrix
+## promotion rule), which silently defeats kable(digits=): there's nothing
+## numeric left to round, just already-stringified full-precision doubles.
+## Pulling `id` out as rownames first keeps the transposed matrix numeric.
+combined <- rbind(solid_block, ring) %>% st_drop_geometry()
+combined_mat <- as.matrix(combined[, -1])
+rownames(combined_mat) <- combined$id
+
+knitr::kable(format = "html", t(combined_mat), digits = 2, row.names = TRUE)
 ```
 
-| id | convexity_index | moment_of_inertia_index | moment_isotropy_index | directional_balance_index | span_index | radial_concentration_index | depth_index | hull_ratio_index | polsby_popper_index | width_length_ratio_index | reock_index | detour_index | exchange_index | total_weight |
-|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| solid_block | 1.000 | 0.955 | 1 | 1 | 0.980 | 0.983 | 0.887 | 1.000 | 0.785 | 1 | 0.637 | 0.886 | 0.909 | 9 |
-| ring | 0.862 | 0.764 | 1 | 1 | 0.875 | 0.856 | 0.480 | 0.889 | 0.393 | 1 | 0.566 | 0.836 | 0.840 | 80 |
+|                            | solid_block |  ring |
+|:---------------------------|------------:|------:|
+| convexity_index            |        1.00 |  0.86 |
+| moment_of_inertia_index    |        0.95 |  0.76 |
+| moment_isotropy_index      |        1.00 |  1.00 |
+| directional_balance_index  |        1.00 |  1.00 |
+| span_index                 |        0.98 |  0.88 |
+| radial_concentration_index |        0.98 |  0.86 |
+| depth_index                |        0.89 |  0.48 |
+| hull_ratio_index           |        1.00 |  0.89 |
+| polsby_popper_index        |        0.79 |  0.39 |
+| width_length_ratio_index   |        1.00 |  1.00 |
+| reock_index                |        0.64 |  0.57 |
+| detour_index               |        0.89 |  0.84 |
+| exchange_index             |        0.91 |  0.84 |
+| total_weight               |        9.00 | 80.00 |
 
 ``` r
 
@@ -557,18 +574,8 @@ knitr::kable(format = "html", timing, digits = 2, row.names = FALSE)
 
 | mode                             | elapsed | speedup |
 |:---------------------------------|--------:|--------:|
-| parallel_rows = FALSE            |   34.87 |    1.00 |
-| parallel_rows = TRUE (4 workers) |   18.13 |    1.92 |
-
-``` r
-
-ggplot(timing, aes(x = mode, y = elapsed)) +
-  geom_col(fill = "steelblue", width = 0.6) +
-  labs(x = NULL, y = "elapsed, seconds") +
-  coord_flip()
-```
-
-![](a-basic-usage_files/figure-html/parallel-rows-plot-1.png)
+| parallel_rows = FALSE            |    33.0 |    1.00 |
+| parallel_rows = TRUE (4 workers) |    17.8 |    1.85 |
 
 Both modes agree on every county’s indices (not shown - parallelising
 changes *how* the 100 rows get computed, not the values themselves); the
@@ -587,7 +594,7 @@ over
 on Mac/Linux, which forks rather than starting fresh R sessions per
 worker.
 
-### 8.1 `simplify_tolerance`: reducing boundary detail, not just mesh size
+## 9 `simplify_tolerance`: reducing boundary detail, not just mesh size
 
 [`prepare_polygon()`](https://nkaza.github.io/shapeindices/reference/prepare_polygon.md),
 [`shape_indices()`](https://nkaza.github.io/shapeindices/reference/shape_indices.md),

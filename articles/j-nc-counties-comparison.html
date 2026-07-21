@@ -253,65 +253,71 @@ Lincoln</th>
 <p><strong>Convexity and hull ratio</strong> form a second, distinct cluster (0.84) that isolates concave boundary departures while ignoring elongation entirely. The near-zero correlation between moment isotropy and convexity (0.24) provides clean empirical proof that elongation and concavity are independent structural properties on real geography rather than redundant descriptions. Similarly, directional balance tracks first-harmonic bearing preference rather than axis shape; its weak tie to moment isotropy (0.46) confirms that bearing preference and mass-distribution symmetry operate as independent axes despite both belonging to the elongation-adjacent family.</p>
 <p>Connecting these groups, Polsby-Popper acts as a hybrid bridge between the convexity and elongation clusters (0.90 with hull ratio; 0.84 with MOI) because perimeter length is inherently inflated by both boundary roughness and stretched geometries.</p>
 <p><code>width_length_ratio_index</code> is no longer the outlier it once was. An earlier, axis-aligned version of this index correlated weakly with almost everything in this dataset, because its own orientation noise - which way a county happens to be drawn relative to the coordinate axes, not a property of its shape - swamped the real elongation signal underneath. With that noise removed, its strongest ties sit squarely inside the elongation cluster: 0.80 with moment isotropy, 0.78 with exchange, 0.76 with moment of inertia. It still correlates more loosely with the boundary-complexity side of things (0.31 with convexity, 0.31 with hull ratio) - a bounding rectangle, however it’s computed, still can’t see concavity the way a convex-hull-based measure can - but it is a member of a real cluster now, not an island of its own.</p>
-</section><section class="section level2" data-number="4"><h2 data-number="4" id="weighting-a-collection-the-triangle-counties-by-population">
-<span class="header-section-number">4</span> Weighting a collection: the Triangle counties by population<a class="anchor" aria-label="anchor" href="#weighting-a-collection-the-triangle-counties-by-population"></a>
+</section><section class="section level2" data-number="4"><h2 data-number="4" id="weighting-a-collection-of-polygons">
+<span class="header-section-number">4</span> Weighting a collection of polygons<a class="anchor" aria-label="anchor" href="#weighting-a-collection-of-polygons"></a>
 </h2>
-<p><code>shape_indices_sf(byrow = FALSE)</code> treats a whole collection of rows as sub-polygons of one weighted shape (see <code><a href="../articles/a-basic-usage.html">vignette("a-basic-usage")</a></code> for the mechanics). Wake, Durham, Orange, and Chatham counties (the Research Triangle) are geographically contiguous. Only the six mesh-based indices have a genuine weighted form worth comparing this way.</p>
-<p>Note that the CDT trianglulation is different in the weighted and unweigthed case. In the weighted case, the internal borders are respected so that the weight transfers from the sub polygon to mesh more cleanly, which increases the mesh count. Also note the assumption of constant density within the sub polygon, thus large triangle get higher weight in the same polygon.</p>
+<p><code>byrow = FALSE</code> treats every row instead as a weighted sub-polygon of <strong>one</strong> overall shape (<code>st_union(x)</code>), returning a single-row result. <code>weights = NULL</code> (the default) weights each row by its own physical area, which reproduces the plain unweighted indices on the union; a column name or numeric vector weights rows by something else instead - here, births (<code>BIR74</code>) as a population proxy for four contiguous Research Triangle counties:</p>
 <div class="cell" data-layout-align="center">
-<div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure><p><img src="j-nc-counties-comparison_files/figure-html/nc-weighted-1.png" class="quarto-figure quarto-figure-center" width="672"></p>
-</figure>
-</div>
-</div>
 <div class="cell-output-display">
 <table class="table caption-top">
 <thead><tr class="header">
-<th style="text-align: left;" data-quarto-table-cell-role="th"></th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">weights = NULL</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">weights = "BIR74"</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">id</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">convexity_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">moment_of_inertia_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">moment_isotropy_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">directional_balance_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">span_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">radial_concentration_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">depth_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">hull_ratio_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">polsby_popper_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">width_length_ratio_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">reock_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">detour_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">exchange_index</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">total_weight</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">convexity_index</td>
-<td style="text-align: right;">0.98</td>
-<td style="text-align: right;">0.99</td>
+<td style="text-align: left;">weighted_by_area</td>
+<td style="text-align: right;">0.983</td>
+<td style="text-align: right;">0.815</td>
+<td style="text-align: right;">0.507</td>
+<td style="text-align: right;">0.984</td>
+<td style="text-align: right;">0.917</td>
+<td style="text-align: right;">0.924</td>
+<td style="text-align: right;">0.685</td>
+<td style="text-align: right;">0.831</td>
+<td style="text-align: right;">0.514</td>
+<td style="text-align: right;">0.686</td>
+<td style="text-align: right;">0.483</td>
+<td style="text-align: right;">0.83</td>
+<td style="text-align: right;">0.807</td>
+<td style="text-align: right;">5811314465</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">moment_of_inertia_index</td>
-<td style="text-align: right;">0.82</td>
-<td style="text-align: right;">0.70</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">moment_isotropy_index</td>
-<td style="text-align: right;">0.51</td>
-<td style="text-align: right;">0.64</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">directional_balance_index</td>
-<td style="text-align: right;">0.98</td>
-<td style="text-align: right;">0.96</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">span_index</td>
-<td style="text-align: right;">0.92</td>
-<td style="text-align: right;">0.85</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">radial_concentration_index</td>
-<td style="text-align: right;">0.92</td>
-<td style="text-align: right;">0.85</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">total_weight</td>
-<td style="text-align: right;">5811314465.44</td>
-<td style="text-align: right;">27264.00</td>
+<td style="text-align: left;">weighted_by_births</td>
+<td style="text-align: right;">0.990</td>
+<td style="text-align: right;">0.697</td>
+<td style="text-align: right;">0.643</td>
+<td style="text-align: right;">0.960</td>
+<td style="text-align: right;">0.849</td>
+<td style="text-align: right;">0.852</td>
+<td style="text-align: right;">0.507</td>
+<td style="text-align: right;">0.831</td>
+<td style="text-align: right;">0.514</td>
+<td style="text-align: right;">0.686</td>
+<td style="text-align: right;">0.483</td>
+<td style="text-align: right;">0.83</td>
+<td style="text-align: right;">0.807</td>
+<td style="text-align: right;">27264</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
+<p>Same union geometry, same <code>hull_ratio_index</code> (it has no weighted form - it’s a property of the convex hull’s boundary, not a sum over pieces) - but <code>convexity_index</code>, <code>moment_of_inertia_index</code>, and <code>span_index</code> all shift once births, rather than raw land area, decide how much each county’s shape “counts”.</p>
+<p>Whenever rows genuinely differ in weight, each row’s own boundary is supplied as a hard constraint on the combined triangulation, so no triangle can ever straddle two rows - density is allocated onto the mesh exactly, not approximated by averaging. This matters most for a handful of large, high-density rows sitting next to many small, low-density ones, where a single coarse triangle could otherwise span rows with very different weights. It falls back to the coarser, union-only mesh automatically (with a warning) if the kept rows genuinely overlap rather than just touch.</p>
 <p>Weighted by each county’s own area (<code>weights = NULL</code>, the default), the four-county union scores convexity 0.983 and MOI 0.815. Switching the weight to 1974 births, so that Wake dominates in one part of the union, moves MOI, span, and radial concentration all <em>down</em> together (0.697, 0.849, 0.852). Convexity moves the other way, slightly <em>up</em> (0.990). It does not depend on where the centre of mass is at all and therefore behaves as expected.</p>
 <p>Reweighting the mesh by population reveals that moment isotropy and directional balance capture fundamentally different spatial mechanisms when mass shifts toward a dominant county like Wake. <strong>Moment isotropy moves up</strong> (0.507 to 0.643), shifting opposite to MOI, span, and radial concentration. This isn’t a contradiction: while center-relative metrics penalize how far mass drifts from the union’s geometric middle, moment isotropy evaluates only the <em>shape</em> of the distribution around its own center—concentrating weight into Wake (a relatively round county within a long four-county strip) makes the core mass footprint more isotropic even as its center drifts. Conversely, <strong>directional balance moves down</strong> (0.984 to 0.960), tracking alongside MOI and span because shifting weight toward Wake creates an asymmetric angular pull from the new centroid. Moment isotropy acts as the lone outlier here precisely because it ignores center-relative displacement, proving it operates as an independent axis rather than a redundant metric. <em>(Note: <code>total_weight</code> reflects raw area in <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>m</mi><mn>2</mn></msup><annotation encoding="application/x-tex">m^2</annotation></semantics></math> versus total births, so row totals represent different scales).</em></p>
 </section><section class="section level2" data-number="5"><h2 data-number="5" id="conclusion">

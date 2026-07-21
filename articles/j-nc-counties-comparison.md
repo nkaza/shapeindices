@@ -124,34 +124,36 @@ with hull ratio) - a bounding rectangle, however it’s computed, still
 can’t see concavity the way a convex-hull-based measure can - but it is
 a member of a real cluster now, not an island of its own.
 
-## 4 Weighting a collection: the Triangle counties by population
+## 4 Weighting a collection of polygons
 
-`shape_indices_sf(byrow = FALSE)` treats a whole collection of rows as
-sub-polygons of one weighted shape (see
-[`vignette("a-basic-usage")`](https://nkaza.github.io/shapeindices/articles/a-basic-usage.md)
-for the mechanics). Wake, Durham, Orange, and Chatham counties (the
-Research Triangle) are geographically contiguous. Only the six
-mesh-based indices have a genuine weighted form worth comparing this
-way.
+`byrow = FALSE` treats every row instead as a weighted sub-polygon of
+**one** overall shape (`st_union(x)`), returning a single-row result.
+`weights = NULL` (the default) weights each row by its own physical
+area, which reproduces the plain unweighted indices on the union; a
+column name or numeric vector weights rows by something else instead -
+here, births (`BIR74`) as a population proxy for four contiguous
+Research Triangle counties:
 
-Note that the CDT trianglulation is different in the weighted and
-unweigthed case. In the weighted case, the internal borders are
-respected so that the weight transfers from the sub polygon to mesh more
-cleanly, which increases the mesh count. Also note the assumption of
-constant density within the sub polygon, thus large triangle get higher
-weight in the same polygon.
+| id | convexity_index | moment_of_inertia_index | moment_isotropy_index | directional_balance_index | span_index | radial_concentration_index | depth_index | hull_ratio_index | polsby_popper_index | width_length_ratio_index | reock_index | detour_index | exchange_index | total_weight |
+|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| weighted_by_area | 0.983 | 0.815 | 0.507 | 0.984 | 0.917 | 0.924 | 0.685 | 0.831 | 0.514 | 0.686 | 0.483 | 0.83 | 0.807 | 5811314465 |
+| weighted_by_births | 0.990 | 0.697 | 0.643 | 0.960 | 0.849 | 0.852 | 0.507 | 0.831 | 0.514 | 0.686 | 0.483 | 0.83 | 0.807 | 27264 |
 
-![](j-nc-counties-comparison_files/figure-html/nc-weighted-1.png)
+Same union geometry, same `hull_ratio_index` (it has no weighted form -
+it’s a property of the convex hull’s boundary, not a sum over pieces) -
+but `convexity_index`, `moment_of_inertia_index`, and `span_index` all
+shift once births, rather than raw land area, decide how much each
+county’s shape “counts”.
 
-|                            | weights = NULL | weights = "BIR74" |
-|:---------------------------|---------------:|------------------:|
-| convexity_index            |           0.98 |              0.99 |
-| moment_of_inertia_index    |           0.82 |              0.70 |
-| moment_isotropy_index      |           0.51 |              0.64 |
-| directional_balance_index  |           0.98 |              0.96 |
-| span_index                 |           0.92 |              0.85 |
-| radial_concentration_index |           0.92 |              0.85 |
-| total_weight               |  5811314465.44 |          27264.00 |
+Whenever rows genuinely differ in weight, each row’s own boundary is
+supplied as a hard constraint on the combined triangulation, so no
+triangle can ever straddle two rows - density is allocated onto the mesh
+exactly, not approximated by averaging. This matters most for a handful
+of large, high-density rows sitting next to many small, low-density
+ones, where a single coarse triangle could otherwise span rows with very
+different weights. It falls back to the coarser, union-only mesh
+automatically (with a warning) if the kept rows genuinely overlap rather
+than just touch.
 
 Weighted by each county’s own area (`weights = NULL`, the default), the
 four-county union scores convexity 0.983 and MOI 0.815. Switching the
