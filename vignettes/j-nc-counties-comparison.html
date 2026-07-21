@@ -310,10 +310,10 @@ Lincoln</th>
 </table>
 </div>
 </div>
-<p><strong>Caswell</strong> is the baseline: a simple, nearly-rectangular Piedmont county with no natural features at the boundary. The county is created from bisecting Orange county and then again to form Caswell adn Pearson. Convexity, hull ratio, and width-length ratio are all at or near 1. Even here, Reock only reaches 0.63 (a perfect square’s Reock score is exactly <span class="math inline">\(2/\pi \approx 0.637\)</span>).Truly, disk shaped counties are hard to come by and Reock penalised any deviation from the circle much more heavily than other indices.</p>
-<p><strong>Dare and Currituck</strong> are the opposite extreme - Outer Banks counties where a compact mainland piece connects to a long barrier-island strip only across open sound water. Every index except one recognises this as badly shaped: convexity 0.74/0.80, hull ratio 0.26/0.55, Polsby-Popper as low as 0.10 for Currituck.</p>
-<p>On the other hand, <code>width_length_ratio</code> disagrees sharply: 0.45 for Dare and a nearly perfect 0.96 for Currituck - because the combined bounding box of a mainland piece plus an offshore strip happens to come out roughly square, exactly the multi-part blind spot documented on that index: only outer bounding box is considered for this index. <code>directional_balance_index</code> also flags them, and does so more sharply than almost anything else in the dataset: Dare’s 0.794 and Currituck’s 0.896 are the lowest and second-lowest of all 100 counties. That’s exactly the shape this index is built to catch: a compact mainland body plus a strip of barrier-island mass reaching out in essentially one direction only, unlike the symmetric-dumbbell blind spot described in its own vignette (<code>vignette("g-understanding-directional-balance-index")</code>), where a similar two-piece shape can score perfectly <em>if</em> the second piece reaches out in the opposite direction instead.</p>
-<p><strong>Camden</strong> is the classic split: convexity 0.99, essentially convex, no real notches for a line to cross. But moment of inertia is only 0.320, and span/radial concentration agree (0.61/0.61): Camden is a long, narrow diagonal sliver, and convexity/ MOI/span/radial-concentration agree broadly. On the other hand, <code>moment_isotropy_index</code> isolates that elongation directly and puts a sharp number on it: 0.036, the lowest of these five counties - Camden’s own principal moments differ by roughly 27-to-1.</p>
+<p><strong>Caswell</strong> is the baseline: a simple, nearly-rectangular Piedmont county with no natural features at the boundary. The county is created from bisecting Orange county and then again to form Caswell adn Pearson. Convexity, hull ratio, and width-length ratio are all at or near 1. Even here, Reock only reaches 0.63 (a perfect square’s Reock score is exactly <span class="math inline">\(2/\pi \approx 0.637\)</span>). Truly, disk shaped counties are hard to come by and Reock penalises any deviation from the circle more heavily than other indices.</p>
+<p><strong>Dare and Currituck</strong> are Outer Banks counties where a compact mainland piece connects to a long barrier-island strip across an open sound. Almost index penalises this geographical arrangement: convexity 0.74/0.80, hull ratio 0.26/0.55, Polsby-Popper as low as 0.08 for Dare.</p>
+<p>On the other hand, width_length_ratio disagrees sharply for these two counties: 0.45 for Dare and a nearly perfect 0.96 for Currituck. This is because the combined bounding box happens to come out roughly square.</p>
+<p><strong>Camden</strong> is the classic split: convexity 0.99, essentially convex, no real notches for a line to cross. Span/radial concentration agree (0.61/0.61): Camden is a long, narrow diagonal sliver, and convexity/span/radial-concentration agree broadly. On the other hand, moment isotropy as well as moment of inertia isolates that elongation directly and puts a sharp number on it: 0.04/0.32. Camden’s own principal moments differ by roughly 27-to-1.</p>
 <p><strong>Lincoln</strong> sharpens that same point with no boundary complexity at all involved: convexity is a perfect 1.00 and hull ratio 0.99. Yet Reock is 0.34, width-length ratio 0.37, and moment isotropy 0.11; all three elongation-sensitive measures still penalise it for being stretched, each via a different route (bounding circle, bounding box, mass tensor). <strong>Convex and compact are different properties</strong>, and a shape can score perfectly on one while scoring poorly on the other.</p>
 </section>
 <section id="how-do-the-indices-relate-to-each-other" class="level1" data-number="3">
@@ -327,7 +327,7 @@ Lincoln</th>
 </div>
 </div>
 </div>
-<p>Across these 100 counties, the indices condense into three primary behaviors rather than a single continuum, dominated by whether they respond to elongation or boundary shape. The core <strong>Elongation Cluster</strong>—comprising Moment of Inertia (MOI), span, radial concentration, and Reock—behaves almost interchangeably (0.99 to 1.00), as county-level elongation swamps the theoretical differences between their formulas. Sub-measures fold into this group via distinct mechanics: <code>exchange_index</code> reads elongation via area overlap (0.96 with MOI), <code>detour_index</code> captures hull-level stretching (0.94 with span), and <code>depth_index</code> aligns with boundary complexity (0.93 with Polsby-Popper). Moment isotropy belongs to this family but sits slightly apart (0.74 with MOI) because it isolates pure axis elongation, remaining structurally blind to dispersal or boundary noise.</p>
+<p>The above correlation matrix uses unwieghed indices and hierarchical clustering. Across these 100 counties, the indices condense into three primary behaviors dominated by whether they respond to elongation or boundary deformities. The core <strong>Elongation Cluster</strong>—comprising moment of inertia, span, radial concentration, and Reock—behaves almost interchangeably, as county-level elongation swamps the theoretical differences between their formulas. Other measures fold into this group via distinct mechanics: <code>exchange_index</code> reads elongation via area overlap (0.96 with MOI), <code>detour_index</code> captures hull-level stretching (0.94 with span), and <code>depth_index</code> aligns with boundary complexity (0.93 with Polsby-Popper). Moment isotropy belongs to this family but sits slightly apart (0.74 with MOI) because it isolates pure axis elongation, remaining structurally blind to dispersal or boundary noise.</p>
 <p><strong>Convexity and hull ratio</strong> form a second, distinct cluster (0.84) that isolates concave boundary departures while ignoring elongation entirely. The near-zero correlation between moment isotropy and convexity (0.24) provides clean empirical proof that elongation and concavity are independent structural properties on real geography rather than redundant descriptions. Similarly, directional balance tracks first-harmonic bearing preference rather than axis shape; its weak tie to moment isotropy (0.46) confirms that bearing preference and mass-distribution symmetry operate as independent axes despite both belonging to the elongation-adjacent family.</p>
 <p>Connecting these groups, <strong>Polsby-Popper</strong> acts as a hybrid bridge between the convexity and elongation clusters (0.90 with hull ratio; 0.84 with MOI) because perimeter length is inherently inflated by both boundary roughness and stretched geometries. Standing alone as a complete outlier, <strong><code>width_length_ratio_index</code></strong> registers its highest—yet still weak—correlation with moment isotropy (0.55) and Reock (0.41). While this weak alignment suggests bounding-box and mass-distribution elongation tap into a similar underlying signal, bounding-box sensitivity to orientation and multi-part geometries leaves <code>width_length_ratio_index</code> isolated from every other index in the dataset (0.20 to 0.37 across depth, detour, and exchange).</p>
 </section>
@@ -340,35 +340,45 @@ Lincoln</th>
 <thead>
 <tr class="header">
 <th style="text-align: left;" data-quarto-table-cell-role="th"></th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">convexity_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">moment_of_inertia_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">moment_isotropy_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">directional_balance_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">span_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">radial_concentration_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">total_weight</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">weighted by area</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">weighted by births</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">weighted by area</td>
+<td style="text-align: left;">convexity_index</td>
 <td style="text-align: right;">0.98</td>
-<td style="text-align: right;">0.82</td>
-<td style="text-align: right;">0.51</td>
-<td style="text-align: right;">0.98</td>
-<td style="text-align: right;">0.92</td>
-<td style="text-align: right;">0.92</td>
-<td style="text-align: right;">5811314465</td>
+<td style="text-align: right;">0.99</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">weighted by births</td>
-<td style="text-align: right;">0.99</td>
+<td style="text-align: left;">moment_of_inertia_index</td>
+<td style="text-align: right;">0.82</td>
 <td style="text-align: right;">0.70</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">moment_isotropy_index</td>
+<td style="text-align: right;">0.51</td>
 <td style="text-align: right;">0.64</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">directional_balance_index</td>
+<td style="text-align: right;">0.98</td>
 <td style="text-align: right;">0.96</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">span_index</td>
+<td style="text-align: right;">0.92</td>
 <td style="text-align: right;">0.85</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">radial_concentration_index</td>
+<td style="text-align: right;">0.92</td>
 <td style="text-align: right;">0.85</td>
-<td style="text-align: right;">27264</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">total_weight</td>
+<td style="text-align: right;">5811314465.44</td>
+<td style="text-align: right;">27264.00</td>
 </tr>
 </tbody>
 </table>
