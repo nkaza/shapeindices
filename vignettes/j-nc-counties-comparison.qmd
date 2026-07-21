@@ -154,14 +154,56 @@ The above correlation matrix uses unwieghed indices and hierarchical clustering.
 
 **Convexity and hull ratio** form a second, distinct cluster (`r sprintf("%.2f", cor_mat["convexity", "hull_ratio"])`) that isolates concave boundary departures while ignoring elongation entirely. The near-zero correlation between moment isotropy and convexity (`r sprintf("%.2f", cor_mat["moment_isotropy", "convexity"])`) provides clean empirical proof that elongation and concavity are independent structural properties on real geography rather than redundant descriptions. Similarly, directional balance tracks first-harmonic bearing preference rather than axis shape; its weak tie to moment isotropy (`r sprintf("%.2f", cor_mat["directional_balance", "moment_isotropy"])`) confirms that bearing preference and mass-distribution symmetry operate as independent axes despite both belonging to the elongation-adjacent family.
 
-Connecting these groups, **Polsby-Popper** acts as a hybrid bridge between the convexity and elongation clusters (`r sprintf("%.2f", cor_mat["polsby_popper", "hull_ratio"])` with hull ratio; `r sprintf("%.2f", cor_mat["polsby_popper", "moment_of_inertia"])` with MOI) because perimeter length is inherently inflated by both boundary roughness and stretched geometries. Standing alone as a complete outlier, **`width_length_ratio_index`** registers its highest—yet still weak—correlation with moment isotropy (`r sprintf("%.2f", cor_mat["width_length_ratio", "moment_isotropy"])`) and Reock (`r sprintf("%.2f", cor_mat["width_length_ratio", "reock"])`). While this weak alignment suggests bounding-box and mass-distribution elongation tap into a similar underlying signal, bounding-box sensitivity to orientation and multi-part geometries leaves `width_length_ratio_index` isolated from every other index in the dataset (`r sprintf("%.2f", cor_mat["width_length_ratio", "depth"])` to `r sprintf("%.2f", cor_mat["width_length_ratio", "exchange"])` across depth, detour, and exchange).
+Connecting these groups, Polsby-Popper acts as a hybrid bridge between the convexity and elongation clusters (`r sprintf("%.2f", cor_mat["polsby_popper", "hull_ratio"])` with hull ratio; `r sprintf("%.2f", cor_mat["polsby_popper", "moment_of_inertia"])` with MOI) because perimeter length is inherently inflated by both boundary roughness and stretched geometries.
+
+Standing alone as a complete outlier, width length ratio registers its highest but weak correlation with moment isotropy (`r sprintf("%.2f", cor_mat["width_length_ratio", "moment_isotropy"])`) and Reock (`r sprintf("%.2f", cor_mat["width_length_ratio", "reock"])`). While this weak alignment suggests bounding-box and mass-distribution elongation tap into a similar underlying signal, bounding-box sensitivity to orientation and multi-part geometries leaves `width_length_ratio_index` isolated from every other index in the dataset (`r sprintf("%.2f", cor_mat["width_length_ratio", "depth"])` to `r sprintf("%.2f", cor_mat["width_length_ratio", "exchange"])` across depth, detour, and exchange).
 
 # Weighting a collection: the Triangle counties by population
 
 `shape_indices_sf(byrow = FALSE)` treats a whole collection of rows as sub-polygons of one weighted shape (see `vignette("a-basic-usage")` for the mechanics). Wake, Durham, Orange, and Chatham counties (the Research Triangle) are geographically contiguous. Only the six mesh-based indices have a genuine weighted form worth comparing this way. 
 
+Note that the CDT trianglulation is different in the weighted and unweigthed case. In the weighted case, the internal borders are respected so that the weight transfers from the sub polygon to mesh more cleanly, which increases the mesh count. Also note the assumption of constant density within the sub polygon, thus large triangle get higher weight in the same polygon.
+
 ```{r nc-weighted}
-triangle <- nc %>% filter(NAME %in% c("Wake", "Durham", "Orange", "Chatham"))
+#| code-fold: TRUE
+
+triangle <- nc %>% 
+            filter(NAME %in% c("Wake", "Durham", "Orange", "Chatham")) 
+
+### This is for demonstration of the triangulation only!
+wmA <- shapeindices:::.weighted_mesh(triangle, weights = NULL)
+triA <- wmA$pieces
+triA$straddles <- lengths(st_overlaps(triA, st_geometry(triangle))) > 1
+
+cwm <- shapeindices:::.constrained_weighted_mesh(triangle, weights = "BIR74")
+tri_to_sf <- function(P, T, crs) {
+  polys <- lapply(seq_len(nrow(T)), function(i) {
+    v <- P[T[i, ], , drop = FALSE]
+    st_polygon(list(rbind(v, v[1, ])))
+  })
+  st_sf(tri_id = seq_len(nrow(T)), geometry = st_sfc(polys, crs = crs))
+}
+triB <- tri_to_sf(cwm$P, cwm$T, cwm$crs)
+triB$weight <- cwm$tri_weight
+triB$straddles <- lengths(st_overlaps(triB, st_geometry(triangle))) > 1
+
+pal <- hcl.colors(100, "YlOrRd", rev = TRUE)
+w_scaled <- (triB$weight - min(triB$weight)) / (max(triB$weight) - min(triB$weight))
+triB$col <- pal[pmax(1, ceiling(w_scaled * 100))]
+
+par(mfrow = c(1, 2), mar = c(2, 1, 3, 1))
+plot(st_geometry(triA), border = ifelse(triA$straddles, "firebrick", "steelblue"),
+     col = NA, lwd = 0.6)
+plot(st_geometry(triangle), col = NA, border = "black", lwd = 2.5, add = TRUE)
+title(main = sprintf("weights = NULL\n%d/%d triangles straddle a county line",
+                      sum(triA$straddles), nrow(triA)), cex.main = 0.95)
+
+plot(st_geometry(triB), col = triB$col, border = "grey40", lwd = 0.6)
+plot(st_geometry(triangle), col = NA, border = "black", lwd = 2.5, add = TRUE)
+title(main = sprintf('weights = "BIR74"\n%d/%d triangles straddle a county line',
+                      sum(triB$straddles), nrow(triB)), cex.main = 0.95)
+####
+
 weighted_idx <- c("convexity", "moment_of_inertia", "moment_isotropy", "directional_balance",
                    "span", "radial_concentration")
 
@@ -171,7 +213,7 @@ by_pop  <- shape_indices_sf(triangle, byrow = FALSE, which = weighted_idx,
 
 comparison <- rbind(st_drop_geometry(by_area), st_drop_geometry(by_pop))[, -1]
 
-rownames(comparison) <- c("weighted by area", "weighted by births")
+rownames(comparison) <- c("weights = NULL", "weights = \"BIR74\"")
 options(scipen = 999)
 knitr::kable(format = "html", t(comparison), digits=2)
 options(scipen = 0)

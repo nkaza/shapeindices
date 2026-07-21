@@ -329,19 +329,28 @@ Lincoln</th>
 </div>
 <p>The above correlation matrix uses unwieghed indices and hierarchical clustering. Across these 100 counties, the indices condense into three primary behaviors dominated by whether they respond to elongation or boundary deformities. The core <strong>Elongation Cluster</strong>—comprising moment of inertia, span, radial concentration, and Reock—behaves almost interchangeably, as county-level elongation swamps the theoretical differences between their formulas. Other measures fold into this group via distinct mechanics: <code>exchange_index</code> reads elongation via area overlap (0.96 with MOI), <code>detour_index</code> captures hull-level stretching (0.94 with span), and <code>depth_index</code> aligns with boundary complexity (0.93 with Polsby-Popper). Moment isotropy belongs to this family but sits slightly apart (0.74 with MOI) because it isolates pure axis elongation, remaining structurally blind to dispersal or boundary noise.</p>
 <p><strong>Convexity and hull ratio</strong> form a second, distinct cluster (0.84) that isolates concave boundary departures while ignoring elongation entirely. The near-zero correlation between moment isotropy and convexity (0.24) provides clean empirical proof that elongation and concavity are independent structural properties on real geography rather than redundant descriptions. Similarly, directional balance tracks first-harmonic bearing preference rather than axis shape; its weak tie to moment isotropy (0.46) confirms that bearing preference and mass-distribution symmetry operate as independent axes despite both belonging to the elongation-adjacent family.</p>
-<p>Connecting these groups, <strong>Polsby-Popper</strong> acts as a hybrid bridge between the convexity and elongation clusters (0.90 with hull ratio; 0.84 with MOI) because perimeter length is inherently inflated by both boundary roughness and stretched geometries. Standing alone as a complete outlier, <strong><code>width_length_ratio_index</code></strong> registers its highest—yet still weak—correlation with moment isotropy (0.55) and Reock (0.41). While this weak alignment suggests bounding-box and mass-distribution elongation tap into a similar underlying signal, bounding-box sensitivity to orientation and multi-part geometries leaves <code>width_length_ratio_index</code> isolated from every other index in the dataset (0.20 to 0.37 across depth, detour, and exchange).</p>
+<p>Connecting these groups, Polsby-Popper acts as a hybrid bridge between the convexity and elongation clusters (0.90 with hull ratio; 0.84 with MOI) because perimeter length is inherently inflated by both boundary roughness and stretched geometries.</p>
+<p>Standing alone as a complete outlier, width length ratio registers its highest but weak correlation with moment isotropy (0.55) and Reock (0.41). While this weak alignment suggests bounding-box and mass-distribution elongation tap into a similar underlying signal, bounding-box sensitivity to orientation and multi-part geometries leaves <code>width_length_ratio_index</code> isolated from every other index in the dataset (0.20 to 0.37 across depth, detour, and exchange).</p>
 </section>
 <section id="weighting-a-collection-the-triangle-counties-by-population" class="level1" data-number="4">
 <h1 data-number="4"><span class="header-section-number">4</span> Weighting a collection: the Triangle counties by population</h1>
 <p><code>shape_indices_sf(byrow = FALSE)</code> treats a whole collection of rows as sub-polygons of one weighted shape (see <code>vignette("a-basic-usage")</code> for the mechanics). Wake, Durham, Orange, and Chatham counties (the Research Triangle) are geographically contiguous. Only the six mesh-based indices have a genuine weighted form worth comparing this way.</p>
+<p>Note that the CDT trianglulation is different in the weighted and unweigthed case. In the weighted case, the internal borders are respected so that the weight transfers from the sub polygon to mesh more cleanly, which increases the mesh count. Also note the assumption of constant density within the sub polygon, thus large triangle get higher weight in the same polygon.</p>
 <div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="j-nc-counties-comparison_files/figure-html/nc-weighted-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+</figure>
+</div>
+</div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;" data-quarto-table-cell-role="th"></th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">weighted by area</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">weighted by births</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">weights = NULL</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">weights = "BIR74"</th>
 </tr>
 </thead>
 <tbody>

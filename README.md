@@ -6,8 +6,10 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of shapeindices is to create indices for sf polygons that describe its shape. Only indices that are (0,1] are considered.
-It does so by triangulating the polygon as well as creating some bounding or reference shapes. It explicitly accounts for holes and multi-polygons
+The goal of shapeindices is to create indices for sf polygons that describe its shape. 
+It does so by triangulating the polygon as well as creating some bounding or reference shapes. 
+It explicitly accounts for holes and multi-polygons.
+Only indices that are (0,1] are considered.
 
 ## Installation
 
