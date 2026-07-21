@@ -67,6 +67,21 @@ test_that("width_length_ratio_index is invariant to which axis is longer", {
                width_length_ratio_index(wc(make_rectangle(1, 20)))$index, tolerance = 1e-8)
 })
 
+test_that("width_length_ratio_index is invariant to rotation (minimum rotated bounding rectangle, not axis-aligned)", {
+  rect <- make_rectangle(2, 1)
+  rotate <- function(g, deg) {
+    th <- deg * pi / 180
+    rot <- matrix(c(cos(th), sin(th), -sin(th), cos(th)), 2, 2)
+    (g - sf::st_centroid(g)) * rot + sf::st_centroid(g)
+  }
+  base_index <- width_length_ratio_index(wc(rect))$index
+  for (deg in c(15, 30, 45, 60, 75, 90)) {
+    rotated <- wc(rotate(sf::st_sfc(rect), deg)[[1]])
+    expect_equal(width_length_ratio_index(rotated)$index, base_index, tolerance = 1e-6,
+                 info = sprintf("rotation = %d degrees", deg))
+  }
+})
+
 test_that("width_length_ratio_index_sf preserves CRS and matches row-by-row", {
   x <- sf::st_sf(name = c("sq", "rect"),
                   geometry = sf::st_sfc(make_square(), make_rectangle(20, 1), crs = TEST_CRS))

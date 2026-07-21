@@ -6,20 +6,27 @@
 ## Six widely-used, purely boundary/hull-based compactness scores,
 ## unrelated to (and much cheaper than) the CDT-based indices elsewhere in
 ## this package. All are in (0, 1], 1 = a circle (or, for
-## width_length_ratio_index, a square bounding box), larger = more compact - the
-## same "larger is more compact" convention as every other index here.
+## width_length_ratio_index, a square bounding rectangle), larger = more
+## compact - the same "larger is more compact" convention as every other
+## index here.
 ##
 ##   hull_ratio_index          = area(polygon) / area(convex hull)
 ##   polsby_popper_index       = 4*pi*area / perimeter^2
-##   width_length_ratio_index  = min(bbox width, bbox height) / max(...)
+##   width_length_ratio_index  = min(mbr side1, mbr side2) / max(...), mbr =
+##                               sf::st_minimum_rotated_rectangle(polygon) -
+##                               the minimum-AREA bounding rectangle at any
+##                               rotation (GEOS-backed), not the axis-aligned
+##                               bounding box - see that function's own doc
+##                               for why the axis-aligned version this used
+##                               to be was a real problem, not a style choice
 ##   reock_index               = area(polygon) / area(minimum bounding circle)
 ##   detour_index              = perimeter(equal-area circle) / perimeter(convex hull)
 ##   exchange_index            = area(polygon INTERSECT equal-area circle at centroid) / area(polygon)
 ##
 ## WEIGHT: none of the six depend on how mass is distributed WITHIN the
-## polygon - area, perimeter, convex hull and minimum bounding circle are
-## all properties of the boundary/extent alone, unchanged by any
-## rearrangement of interior density. That's exactly why MOI/span/
+## polygon - area, perimeter, convex hull and minimum bounding circle/
+## rectangle are all properties of the boundary/extent alone, unchanged by
+## any rearrangement of interior density. That's exactly why MOI/span/
 ## radial_concentration's "concentric rings" weighted reference doesn't
 ## carry over here: rearranging density never changes area, perimeter or
 ## hull, so there's nothing for a rearrangement argument to act on.
@@ -183,24 +190,32 @@ polsby_popper_index <- function(poly) {
     list(index = index, area = area, perimeter = perimeter)
 }
 
-#' Width-length ratio of a (multi)polygon's bounding box
+#' Width-length ratio of a (multi)polygon's minimum-area bounding rectangle
 #'
-#' The shorter of the bounding box's x/y extents over the longer
-#' (`length` is the longer one, matching everyday usage, not the shorter
-#' one), in (0, 1], 1 = a square bounding box. Axis-aligned, not the
-#' minimum bounding rectangle at any rotation - a diagonally-oriented
-#' elongated shape can score deceptively high, the classic limitation of
-#' this score.
+#' The shorter of the bounding rectangle's two side lengths over the
+#' longer (`length` is the longer one, matching everyday usage, not the
+#' shorter one), in (0, 1], 1 = a square bounding rectangle. Uses the
+#' MINIMUM-AREA rectangle at any rotation (`sf::st_minimum_rotated_rectangle()`,
+#' GEOS-backed - no new package dependency), not the axis-aligned bounding
+#' box: an earlier version of this function used the axis-aligned box,
+#' which meant the same shape could score anywhere from its true ratio up
+#' to a spurious 1 depending purely on which way it happened to be drawn
+#' relative to the coordinate axes - orientation is not a property of the
+#' shape itself, so an index built on it shouldn't depend on it either.
+#' Verified directly: a fixed 2:1 rectangle rotated from 0 to 90 degrees
+#' now returns the same 0.5 throughout, rather than swinging up to 1.0
+#' at 45 degrees the way the axis-aligned version did.
 #'
-#' KNOWN LIMITATION: this looks only at the bounding box, so it's blind to
-#' both holes and multi-part dispersal in ways `hull_ratio_index`/`reock_index` are
-#' not. A solid square and the same square with a large hole punched
-#' through it score identically (a hole never extends past the outer
-#' boundary, so it never moves the bbox). Likewise, several small
-#' disconnected pieces sitting near the corners of a roughly square
-#' overall extent can score close to 1 despite being scattered, not
-#' compact - the bbox is taken over every part combined, independent of
-#' how much of it is actually filled.
+#' KNOWN LIMITATION: this looks only at the bounding rectangle, so it's
+#' blind to both holes and multi-part dispersal in ways
+#' `hull_ratio_index`/`reock_index` are not. A solid square and the same
+#' square with a large hole punched through it score identically (a hole
+#' never extends past the outer boundary, so it never moves the bounding
+#' rectangle). Likewise, several small disconnected pieces sitting near
+#' the corners of a roughly square overall extent can score close to 1
+#' despite being scattered, not compact - the bounding rectangle is taken
+#' over every part combined, independent of how much of it is actually
+#' filled.
 #' @param poly a single sfg/sfc (MULTI)POLYGON
 #' @return list(index, length, width)
 #' @examples
@@ -212,11 +227,12 @@ width_length_ratio_index <- function(poly) {
     poly <- st_geometry(poly)
     poly <- .ensure_projected(poly)
     poly <- .make_valid_warn(poly)
-    bb <- st_bbox(poly)
-    dx <- as.numeric(bb["xmax"] - bb["xmin"])
-    dy <- as.numeric(bb["ymax"] - bb["ymin"])
-    width  <- min(dx, dy)
-    length <- max(dx, dy)
+    mbr <- st_minimum_rotated_rectangle(poly)
+    xy <- st_coordinates(mbr)[, 1:2, drop = FALSE]
+    side1 <- sqrt(sum((xy[2, ] - xy[1, ])^2))
+    side2 <- sqrt(sum((xy[3, ] - xy[2, ])^2))
+    width  <- min(side1, side2)
+    length <- max(side1, side2)
     index  <- if (length > 0) width / length else NA_real_
     list(index = index, length = length, width = width)
 }

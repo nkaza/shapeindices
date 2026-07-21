@@ -120,16 +120,57 @@ ggplot(shapes_sf) +
 
 # The thirteen indices
 
-Each index has its own function - `convexity_index()`,
-`moment_of_inertia_index()`, `moment_isotropy_index()`,
-`directional_balance_index()`, `span_index()`,
-`radial_concentration_index()`, `depth_index()` (mesh-based: each needs
-its own CDT triangulation of the polygon), plus `hull_ratio_index()`, `polsby_popper_index()`,
-`width_length_ratio_index()`, `reock_index()`, `detour_index()`, and
-`exchange_index()` (classic redistricting-literature metrics: each needs
-only the polygon's own boundary, convex hull, or minimum bounding circle,
-no triangulation at all) - and each returns a list with `index` plus
-supporting detail (the triangle mesh used, the evaluated lines, etc.).
+Each index has its own function `*_index()` that takes, sf or sfc objects as input.  The following table briefly describes the conceptual framing of the index and some shapes that achieve the maximum values.
+
+```{r index-table, echo=FALSE}
+idx_table <- data.frame(
+  fn = c("convexity_index()", "moment_of_inertia_index()", "moment_isotropy_index()",
+         "directional_balance_index()", "span_index()", "radial_concentration_index()",
+         "depth_index()", "hull_ratio_index()", "polsby_popper_index()",
+         "width_length_ratio_index()", "reock_index()", "detour_index()", "exchange_index()"),
+  description = c(
+    "Fraction of a connecting line between two mass-weighted random points that falls outside the shape",
+    "Actual polar moment of inertia about the mass centroid vs. the same total mass optimally (radially) arranged",
+    "Ratio of the mass distribution's own principal moments (elongation only, ignoring overall compactness)",
+    "First-harmonic bearing bias of the mass distribution about its own centroid",
+    "Mean distance between two mass-weighted random points vs. the same mass optimally arranged",
+    "Mean distance from a mass-weighted random point to the shape's own geometric median, vs. optimal",
+    "Mean distance from a mass-weighted random point to the boundary, vs. optimal",
+    "polygon area / convex hull area", "4*pi*area / perimeter^2",
+    "minimum bounding rectangle: shorter side / longer side", "area / minimum bounding circle area",
+    "equal-area-circle perimeter / convex hull perimeter",
+    "shape's own area shared with an equal-area circle at its centroid"
+  ),
+  ex_weighted = c(
+    "Any convex shape, any weighting (e.g. a square weighted by an asymmetric gradient)",
+    "Only a true disk - the reference is itself the optimal arrangement for any total mass",
+    "A >=3-fold-symmetric shape weighted by a symmetry-preserving field (e.g. a triangle weighted by distance from its own centroid)",
+    "A 180-degree-point-symmetric shape weighted by a symmetry-preserving field (e.g. a rectangle weighted by distance from its own centroid)",
+    "Only a disk with density concentrated toward its centre",
+    "Only a disk with density concentrated toward its centre",
+    "Only a disk with density concentrated toward its centre",
+    "No weighted form", "No weighted form", "No weighted form", "No weighted form", "No weighted form", "No weighted form"
+  ),
+  ex_unweighted = c(
+    "Any convex shape (square, triangle, hexagon)",
+    "Only a true disk",
+    "Any >=3-fold-symmetric shape (equilateral triangle, square, regular hexagon)",
+    "Any 180-degree-point-symmetric shape (rectangle, square)",
+    "Only a true disk",
+    "Only a true disk",
+    "Only a true disk",
+    "Any convex shape (square, triangle, hexagon)",
+    "Only a true circle",
+    "A regular octogon (but not hexagon or pentagon)",
+    "Only a true circle",
+    "Only a true circle (its convex hull must itself be circular)",
+    "Only a true circle"
+  )
+)
+knitr::kable(format = "html", idx_table,
+             col.names = c("Function", "Description", "Ex: weighted ~ 1", "Ex: unweighted ~ 1"))
+```
+
 Called directly on a shape, for example,:
 
 ```{r indices-direct}
@@ -143,7 +184,7 @@ polygon up to seven times. `shape_indices()` triangulates once and
 returns all thirteen as a named vector, which might have implications for speed.
 
 ```{r indices-combined}
-sapply(basic_shapes, shape_indices)
+round(sapply(basic_shapes, shape_indices), digits = 3)
 ```
 
 The spiral scores low on every index (a long, narrow, winding
@@ -226,7 +267,35 @@ det_compare <- do.call(rbind, lapply(names(basic_shapes), function(nm) {
     hull_ratio         = hull_ratio_index(g)$index
   )
 }))
-knitr::kable(format = "html", det_compare, digits = 2, row.names = FALSE)
+
+## t() on a data.frame containing the character `shape` column coerces
+## the WHOLE thing to a character matrix first (R's usual data.frame ->
+## matrix promotion rule), which silently defeats kable(digits=): there's
+## nothing numeric left to round, just already-stringified full-precision
+## doubles. Pulling `shape` out as column names first keeps the
+## transposed matrix genuinely numeric.
+det_mat <- as.matrix(det_compare[, -1])
+rownames(det_mat) <- det_compare$shape
+
+# a small base64-embedded PNG of each shape's own outline, for use as a
+# column header - same pattern as vignette j's shape_thumb(), so no new
+# package dependency (already pulled in transitively via knitr)
+shape_thumb <- function(geom, size_px = 60, col = "grey75") {
+  f <- tempfile(fileext = ".png")
+  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+  par(mar = c(0.5, 0.5, 0.5, 0.5))
+  plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
+  grDevices::dev.off()
+  uri <- knitr::image_uri(f)
+  unlink(f)
+  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/><br>', uri, size_px, size_px)
+}
+headers <- vapply(det_compare$shape, function(nm) {
+  paste0(shape_thumb(basic_shapes[[nm]]), nm)
+}, character(1))
+
+knitr::kable(format = "html", t(det_mat), digits = 2, row.names = TRUE,
+             col.names = headers, escape = FALSE)
 ```
 
 

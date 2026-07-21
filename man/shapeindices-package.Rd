@@ -25,11 +25,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Nikhil Kaza \email{kaza@cs.unc.edu}
+\strong{Maintainer}: Nikhil Kaza \email{nkaza@unc.edu}
 
 Authors:
 \itemize{
-  \item Nikhil Kaza \email{kaza@cs.unc.edu}
+  \item Nikhil Kaza \email{nkaza@unc.edu}
 }
 
 }

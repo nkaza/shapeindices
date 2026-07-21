@@ -317,7 +317,7 @@ tbl <- do.call(rbind, lapply(names(canonical), function(nm) {
 knitr::kable(format = "html", tbl, digits = 3, row.names = FALSE, escape = FALSE)
 ```
 
-The disk reads just above 1, the expected finite-sampling residual described above, not a modelling error. Elongating the rectangle pulls the index down steadily - a 10:1 rectangle has nowhere in its interior that's far from *some* edge, however large its area - and the two stars, same six points with only the inner radius shrinking, separate sharply: `depth_index()` reacts to spike depth here, unlike `width_length_ratio_index()` (`vignette("i-understanding-classical-indices")`), whose bounding box never notices six needle-thin arms replacing six broad ones.
+The disk reads just above 1, the expected finite-sampling residual described above, not a modelling error. Elongating the rectangle pulls the index down steadily - a 10:1 rectangle has nowhere in its interior that's far from *some* edge, however large its area - and the two stars, same six points with only the inner radius shrinking, separate sharply: `depth_index()` reacts to spike depth here, unlike `width_length_ratio_index()` (`vignette("i-understanding-classical-indices")`), whose bounding rectangle never notices six needle-thin arms replacing six broad ones.
 
 ## Holes and multi-part shapes
 
