@@ -1,5 +1,5 @@
 ---
-title: "3. Understanding Moment of Inertia Index"
+title: "4. Understanding Moment of Inertia Index"
 author: "Nikhil Kaza"
 date: "`r Sys.Date()`"
 format:
@@ -8,7 +8,7 @@ format:
     number-sections: true
     theme: flatly
 vignette: >
-  %\VignetteIndexEntry{3. Understanding Moment of Inertia Index}
+  %\VignetteIndexEntry{4. Understanding Moment of Inertia Index}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 ---
@@ -91,7 +91,7 @@ where $s \in P$ is a point of the polygon (not a scalar coordinate). The index c
 
 It is a sibling to `span_index()` (mean *plain* distance between two random points) and `radial_concentration_index()` (mean plain distance to the geometric median). This one is *squared* distance to the centroid - the remaining member of that family, and the smoothest to compute: because squared distance has an exact polygon closed form, `moment_of_inertia_index()` needs no Monte Carlo mode at all, unlike the other two.
 
-This exact construction - the polar second moment of a polygon's own mass, compared to the minimum achieved by an equal-area disk - is Kaza's Index of Moment of Inertia (IMI).[^kazaimi] It also happens to be the same quantity as **Cohesion**, one of Angel, Parent & Civco's (2010) classical circle-compactness properties (`vignette("d-understanding-span-index")`'s Introduction): Cohesion is defined there as the ratio of mean *squared* pairwise distance in an equal-area circle to the same quantity in the actual shape, and mean squared pairwise distance is exactly twice the mean squared distance to the centroid for any point set - a factor that cancels identically in the ratio, leaving IMI. Their own plain-distance analogue of Cohesion is a different quantity entirely, and one they explicitly left as an open conjecture rather than a proven proposition; `span_index()`'s Introduction picks that up.[^cohesion] It's a different lineage from the classical circle-compactness properties `span_index()` draws on otherwise, though related: Boyce & Clark (1964) proposed an earlier compactness measure that also samples radial spread, but from the *boundary* (radius as a function of angle, not mass as a function of squared distance), a distinct construction with no direct correspondence to IMI.[^boyceclark]
+This exact construction - the polar second moment of a polygon's own mass, compared to the minimum achieved by an equal-area disk - is Kaza's Index of Moment of Inertia (IMI).[^kazaimi] It also happens to be the same quantity as **Cohesion**, one of Angel, Parent & Civco's (2010) classical circle-compactness properties (`vignette("e-understanding-span-index")`'s Introduction): Cohesion is defined there as the ratio of mean *squared* pairwise distance in an equal-area circle to the same quantity in the actual shape, and mean squared pairwise distance is exactly twice the mean squared distance to the centroid for any point set - a factor that cancels identically in the ratio, leaving IMI. Their own plain-distance analogue of Cohesion is a different quantity entirely, and one they explicitly left as an open conjecture rather than a proven proposition; `span_index()`'s Introduction picks that up.[^cohesion] It's a different lineage from the classical circle-compactness properties `span_index()` draws on otherwise, though related: Boyce & Clark (1964) proposed an earlier compactness measure that also samples radial spread, but from the *boundary* (radius as a function of angle, not mass as a function of squared distance), a distinct construction with no direct correspondence to IMI.[^boyceclark]
 
 [^kazaimi]: Kaza, N. (2020). Urban form and transportation energy consumption. *Energy Policy*, 136, 111049. Kaza, N. (2024). Multiclass compactness index for urban areas. *The Professional Geographer*, 76(4), 532-542.
 
@@ -140,7 +140,7 @@ Writing $s = (x, y)$, the polar moment splits into the two coordinate second mom
 
 $$J = \int_P \rho(s)\,\big[(x - G_x)^2 + (y - G_y)^2\big]\,ds = I_{yy} + I_{xx},$$
 
-the same $I_{xx}$, $I_{yy}$ that `moment_isotropy_index()` uses (see `vignette("f-understanding-moment-isotropy-index")`); this index just needs their sum. Each is an exact polygon integral, summed triangle by triangle via the shoelace formula - no quadrature, no sampling.
+the same $I_{xx}$, $I_{yy}$ that `moment_isotropy_index()` uses (see `vignette("g-understanding-moment-isotropy-index")`); this index just needs their sum. Each is an exact polygon integral, summed triangle by triangle via the shoelace formula - no quadrature, no sampling.
 
 The reference $J_{\text{ref}}$ is the polar moment of a disk of the same area $A$. A disk of radius $R = \sqrt{A/\pi}$ has
 
@@ -284,9 +284,9 @@ This isn't a symmetry-independent fact about $m(r)$ alone - it relies on the cen
 
 # Where this fits
 
-`moment_of_inertia_index()` is the squared-distance, centroid-anchored member of a family of three. Its siblings measure the same "how spread out is the mass" question through different lenses: `span_index()` uses plain distance between two random points (`vignette("d-understanding-span-index")`), and `radial_concentration_index()` uses plain distance to the geometric median (`vignette("e-understanding-radial-concentration-index")`). It also shares its exact second moments with `moment_isotropy_index()` (`vignette("f-understanding-moment-isotropy-index")`), which asks not how far the mass spreads but whether it prefers a direction.
+`moment_of_inertia_index()` is the squared-distance, centroid-anchored member of a family of three. Its siblings measure the same "how spread out is the mass" question through different lenses: `span_index()` uses plain distance between two random points (`vignette("e-understanding-span-index")`), and `radial_concentration_index()` uses plain distance to the geometric median (`vignette("f-understanding-radial-concentration-index")`). It also shares its exact second moments with `moment_isotropy_index()` (`vignette("g-understanding-moment-isotropy-index")`), which asks not how far the mass spreads but whether it prefers a direction.
 
-The most interesting sibling comparison is with `radial_concentration_index()`, since the two anchor on genuinely different centres - the area centroid here, the geometric median there (`vignette("e-understanding-radial-concentration-index")`'s "Why the geometric median, not the centroid"). Reusing that vignette's own "tadpole" construction (a round head with a thin tail, lengthened here in steps) isolates the difference cleanly: the centroid gets dragged toward the tail as it grows, while the median stays anchored in the head where the mass actually is.
+The most interesting sibling comparison is with `radial_concentration_index()`, since the two anchor on genuinely different centres - the area centroid here, the geometric median there (`vignette("f-understanding-radial-concentration-index")`'s "Why the geometric median, not the centroid"). Reusing that vignette's own "tadpole" construction (a round head with a thin tail, lengthened here in steps) isolates the difference cleanly: the centroid gets dragged toward the tail as it grows, while the median stays anchored in the head where the mass actually is.
 
 ```{r moi-vs-rci, fig.width=7, fig.height=4.5}
 make_tadpole <- function(tail_len) {

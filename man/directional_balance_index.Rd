@@ -70,7 +70,7 @@ leans toward one direction (a one-sided appendage, an off-centre
 lobe). One caveat to know before using it: balanced does not mean
 round - a symmetric dumbbell (equal lobes on opposite sides) scores 1
 here, same as a disk, because opposite pulls cancel exactly. See
-\code{vignette("g-understanding-directional-balance-index")} for the
+\code{vignette("h-understanding-directional-balance-index")} for the
 derivation, the bound proof, and that blind spot worked through.
 }
 \section{Monte Carlo bias, and computing an unbiased estimate yourself}{

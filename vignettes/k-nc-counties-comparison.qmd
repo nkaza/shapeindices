@@ -1,5 +1,5 @@
 ---
-title: "10. Comparing Shape Indices: North Carolina Counties"
+title: "11. Comparing Shape Indices: North Carolina Counties"
 author: "Nikhil Kaza"
 date: "`r Sys.Date()`"
 format:
@@ -8,7 +8,7 @@ format:
     number-sections: true
     theme: flatly
 vignette: >
-  %\VignetteIndexEntry{10. Comparing Shape Indices: North Carolina Counties}
+  %\VignetteIndexEntry{11. Comparing Shape Indices: North Carolina Counties}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 ---

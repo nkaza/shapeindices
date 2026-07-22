@@ -1,5 +1,5 @@
 ---
-title: "2. Understanding Convexity Index"
+title: "3. Understanding Convexity Index"
 author: "Nikhil Kaza"
 date: "`r Sys.Date()`"
 format:
@@ -8,7 +8,7 @@ format:
     number-sections: true
     theme: flatly
 vignette: >
-  %\VignetteIndexEntry{2. Understanding Convexity Index}
+  %\VignetteIndexEntry{3. Understanding Convexity Index}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 ---
@@ -343,55 +343,13 @@ raster_by_res <- lapply(raster_targets, function(target) {
 
 This tutorial covers a shape index called `convexity_index` (CI). A polygon is convex when a line between any two interior points never crosses its boundary. CI turns that into a continuous measure: what fraction of such lines stay entirely inside?
 
-In practice: build a **constrained Delaunay triangulation (CDT)**, draw a line between every pair of triangle representative points, and take the area-weighted fraction that stays inside. A score of 1 means every line stayed inside; a single convex blob. The sections below show where the index gets this wrong and compare it to indices from the literature.
+In practice: build a **constrained Delaunay triangulation (CDT)**, draw a line between every pair of triangle representative points, and take the area-weighted fraction that stays inside. A score of 1 means every line stayed inside; a single convex blob. See `vignette("b-understanding-triangulation")` for how that CDT mesh itself is built (constrained vs. unconstrained) and how per-row weighting changes it. The sections below show where the index gets this wrong and compare it to indices from the literature.
 
 This construction - the probability that a random pair of interior points stays connected by a straight line - matches the convexity measure introduced by Zunic & Rosin (2004).[^zunic-rosin] Two comparison indices recur throughout this tutorial: `moment_of_inertia_index` (roundness, not convexity) and `hull_ratio_index` (a simpler, more boundary-sensitive convexity proxy) - both introduced in full below.
 
 The rest of the tutorial works through how shape features affect CI: boundary complexity, overall shape, size, symmetry, holes, multi-part polygons, raster resolution. These are the properties that matter for choosing a shape indicator that holds up on real data.
 
 [^zunic-rosin]: Zunic, J., & Rosin, P. L. (2004). A New Convexity Measure for Polygons. *IEEE Transactions on Pattern Analysis and Machine Intelligence*, 26(7), 923-934.
-
-# Constrained Delaunay triangulation
-
-"Delaunay triangulation" converts a set of *points* into well-shaped triangles, using the empty-circumcircle property to avoid long, sliver-shaped ones. Applied naively to a polygon's vertices, it will happily fill in triangles across holes and gaps, since it only sees points, not edges.
-
-A **constrained** Delaunay triangulation (CDT) instead treats the polygon's edges and hole boundaries as constraints every triangle must respect. The triangulation covers exactly the polygon's true interior, as shown below.
-
-```{r cdt-helper}
-cdt_compare_plot <- function(poly, subtitle = "") {
-  title_a <- "Unconstrained Delaunay\n(only sees the points)"
-  title_b <- "Constrained Delaunay (CDT)\n(respects the boundary)"
-
-  verts         <- st_cast(st_geometry(poly), "MULTIPOINT")
-  unconstrained <- st_collection_extract(st_triangulate(verts), "POLYGON", warn = FALSE)
-  constrained   <- st_geometry(cdt_triangles(poly))
-
-  poly_df <- rbind(
-    st_sf(method = title_a, color = "black", fill = NA,        geometry = st_sfc(poly)),
-    st_sf(method = title_b, color = "black", fill = "grey92",  geometry = st_sfc(poly))
-  )
-  tri_df <- rbind(
-    st_sf(method = title_a, color = "firebrick", fill = NA,        geometry = unconstrained),
-    st_sf(method = title_b, color = "steelblue", fill = "lightblue", geometry = constrained)
-  )
-  poly_df$method <- factor(poly_df$method, levels = c(title_a, title_b))
-  tri_df$method  <- factor(tri_df$method,  levels = c(title_a, title_b))
-
-  ggplot() +
-    geom_sf(data = poly_df, aes(color = color, fill = fill), linewidth = 0.9) +
-    geom_sf(data = tri_df,  aes(color = color, fill = fill), linewidth = 0.3) +
-    scale_color_identity() +
-    scale_fill_identity() +
-    facet_wrap(~ method) +
-    labs(title = subtitle) +
-    theme_gallery
-}
-```
-
-```{r cdt-vs-unconstrained, fig.width=10, fig.height=5}
-cdt_compare_plot(c_shape, "C-shaped polygon")
-```
-
 
 # The convexity index
 
@@ -447,7 +405,7 @@ ci_auto <- function(poly, prep = NULL) {
 
 Two comparison indices recur throughout: `moment_of_inertia_index` (IMI, for Index of Moment of Inertia)[^moi] and `hull_ratio_index` (HRI)[^hri]. IMI relies on triangulation; HRI doesn't need it at all.
 
-[^moi]: Sums each triangle's contribution to the polygon's polar second moment of area about its own centroid, and compares it to the minimum achieved by a disk of the same area: $\text{IMI} = A^2 / (2\pi J)$, where $J = I_{xx} + I_{yy}$ is the polar second moment of area about the centroid and $A$ is total area. Also bounded in $(0, 1]$ with 1 = a perfect disk, but it measures compactness/roundness, not convexity; an elongated convex shape can score low on IMI while scoring a full 1 on CI. This index is not particularly sensitive to boundary errors. See `vignette("c-understanding-moment-of-inertia-index")`'s Introduction for IMI's origin and full citation.
+[^moi]: Sums each triangle's contribution to the polygon's polar second moment of area about its own centroid, and compares it to the minimum achieved by a disk of the same area: $\text{IMI} = A^2 / (2\pi J)$, where $J = I_{xx} + I_{yy}$ is the polar second moment of area about the centroid and $A$ is total area. Also bounded in $(0, 1]$ with 1 = a perfect disk, but it measures compactness/roundness, not convexity; an elongated convex shape can score low on IMI while scoring a full 1 on CI. This index is not particularly sensitive to boundary errors. See `vignette("d-understanding-moment-of-inertia-index")`'s Introduction for IMI's origin and full citation.
 
 [^hri]: The ratio of a polygon's area to the area of its convex hull: $\text{HRI} = \text{area(polygon)} / \text{area(convex hull)}$. Also 1 for a convex shape, falling as more of the hull is empty territory the polygon doesn't cover. This index is very sensitive to extreme vertices, since a single long narrow sliver can drag the convex hull out to enormous size.
 

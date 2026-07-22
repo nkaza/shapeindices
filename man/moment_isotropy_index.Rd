@@ -40,7 +40,7 @@ shape with 3-fold or higher rotational symmetry - this is not the same
 claim as convexity_index()'s or moment_of_inertia_index()'s "= 1 iff a
 disk"). Lower values mean the mass is more anisotropic - elongated
 along one direction - regardless of whether the shape itself is convex
-or dispersed. See \code{vignette("f-understanding-moment-isotropy-index")}
+or dispersed. See \code{vignette("g-understanding-moment-isotropy-index")}
 for the derivation, the bound proof, and how this relates to (but
 differs from) classical eccentricity.
 }

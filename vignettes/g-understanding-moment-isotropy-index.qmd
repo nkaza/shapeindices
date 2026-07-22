@@ -1,5 +1,5 @@
 ---
-title: "6. Understanding Moment Isotropy Index"
+title: "7. Understanding Moment Isotropy Index"
 author: "Nikhil Kaza"
 date: "`r Sys.Date()`"
 format:
@@ -8,7 +8,7 @@ format:
     number-sections: true
     theme: flatly
 vignette: >
-  %\VignetteIndexEntry{6. Understanding Moment Isotropy Index}
+  %\VignetteIndexEntry{7. Understanding Moment Isotropy Index}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 ---
@@ -92,7 +92,7 @@ names(pinwheels) <- sprintf("%d arms", 2:6)
 
 It's also built differently from the package's reference-shape indices, and worth being explicit about that up front. `convexity_index()`, `moment_of_inertia_index()`, `span_index()`, and `radial_concentration_index()` are all "actual value vs. a provably optimal reference shape" comparisons - a rearrangement inequality or bathtub-principle argument shows a disk (or, weighted, concentric rings) is the unique best-possible arrangement, and the index is how close the real shape gets to that ceiling. `moment_isotropy_index()` has no reference shape at all: it compares the shape's own two principal moments to *each other*, an elementary fact about positive semi-definite matrices, not a rearrangement inequality. One consequence worth flagging immediately: an index of 1 does **not** mean "this is a disk" the way it does for `moment_of_inertia_index()`/`span_index()`/`radial_concentration_index()` - it means the mass distribution is rotationally isotropic about its own centroid, which a disk achieves, but so does a square, a regular hexagon, or anything with three-fold or higher rotational symmetry.
 
-The ratio of an inertia tensor's smaller to larger eigenvalue, exactly this index's construction, is an established anisotropy measure - it comes from a different field than the geography-derived compactness literature the rest of this package's indices draw from (see `vignette("d-understanding-span-index")`'s Introduction). Materials science and image analysis use it under names like "isotropy index" or "elongation factor," most notably in the Minkowski-tensor anisotropy framework of Schröder-Turk et al. (2013).[^schroder-turk] That framework's own isotropy index, $\beta = \lambda_{\min}/\lambda_{\max}$, is the same eigenvalue ratio computed here, just applied to a mass inertia tensor rather than a Minkowski tensor.
+The ratio of an inertia tensor's smaller to larger eigenvalue, exactly this index's construction, is an established anisotropy measure - it comes from a different field than the geography-derived compactness literature the rest of this package's indices draw from (see `vignette("e-understanding-span-index")`'s Introduction). Materials science and image analysis use it under names like "isotropy index" or "elongation factor," most notably in the Minkowski-tensor anisotropy framework of Schröder-Turk et al. (2013).[^schroder-turk] That framework's own isotropy index, $\beta = \lambda_{\min}/\lambda_{\max}$, is the same eigenvalue ratio computed here, just applied to a mass inertia tensor rather than a Minkowski tensor.
 
 [^schroder-turk]: Schröder-Turk, G. E., Mickel, W., Kapfer, S. C., Schaller, F. M., Breidenbach, B., Hug, D., & Mecke, K. (2013). Minkowski tensors of anisotropic spatial structure. *New Journal of Physics*, 15, 083028.
 
@@ -309,7 +309,7 @@ data.frame(
 ) |> knitr::kable(format = "html", digits = 3, row.names = FALSE, escape = FALSE)
 ```
 
-The disk's own boundary never changes - only how its mass is distributed within it - yet concentrating weight along one axis drops isotropy well below 1. A perfectly round *shape* is no guarantee of a round *mass distribution* once weighting enters the picture, the same lesson `vignette("e-understanding-radial-concentration-index")`'s "weight moves the reference" section makes for that index's own reference.
+The disk's own boundary never changes - only how its mass is distributed within it - yet concentrating weight along one axis drops isotropy well below 1. A perfectly round *shape* is no guarantee of a round *mass distribution* once weighting enters the picture, the same lesson `vignette("f-understanding-radial-concentration-index")`'s "weight moves the reference" section makes for that index's own reference.
 
 ## Things to watch out for: isotropic tensor, not isotropic coverage
 
@@ -331,13 +331,13 @@ pinwheel_tbl <- rbind(pinwheel_tbl,
 knitr::kable(format = "html", pinwheel_tbl, digits = 4, row.names = FALSE, escape = FALSE)
 ```
 
-From 3 arms up, `moment_isotropy` reads *exactly* 1 - identical, to the precision shown, to a genuine solid disk - despite wide empty sectors between the arms where there's no mass at all. This isn't a numerical coincidence: any rank-2 tensor built from vectors arranged with three-fold or higher rotational symmetry is forced to be isotropic, a fact from representation theory rather than anything specific to polygons or mass distributions. `directional_balance_index()` is fooled the same way, for a related but distinct reason - see `vignette("g-understanding-directional-balance-index")`'s own "things to watch out for" section, where a 2-armed (dumbbell) shape cancels out because that index only needs *two-fold* symmetry to zero its first moment. Here, the second moment needs three-fold or higher - which is exactly why the 2-armed case above is the one row where `moment_isotropy` correctly reads low. Only `convexity_index()` catches any of these pinwheels for what they visually are.
+From 3 arms up, `moment_isotropy` reads *exactly* 1 - identical, to the precision shown, to a genuine solid disk - despite wide empty sectors between the arms where there's no mass at all. This isn't a numerical coincidence: any rank-2 tensor built from vectors arranged with three-fold or higher rotational symmetry is forced to be isotropic, a fact from representation theory rather than anything specific to polygons or mass distributions. `directional_balance_index()` is fooled the same way, for a related but distinct reason - see `vignette("h-understanding-directional-balance-index")`'s own "things to watch out for" section, where a 2-armed (dumbbell) shape cancels out because that index only needs *two-fold* symmetry to zero its first moment. Here, the second moment needs three-fold or higher - which is exactly why the 2-armed case above is the one row where `moment_isotropy` correctly reads low. Only `convexity_index()` catches any of these pinwheels for what they visually are.
 
 The distinction worth carrying forward: `moment_isotropy_index()` measures whether a shape's mass is spread *equally* across directions - the two principal moments come out equal - not whether mass is *present* in every direction. A shape built entirely from a handful of narrow, evenly-spaced spokes satisfies the first condition perfectly while failing the second about as badly as a shape can. Reach for `convexity_index()`, not this index, when the question is really "does this shape have gaps."
 
 # Where this fits
 
-`moment_isotropy_index()` is a genuinely different question from this package's other eleven indices, not a fifth entry in a family: "is this shape convex" (`convexity_index()`, `hull_ratio_index()`), "how far is mass dispersed from the centre" (`moment_of_inertia_index()`, `span_index()`, `radial_concentration_index()`), "how round is the boundary/bounding shape" (`polsby_popper_index()`, `reock_index()`, `width_length_ratio_index()`), "does the mass distribution prefer an axis" (`moment_isotropy_index()`), and "does the mass distribution prefer a bearing" (`directional_balance_index()`, see `vignette("g-understanding-directional-balance-index")`) are five separate properties that happen to correlate on many real shapes without being redundant with each other. Two direct side-by-side comparisons already sit above rather than being repeated here: the basic-shapes table in "Illustrations" (isotropy vs. `moment_of_inertia_index`/`convexity_index` on the same shapes) and the pinwheel table in "Things to watch out for" (isotropy vs. `directional_balance_index`/`convexity_index` on shapes designed to expose each index's own blind spot).
+`moment_isotropy_index()` is a genuinely different question from this package's other eleven indices, not a fifth entry in a family: "is this shape convex" (`convexity_index()`, `hull_ratio_index()`), "how far is mass dispersed from the centre" (`moment_of_inertia_index()`, `span_index()`, `radial_concentration_index()`), "how round is the boundary/bounding shape" (`polsby_popper_index()`, `reock_index()`, `width_length_ratio_index()`), "does the mass distribution prefer an axis" (`moment_isotropy_index()`), and "does the mass distribution prefer a bearing" (`directional_balance_index()`, see `vignette("h-understanding-directional-balance-index")`) are five separate properties that happen to correlate on many real shapes without being redundant with each other. Two direct side-by-side comparisons already sit above rather than being repeated here: the basic-shapes table in "Illustrations" (isotropy vs. `moment_of_inertia_index`/`convexity_index` on the same shapes) and the pinwheel table in "Things to watch out for" (isotropy vs. `directional_balance_index`/`convexity_index` on shapes designed to expose each index's own blind spot).
 
 # Key takeaways
 

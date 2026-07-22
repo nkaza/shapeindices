@@ -1,5 +1,5 @@
 ---
-title: "5. Understanding Radial Concentration Index"
+title: "6. Understanding Radial Concentration Index"
 author: "Nikhil Kaza"
 date: "`r Sys.Date()`"
 format:
@@ -8,7 +8,7 @@ format:
     number-sections: true
     theme: flatly
 vignette: >
-  %\VignetteIndexEntry{5. Understanding Radial Concentration Index}
+  %\VignetteIndexEntry{6. Understanding Radial Concentration Index}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 ---
@@ -62,7 +62,7 @@ disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]
 # a ring of n_arms radial wedges spanning [r_in, r_out], with a FIXED total
 # angular width split evenly among them, so n_arms only changes how finely
 # that fixed width is cut up - same construction used in
-# vignette("c-understanding-moment-of-inertia-index") to demonstrate the
+# vignette("d-understanding-moment-of-inertia-index") to demonstrate the
 # same underlying effect there
 make_spokes <- function(r_in, r_out, n_arms, total_angle_frac = 0.5) {
   angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
@@ -90,7 +90,7 @@ As in `span_index()`, $\rho$ is a density over the polygon and $s \in P$ is a wh
 
 `radial_concentration_index()` is $D_{1,\text{ref}}/D_1(\rho) \in (0, 1]$, where $D_{1,\text{ref}}$ is the same quantity for a circle (unweighted) or a concentric annulus (weighted) of the same area. It's a sibling to `moment_of_inertia_index()` (squared distance to the centroid) and `span_index()` (plain distance, but between two random points, no reference point at all) - this one is plain distance *to* a reference point, the remaining combination of the two design choices.
 
-No single prior paper matches this exact construction - median-anchored, plain-distance dispersal - the way `moment_of_inertia_index()` matches both Kaza's IMI and Angel et al.'s Cohesion (`vignette("c-understanding-moment-of-inertia-index")`). It belongs generically to the "dispersion" family of circle-compactness properties surveyed in Angel, Parent & Civco (2010)[^angel-e] - shapes whose mass sits close to a well-chosen centre read as compact, wherever exactly that centre is anchored - without being a direct implementation of any one property in that survey.
+No single prior paper matches this exact construction - median-anchored, plain-distance dispersal - the way `moment_of_inertia_index()` matches both Kaza's IMI and Angel et al.'s Cohesion (`vignette("d-understanding-moment-of-inertia-index")`). It belongs generically to the "dispersion" family of circle-compactness properties surveyed in Angel, Parent & Civco (2010)[^angel-e] - shapes whose mass sits close to a well-chosen centre read as compact, wherever exactly that centre is anchored - without being a direct implementation of any one property in that survey.
 
 [^angel-e]: Angel, S., Parent, J., & Civco, D. L. (2010). Ten compactness properties of circles: measuring shape in geography. *Canadian Geographer*, 54(4), 441-461.
 
@@ -244,7 +244,7 @@ Both centres (red points) are found correctly even though neither sits on solid 
 
 ### Same radial spread, same index
 
-`radial_concentration_index()` shares `moment_of_inertia_index()`'s exact insensitivity to angular rearrangement, for the same underlying reason (see `vignette("c-understanding-moment-of-inertia-index")` for the full derivation): $D_1 = \int_P \rho(s)\,|s-c|\,ds$ depends on each point only through its distance from the reference centre $c$, never its bearing. For a shape with two-fold or higher rotational symmetry, $c$ - here the geometric median, not the centroid - sits at the shape's own centre of symmetry regardless of how finely the mass is carved up angularly, so the index can't tell a couple of broad wedges from many thin ones covering the same total angle.
+`radial_concentration_index()` shares `moment_of_inertia_index()`'s exact insensitivity to angular rearrangement, for the same underlying reason (see `vignette("d-understanding-moment-of-inertia-index")` for the full derivation): $D_1 = \int_P \rho(s)\,|s-c|\,ds$ depends on each point only through its distance from the reference centre $c$, never its bearing. For a shape with two-fold or higher rotational symmetry, $c$ - here the geometric median, not the centroid - sits at the shape's own centre of symmetry regardless of how finely the mass is carved up angularly, so the index can't tell a couple of broad wedges from many thin ones covering the same total angle.
 
 ```{r blind-spot, echo=TRUE}
 spoke_results <- lapply(spoke_shapes, function(g) radial_concentration_index(st_sfc(g)))
@@ -290,7 +290,7 @@ Concentrating weight at the edge scores lowest, as expected. But concentrating i
 
 # Where this fits
 
-`radial_concentration_index()` is the plain-distance-to-a-reference-point member of a family of three. Its siblings measure the same "how spread out is the mass" question through different lenses: `moment_of_inertia_index()` uses *squared* distance to the centroid (`vignette("c-understanding-moment-of-inertia-index")`), and `span_index()` uses plain distance between two random points, with no fixed reference point at all (`vignette("d-understanding-span-index")`). Unlike either sibling, its reference centre is a geometric median rather than a centroid - the point that makes plain (not squared) distance minimal - which is also why it, alone among the three, needs an iterative algorithm (Weiszfeld's) just to locate its own centre.
+`radial_concentration_index()` is the plain-distance-to-a-reference-point member of a family of three. Its siblings measure the same "how spread out is the mass" question through different lenses: `moment_of_inertia_index()` uses *squared* distance to the centroid (`vignette("d-understanding-moment-of-inertia-index")`), and `span_index()` uses plain distance between two random points, with no fixed reference point at all (`vignette("e-understanding-span-index")`). Unlike either sibling, its reference centre is a geometric median rather than a centroid - the point that makes plain (not squared) distance minimal - which is also why it, alone among the three, needs an iterative algorithm (Weiszfeld's) just to locate its own centre.
 
 "Things to watch out for" above already showed one divergence from `convexity_index()`: widening the *angular* gaps between spokes at a fixed radius moves `convexity_index()` but leaves `radial_concentration_index()` untouched. Pulling two solid pieces apart in *space* - rather than carving a fixed footprint more finely - shows the opposite pattern, and a genuinely surprising one: `radial_concentration_index()` turns out to be the more sensitive of the two, not the less.
 

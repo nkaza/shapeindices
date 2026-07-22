@@ -333,7 +333,7 @@
 #' minimising that mean distance - not the centroid) and D1_ref is the
 #' same quantity for the reference shape (a circle, unweighted; a
 #' concentric annulus, weighted) - both provable minimisers of D1. See
-#' `vignette("e-understanding-radial-concentration-index")` for the
+#' `vignette("f-understanding-radial-concentration-index")` for the
 #' derivation and the proofs.
 #'
 #' @param poly a single sfg/sfc (MULTI)POLYGON

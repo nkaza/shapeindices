@@ -1,5 +1,5 @@
 ---
-title: "7. Understanding Directional Balance Index"
+title: "8. Understanding Directional Balance Index"
 author: "Nikhil Kaza"
 date: "`r Sys.Date()`"
 format:
@@ -8,7 +8,7 @@ format:
     number-sections: true
     theme: flatly
 vignette: >
-  %\VignetteIndexEntry{7. Understanding Directional Balance Index}
+  %\VignetteIndexEntry{8. Understanding Directional Balance Index}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 ---
@@ -115,7 +115,7 @@ For density $\rho$ over the polygon, a point $s = (x, y) \in P$ with coordinates
 
 $$R = \left\lvert \frac{1}{W}\int_P \rho(s)\, e^{i\theta(s)}\,ds \right\rvert, \qquad W = \int_P \rho(s)\,ds$$
 
-This is exactly the **mean resultant length** from circular/directional statistics (Rayleigh 1880's test for uniformity on a circle is built on the same quantity[^rayleigh]), here applied to a polygon's own interior angular mass distribution rather than to literal directional data like wind bearings. That specific application - bearings of interior area from a shape's own mass centroid, rather than literal directional observations - doesn't appear to have an established name in the shape-compactness literature the rest of this package draws from (see `vignette("d-understanding-span-index")`'s Introduction); treat it as a direct application of a classical tool to a new setting, not a rediscovery of a named index. `directional_balance_index()` is $1 - R$.
+This is exactly the **mean resultant length** from circular/directional statistics (Rayleigh 1880's test for uniformity on a circle is built on the same quantity[^rayleigh]), here applied to a polygon's own interior angular mass distribution rather than to literal directional data like wind bearings. That specific application - bearings of interior area from a shape's own mass centroid, rather than literal directional observations - doesn't appear to have an established name in the shape-compactness literature the rest of this package draws from (see `vignette("e-understanding-span-index")`'s Introduction); treat it as a direct application of a classical tool to a new setting, not a rediscovery of a named index. `directional_balance_index()` is $1 - R$.
 
 [^rayleigh]: Rayleigh, Lord (1880). On the resultant of a large number of vibrations of the same pitch and of arbitrary phase. *Philosophical Magazine*, 10(60), 73-78. Mardia, K. V., & Jupp, P. E. (2000). *Directional Statistics*. Wiley, is the standard modern reference for the mean resultant length and its uses.
 
@@ -289,7 +289,7 @@ exactly unbiased for $1 - R^2$, for every weight distribution and every $n \ge 2
 
 # Where this fits
 
-`directional_balance_index()` adds a genuinely new question to this package's family: not "is this shape convex" (`convexity_index()`, `hull_ratio_index()`), "how far is mass dispersed from the centre" (`moment_of_inertia_index()`, `span_index()`, `radial_concentration_index()`), "how round is the boundary/bounding shape" (`polsby_popper_index()`, `reock_index()`, `width_length_ratio_index()`), or "does the mass distribution prefer an axis" (`moment_isotropy_index()`) - but "does the mass distribution prefer a *bearing*". See `vignette("j-nc-counties-comparison")` for how it relates to the other nine on 100 real county boundaries.
+`directional_balance_index()` adds a genuinely new question to this package's family: not "is this shape convex" (`convexity_index()`, `hull_ratio_index()`), "how far is mass dispersed from the centre" (`moment_of_inertia_index()`, `span_index()`, `radial_concentration_index()`), "how round is the boundary/bounding shape" (`polsby_popper_index()`, `reock_index()`, `width_length_ratio_index()`), or "does the mass distribution prefer an axis" (`moment_isotropy_index()`) - but "does the mass distribution prefer a *bearing*". See `vignette("k-nc-counties-comparison")` for how it relates to the other nine on 100 real county boundaries.
 
 # Key takeaways
 

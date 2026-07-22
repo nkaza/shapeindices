@@ -323,7 +323,7 @@
 #'   more accurate option for shapes with small concavities relative to
 #'   triangle size, since a fixed quadrature grid can miss a concavity that
 #'   falls between its sample points (see
-#'   `vignette("b-understanding-convexity-index")`). `n_quad` is unused
+#'   `vignette("c-understanding-convexity-index")`). `n_quad` is unused
 #'   (and an error if passed explicitly) when deterministic = FALSE.
 #' @param n_quad quadrature points per triangle when deterministic = TRUE
 #'   (1 or 3). 3 (default) uses a 3-point Hammer-Stroud rule, closing most

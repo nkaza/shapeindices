@@ -462,7 +462,7 @@
 #' (a circle, unweighted; a concentric annulus, weighted) - both are
 #' provable minimisers of D. Distinct from moment_of_inertia_index(),
 #' which a squared-distance version of this index would just collapse to.
-#' See `vignette("d-understanding-span-index")` for the derivation and
+#' See `vignette("e-understanding-span-index")` for the derivation and
 #' both proofs.
 #'
 #' @param poly a single sfg/sfc (MULTI)POLYGON

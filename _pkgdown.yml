@@ -6,13 +6,14 @@ articles:
   navbar: ~
   contents:
   - a-basic-usage
-  - b-understanding-convexity-index
-  - c-understanding-moment-of-inertia-index
-  - d-understanding-span-index
-  - e-understanding-radial-concentration-index
-  - f-understanding-moment-isotropy-index
-  - g-understanding-directional-balance-index
-  - h-understanding-depth-index
-  - i-understanding-classical-indices
-  - j-nc-counties-comparison
+  - b-understanding-triangulation
+  - c-understanding-convexity-index
+  - d-understanding-moment-of-inertia-index
+  - e-understanding-span-index
+  - f-understanding-radial-concentration-index
+  - g-understanding-moment-isotropy-index
+  - h-understanding-directional-balance-index
+  - i-understanding-depth-index
+  - j-understanding-classical-indices
+  - k-nc-counties-comparison
 

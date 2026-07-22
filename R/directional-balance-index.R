@@ -234,7 +234,7 @@
 #' lobe). One caveat to know before using it: balanced does not mean
 #' round - a symmetric dumbbell (equal lobes on opposite sides) scores 1
 #' here, same as a disk, because opposite pulls cancel exactly. See
-#' `vignette("g-understanding-directional-balance-index")` for the
+#' `vignette("h-understanding-directional-balance-index")` for the
 #' derivation, the bound proof, and that blind spot worked through.
 #' @section Monte Carlo bias, and computing an unbiased estimate yourself:
 #'   With `deterministic = FALSE`, the returned `index` is a biased

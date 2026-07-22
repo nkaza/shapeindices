@@ -14,7 +14,7 @@
 ##
 ## THE DEPTH PROPOSITION (Angel, Parent & Civco 2010, stated without proof;
 ## proved here via Brunn-Minkowski - see
-## vignette("h-understanding-depth-index") for the full argument):
+## vignette("i-understanding-depth-index") for the full argument):
 ## among all measurable shapes of a given area, the disk maximises
 ## unweighted mean depth. Sketch: integral_P d(s) ds = integral_0^inf
 ## |erosion_t(P)| dt (layer-cake identity on the distance-transform field),
@@ -59,7 +59,7 @@
 ## (rich medial-axis structure): unsubdivided centroids overshot the true
 ## mean depth by ~83%, subdivision landed within a fraction of a percent of
 ## a 200,000-point Monte Carlo reference (see
-## vignette("h-understanding-depth-index")'s own "Algorithmic choices"
+## vignette("i-understanding-depth-index")'s own "Algorithmic choices"
 ## section). deterministic = FALSE reuses
 ## .sample_weighted_points()/.sample_weighted_points_array() unchanged.
 ## What's genuinely new here (not needed by any of this package's other

@@ -6,7 +6,7 @@
 #' classic boundary/hull/bounding-box compactness scores from the
 #' redistricting literature (convex-hull ratio, Polsby-Popper,
 #' width-length ratio, Reock) that need no triangulation at all. See
-#' `vignette("b-understanding-convexity-index", package = "shapeindices")` for the full derivation
+#' `vignette("c-understanding-convexity-index", package = "shapeindices")` for the full derivation
 #' and worked examples.
 #'
 #' @keywords internal

@@ -27,7 +27,7 @@ instead - O(n_lines), useful when the mesh is too large, and also the
 more accurate option for shapes with small concavities relative to
 triangle size, since a fixed quadrature grid can miss a concavity that
 falls between its sample points (see
-\code{vignette("b-understanding-convexity-index")}). \code{n_quad} is unused
+\code{vignette("c-understanding-convexity-index")}). \code{n_quad} is unused
 (and an error if passed explicitly) when deterministic = FALSE.}
 
 \item{n_quad}{quadrature points per triangle when deterministic = TRUE

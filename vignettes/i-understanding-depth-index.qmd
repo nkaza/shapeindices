@@ -1,5 +1,5 @@
 ---
-title: "8. Understanding Depth Index"
+title: "9. Understanding Depth Index"
 author: "Nikhil Kaza"
 date: "`r Sys.Date()`"
 format:
@@ -8,7 +8,7 @@ format:
     number-sections: true
     theme: flatly
 vignette: >
-  %\VignetteIndexEntry{8. Understanding Depth Index}
+  %\VignetteIndexEntry{9. Understanding Depth Index}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 ---
@@ -119,7 +119,7 @@ make_n_squares <- function(n, total_area = 16, gap_mult = 3) {
 # rasterize a target polygon at a given cell size: keep every grid cell
 # whose centre falls inside it, then union the cells - a stand-in for
 # vectorizing a raster/classification mask, without needing a raster
-# package at all (same construction as vignette("i-understanding-classical-indices"))
+# package at all (same construction as vignette("j-understanding-classical-indices"))
 rasterize_polygon <- function(target, cell) {
   target_sfc <- st_sfc(target)
   bb <- st_bbox(target_sfc)
@@ -235,7 +235,7 @@ Because $d(s)$ still only depends on radius (never on which ring a point of mass
 
 ## The point cloud
 
-`deterministic = TRUE` (the default) samples interior points the same way `radial_concentration_index()` does (`vignette("e-understanding-radial-concentration-index")`): every CDT triangle is recursively split by medial subdivision, area-adaptively (the mesh's own largest triangle gets the full 4 levels/256 points; smaller ones need proportionally fewer to reach the same final resolution), and each sub-triangle's centroid stands in for its own small share of area.
+`deterministic = TRUE` (the default) samples interior points the same way `radial_concentration_index()` does (`vignette("f-understanding-radial-concentration-index")`): every CDT triangle is recursively split by medial subdivision, area-adaptively (the mesh's own largest triangle gets the full 4 levels/256 points; smaller ones need proportionally fewer to reach the same final resolution), and each sub-triangle's centroid stands in for its own small share of area.
 
 A single point per triangle would be enough if $d(s)$ were linear across it - and away from the shape's own *medial axis* (where two different boundary edges are equally close), it is: $d(s)$ is exactly linear in the direction perpendicular to whichever single edge is nearest, so that triangle's own centroid already gives its exact average depth. Only triangles straddling the medial axis need subdivision - there, $d(s)$ behaves like $\min(\text{linear}_1, \text{linear}_2)$, a concave "tent" rather than a straight slope, and a bare centroid overestimates the triangle's true contribution. (This is the opposite direction from `radial_concentration_index()`'s own reason for subdividing: its field, distance to a single fixed point, is convex everywhere, so a bare centroid *under*estimates there instead.) The table below shows the size of the effect on a deeply notched star, where the medial axis has a lot of surface area to matter on:
 
@@ -317,7 +317,7 @@ tbl <- do.call(rbind, lapply(names(canonical), function(nm) {
 knitr::kable(format = "html", tbl, digits = 3, row.names = FALSE, escape = FALSE)
 ```
 
-The disk reads just above 1, the expected finite-sampling residual described above, not a modelling error. Elongating the rectangle pulls the index down steadily - a 10:1 rectangle has nowhere in its interior that's far from *some* edge, however large its area - and the two stars, same six points with only the inner radius shrinking, separate sharply: `depth_index()` reacts to spike depth here, unlike `width_length_ratio_index()` (`vignette("i-understanding-classical-indices")`), whose bounding rectangle never notices six needle-thin arms replacing six broad ones.
+The disk reads just above 1, the expected finite-sampling residual described above, not a modelling error. Elongating the rectangle pulls the index down steadily - a 10:1 rectangle has nowhere in its interior that's far from *some* edge, however large its area - and the two stars, same six points with only the inner radius shrinking, separate sharply: `depth_index()` reacts to spike depth here, unlike `width_length_ratio_index()` (`vignette("j-understanding-classical-indices")`), whose bounding rectangle never notices six needle-thin arms replacing six broad ones.
 
 ## Holes and multi-part shapes
 
@@ -356,7 +356,7 @@ data.frame(
 ) |> knitr::kable(format = "html", digits = 3, row.names = FALSE, escape = FALSE)
 ```
 
-Edge-weighting scores lowest, as expected - it puts the most mass exactly where $d(s)$ is smallest. But centre-weighting scores *below* the uniform baseline, the same effect `radial_concentration_index()`'s own weighting demo documents (`vignette("e-understanding-radial-concentration-index")`) for the identical reason: the reference isn't fixed, it's the *best possible* rearrangement of that same weight histogram into perfect concentric rings. A smooth exponential reweighting concentrates real mass toward the centre, but the star's actual notches keep the real arrangement from reaching the much tighter target its own reference assumes - so both the actual and the reference mean depth rise, but the reference rises faster. The one comparison guaranteed to hold regardless - centre-weighted beats edge-weighted - does.
+Edge-weighting scores lowest, as expected - it puts the most mass exactly where $d(s)$ is smallest. But centre-weighting scores *below* the uniform baseline, the same effect `radial_concentration_index()`'s own weighting demo documents (`vignette("f-understanding-radial-concentration-index")`) for the identical reason: the reference isn't fixed, it's the *best possible* rearrangement of that same weight histogram into perfect concentric rings. A smooth exponential reweighting concentrates real mass toward the centre, but the star's actual notches keep the real arrangement from reaching the much tighter target its own reference assumes - so both the actual and the reference mean depth rise, but the reference rises faster. The one comparison guaranteed to hold regardless - centre-weighted beats edge-weighted - does.
 
 # Key pathological properties
 
@@ -402,7 +402,7 @@ tbl_gap <- do.call(rbind, lapply(gaps, function(g) {
 knitr::kable(format = "html", tbl_gap, digits = 5, row.names = FALSE, escape = FALSE)
 ```
 
-Every value is identical - not approximately, to floating-point precision - regardless of how far apart the two squares sit. That's the direct payoff of $d(s)$ being purely local: each square's own interior points have the same nearest-boundary distances whether the other square is one unit away or a hundred. `radial_concentration_index()`'s own "Where this fits" section (`vignette("e-understanding-radial-concentration-index")`) shows the opposite behaviour on the identical shape - it falls without bound as the gap widens, because mean distance to a shared reference centre keeps growing.
+Every value is identical - not approximately, to floating-point precision - regardless of how far apart the two squares sit. That's the direct payoff of $d(s)$ being purely local: each square's own interior points have the same nearest-boundary distances whether the other square is one unit away or a hundred. `radial_concentration_index()`'s own "Where this fits" section (`vignette("f-understanding-radial-concentration-index")`) shows the opposite behaviour on the identical shape - it falls without bound as the gap widens, because mean distance to a shared reference centre keeps growing.
 
 That is not the same as saying depth is blind to fragmentation altogether, though. Splitting one solid shape into more, smaller separate pieces of the same *combined* area does lower the index, even at a generous, fixed separation:
 
@@ -420,7 +420,7 @@ The mechanism is the reference, not the separation: `ref_depth` is fixed by the 
 
 ## Boundary and fractal noise
 
-`vignette("i-understanding-classical-indices")` documents `polsby_popper_index()` as the one index in this package's classical-metrics set that never converges under a rasterized (stairstepped) boundary - perimeter itself doesn't converge to the true curve length as the pixel grid gets finer, a real fact about approximating curves with axis-aligned steps. Depth doesn't use perimeter at all, so it's worth checking directly whether it inherits the same problem some other way:
+`vignette("j-understanding-classical-indices")` documents `polsby_popper_index()` as the one index in this package's classical-metrics set that never converges under a rasterized (stairstepped) boundary - perimeter itself doesn't converge to the true curve length as the pixel grid gets finer, a real fact about approximating curves with axis-aligned steps. Depth doesn't use perimeter at all, so it's worth checking directly whether it inherits the same problem some other way:
 
 ```{r pixelate-table, echo=TRUE}
 true_circle <- make_disk(8, 30)
@@ -440,13 +440,13 @@ Depth converges cleanly back toward 1 as the pixel grid gets finer, the same beh
 
 # Where this fits
 
-`depth_index()` looks like it belongs to this package's "dispersal from a centre" family - `moment_of_inertia_index()`, `span_index()`, `radial_concentration_index()` (`vignette("c-understanding-moment-of-inertia-index")`, `vignette("d-understanding-span-index")`, `vignette("e-understanding-radial-concentration-index")`) - since all four compare a shape to an equal-area (or equal-mass) reference and read 1 exactly when the shape matches it. But it asks a structurally different question: those three all measure distance *to or between interior points themselves* (to the centroid, between two random points, to the geometric median); depth measures distance from an interior point *to the boundary*, with no interior reference point anywhere in its own definition. "Key pathological properties" above makes the practical consequence concrete: all three siblings react to how far apart a shape's separate pieces are pulled, without limit in `radial_concentration_index()`'s own case; depth doesn't react to separation at all, only to each piece's own size relative to the whole.
+`depth_index()` looks like it belongs to this package's "dispersal from a centre" family - `moment_of_inertia_index()`, `span_index()`, `radial_concentration_index()` (`vignette("d-understanding-moment-of-inertia-index")`, `vignette("e-understanding-span-index")`, `vignette("f-understanding-radial-concentration-index")`) - since all four compare a shape to an equal-area (or equal-mass) reference and read 1 exactly when the shape matches it. But it asks a structurally different question: those three all measure distance *to or between interior points themselves* (to the centroid, between two random points, to the geometric median); depth measures distance from an interior point *to the boundary*, with no interior reference point anywhere in its own definition. "Key pathological properties" above makes the practical consequence concrete: all three siblings react to how far apart a shape's separate pieces are pulled, without limit in `radial_concentration_index()`'s own case; depth doesn't react to separation at all, only to each piece's own size relative to the whole.
 
 It's also the closest thing in this package to Girth, one of the ten compactness properties Angel, Parent & Civco (2010) survey alongside Depth itself: the *inscribed circle radius*, $\max_s d(s)$, the same distance-transform field's maximum rather than its mean. A maximum collapses to whichever single point happens to be deepest - blind to a hole or a second part anywhere else in the shape, and badly discontinuous under small perturbations near that one point - which is why this package implements Depth but not Girth. Reading the same field through a mean instead of a max is exactly why Depth is bounded via the same Brunn-Minkowski argument for holes and multiple parts alike, with no special-case reasoning needed the way a max-based property would require.
 
-Finally, it's worth distinguishing from this package's boundary/hull-based classical metrics (`vignette("i-understanding-classical-indices")`), which it superficially resembles - both compare a polygon to a reference circle. `reock_index()` compares area to the *minimum bounding circle* (an external, enclosing comparison that never looks at any interior point); `exchange_index()` compares overlap with a circle placed at the centroid (a single global placement, not a distribution over the interior). Depth is the only one of the three that's a genuine interior statistic, averaged pointwise over the whole shape - which is exactly what makes it converge cleanly under boundary pixelation where a perimeter-based measure like `polsby_popper_index()` does not (see above), and exactly why it needs a CDT mesh to sample from in the first place, unlike any of the three classical metrics it's being compared to here.
+Finally, it's worth distinguishing from this package's boundary/hull-based classical metrics (`vignette("j-understanding-classical-indices")`), which it superficially resembles - both compare a polygon to a reference circle. `reock_index()` compares area to the *minimum bounding circle* (an external, enclosing comparison that never looks at any interior point); `exchange_index()` compares overlap with a circle placed at the centroid (a single global placement, not a distribution over the interior). Depth is the only one of the three that's a genuine interior statistic, averaged pointwise over the whole shape - which is exactly what makes it converge cleanly under boundary pixelation where a perimeter-based measure like `polsby_popper_index()` does not (see above), and exactly why it needs a CDT mesh to sample from in the first place, unlike any of the three classical metrics it's being compared to here.
 
-A systematic empirical comparison against the other twelve indices, in the style of `vignette("j-nc-counties-comparison")`, is a natural follow-up once depth has had time to settle - not attempted here.
+A systematic empirical comparison against the other twelve indices, in the style of `vignette("k-nc-counties-comparison")`, is a natural follow-up once depth has had time to settle - not attempted here.
 
 # Key takeaways
 
@@ -458,4 +458,4 @@ A systematic empirical comparison against the other twelve indices, in the style
 - It's a purely local statistic: an annulus and a thin rectangle of the same width are indistinguishable to the fourth decimal place, and separating a shape's pieces further apart doesn't move the index at all - both because $d(s)$ only ever looks at the *nearest* boundary point, never the shape's global layout.
 - That locality has a limit, though: splitting one shape into more, smaller pieces of the same *combined* area does lower the index, since the reference scales with the combined area while the actual mean depth is set by each individual piece's own, smaller, characteristic width.
 - A small, roughly-centred hole costs far more than its area share - it excises exactly the deepest interior points first, and shortens the remaining ones' own distances to the nearest edge besides.
-- It converges cleanly under boundary pixelation, unlike `polsby_popper_index()` (`vignette("i-understanding-classical-indices")`) - pixelation noise is confined to a thin near-boundary strip, and an area-weighted mean shrinks that strip's influence as the pixel grid refines, where a perimeter sum does not.
+- It converges cleanly under boundary pixelation, unlike `polsby_popper_index()` (`vignette("j-understanding-classical-indices")`) - pixelation noise is confined to a thin near-boundary strip, and an area-weighted mean shrinks that strip's influence as the pixel grid refines, where a perimeter sum does not.

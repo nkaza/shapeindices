@@ -1,5 +1,5 @@
 ---
-title: "9. Understanding the Classical Compactness Metrics"
+title: "10. Understanding the Classical Compactness Metrics"
 author: "Nikhil Kaza"
 date: "`r Sys.Date()`"
 format:
@@ -8,7 +8,7 @@ format:
     number-sections: true
     theme: flatly
 vignette: >
-  %\VignetteIndexEntry{9. Understanding the Classical Compactness Metrics}
+  %\VignetteIndexEntry{10. Understanding the Classical Compactness Metrics}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 ---
@@ -57,7 +57,7 @@ shape_thumb <- function(geom, size_px = 40, col = "grey75") {
 
 # Introduction
 
-Six of this package's thirteen indices need no triangulation at all - just a polygon's own area, perimeter, convex hull, or bounding shapes, all cheap closed-form calculations: `hull_ratio_index()`, `polsby_popper_index()`, `width_length_ratio_index()`, `reock_index()`, `detour_index()`, and `exchange_index()`. This vignette covers all six together, the way `vignette("j-nc-counties-comparison")` covers the other ten together on real data - not deriving each from scratch (their math is well-established, cited below), but showing concretely how they behave, and where each one breaks.
+Six of this package's thirteen indices need no triangulation at all - just a polygon's own area, perimeter, convex hull, or bounding shapes, all cheap closed-form calculations: `hull_ratio_index()`, `polsby_popper_index()`, `width_length_ratio_index()`, `reock_index()`, `detour_index()`, and `exchange_index()`. This vignette covers all six together, the way `vignette("k-nc-counties-comparison")` covers the other ten together on real data - not deriving each from scratch (their math is well-established, cited below), but showing concretely how they behave, and where each one breaks.
 
 Each of these has a real history, reviewed comprehensively in Frolov (1975),[^frolov] MacEachren (1985),[^maceachren] and, most recently, Murray (2025).[^murray2025] MacEachren's own categorisation - perimeter/area, circle-related, comparison-to-a-reference-shape, dispersion-around-a-central-point - still organises the field: `polsby_popper_index()` is a perimeter/area measure, `reock_index()` and `width_length_ratio_index()` are circle- and box-related respectively, `hull_ratio_index()` and `detour_index()` compare the shape to its own convex hull, and `exchange_index()` compares it to a reference circle placed at its centroid.
 
@@ -65,7 +65,7 @@ Each of these has a real history, reviewed comprehensively in Frolov (1975),[^fr
 - **`polsby_popper_index()`**: the isoperimetric quotient, $4\pi A/p^2$. The underlying fact - a circle has the least perimeter for a given area - goes back to Zenodorus and, per some accounts, Pythagoras;[^murray2025] the specific redistricting application is Polsby & Popper (1991),[^pp] itself building on Ritter's 1822 proposal reviewed in Frolov.
 - **`width_length_ratio_index()`**: the shorter over the longer side of the polygon's minimum-area bounding rectangle, at any rotation (`sf::st_minimum_rotated_rectangle()`) - not the axis-aligned bounding box, which would make the score depend on orientation rather than shape alone. A common, informally-attributed redistricting metric with no single definitive origin in the reviews consulted here - included because it's simple, cheap, and widely used, not because of a strong literature pedigree.
 - **`reock_index()`**: area of the polygon over the area of its minimum bounding circle. Commonly attributed to Reock (1961),[^reock_index] with origins traced to Ehrenburg (1892) by Frolov.
-- **`detour_index()`** and **`exchange_index()`**: both Angel, Parent & Civco (2010),[^angel] covered together with the package's other ten indices in `vignette("d-understanding-span-index")`'s Introduction (Cohesion) and in this vignette's own sections below.
+- **`detour_index()`** and **`exchange_index()`**: both Angel, Parent & Civco (2010),[^angel] covered together with the package's other ten indices in `vignette("e-understanding-span-index")`'s Introduction (Cohesion) and in this vignette's own sections below.
 
 [^frolov]: Frolov, Y. S. (1975). Measuring the shape of geographical phenomena: a history of the issue. *Soviet Geography*, 16(10), 676-687.
 [^maceachren]: MacEachren, A. M. (1985). Compactness of geographic shape: comparison and evaluation of measures. *Geografiska Annaler: Series B, Human Geography*, 67(1), 53-67.
@@ -291,7 +291,7 @@ Rasterizing a smooth circle at finer and finer grid resolutions is a stand-in fo
 
 ## Holes and multi-part shapes: `exchange_index()`'s two distinct failure modes
 
-`exchange_index()` already showed the worse of its two pathologies above: an exact collapse to 0 once a multi-part shape's pieces separate far enough that the reference circle can't reach either one (`vignette("i-understanding-classical-indices")`'s own hole/multi-part tables above; Angel et al. note the identical failure mode for real districts split by water). The second, shown in the hole table above, is distinct in mechanism though similar in effect: a large, roughly-centred hole can empty out exactly the region the shrinking reference circle would occupy, driving the index to 0 there too - not because the shape has separated into pieces, but because the one piece it has has a void precisely where the index looks. Both are documented, both are kept rather than omitted, matching this package's existing precedent with `width_length_ratio_index()`'s own multi-part/hole blind spots.
+`exchange_index()` already showed the worse of its two pathologies above: an exact collapse to 0 once a multi-part shape's pieces separate far enough that the reference circle can't reach either one (`vignette("j-understanding-classical-indices")`'s own hole/multi-part tables above; Angel et al. note the identical failure mode for real districts split by water). The second, shown in the hole table above, is distinct in mechanism though similar in effect: a large, roughly-centred hole can empty out exactly the region the shrinking reference circle would occupy, driving the index to 0 there too - not because the shape has separated into pieces, but because the one piece it has has a void precisely where the index looks. Both are documented, both are kept rather than omitted, matching this package's existing precedent with `width_length_ratio_index()`'s own multi-part/hole blind spots.
 
 # Key takeaways
 

@@ -1,5 +1,5 @@
 ---
-title: "4. Understanding Span Index"
+title: "5. Understanding Span Index"
 author: "Nikhil Kaza"
 date: "`r Sys.Date()`"
 format:
@@ -8,7 +8,7 @@ format:
     number-sections: true
     theme: flatly
 vignette: >
-  %\VignetteIndexEntry{4. Understanding Span Index}
+  %\VignetteIndexEntry{5. Understanding Span Index}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 ---
@@ -67,8 +67,8 @@ disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]  
 # a ring of n_arms radial wedges spanning [r_in, r_out], with a FIXED total
 # angular width split evenly among them, so n_arms only changes how finely
 # that fixed width is cut up - same construction used in
-# vignette("c-understanding-moment-of-inertia-index") and
-# vignette("e-understanding-radial-concentration-index") to demonstrate
+# vignette("d-understanding-moment-of-inertia-index") and
+# vignette("f-understanding-radial-concentration-index") to demonstrate
 # those two indices' shared exact invariance to this kind of rearrangement
 make_spokes <- function(r_in, r_out, n_arms, total_angle_frac = 0.5) {
   angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
@@ -92,7 +92,7 @@ names(spoke_shapes) <- sprintf("%d arms", arm_counts)
 
 This sits alongside `convexity_index()` (which measures whether interior lines stay inside the boundary) and `moment_of_inertia_index()` (which measures dispersal via *squared* distance from the shape's own centroid). Span index measures dispersal too, but via plain (non-squared) pairwise distance - a genuinely different quantity, not just a rescaling of moment of inertia, for reasons this vignette derives.
 
-Span index's plain-distance construction is close to, but not quite, a named index in the shape-compactness literature (reviewed generally in Frolov 1975[^frolov] and MacEachren 1985[^maceachren]). Angel, Parent & Civco (2010)[^cohesion] define **Cohesion** - one of several classical "compactness properties of circles," alongside Polsby-Popper and Reock (both already in this package, as `polsby_popper_index()` and `reock_index()`) - as the ratio of mean *squared* distance between two random points in an equal-area circle to the same quantity in the actual shape. That's `moment_of_inertia_index()`'s own construction, not span index's: mean squared pairwise distance is exactly twice the mean squared distance to the centroid for any point set, and that factor of 2 cancels identically in the ratio, so Cohesion reduces to Kaza's IMI exactly (see `vignette("c-understanding-moment-of-inertia-index")`'s Introduction). Angel et al. explicitly flag the *plain*-distance version - span index's own construction - as an open question in their own footnote: "It stands to reason that among all shapes of a given area the circle also has the shortest average distance...but a rigorous proof of this proposition has so far eluded us." The rearrangement-inequality argument below (see "The reference shapes really are optimal") settles exactly that question.
+Span index's plain-distance construction is close to, but not quite, a named index in the shape-compactness literature (reviewed generally in Frolov 1975[^frolov] and MacEachren 1985[^maceachren]). Angel, Parent & Civco (2010)[^cohesion] define **Cohesion** - one of several classical "compactness properties of circles," alongside Polsby-Popper and Reock (both already in this package, as `polsby_popper_index()` and `reock_index()`) - as the ratio of mean *squared* distance between two random points in an equal-area circle to the same quantity in the actual shape. That's `moment_of_inertia_index()`'s own construction, not span index's: mean squared pairwise distance is exactly twice the mean squared distance to the centroid for any point set, and that factor of 2 cancels identically in the ratio, so Cohesion reduces to Kaza's IMI exactly (see `vignette("d-understanding-moment-of-inertia-index")`'s Introduction). Angel et al. explicitly flag the *plain*-distance version - span index's own construction - as an open question in their own footnote: "It stands to reason that among all shapes of a given area the circle also has the shortest average distance...but a rigorous proof of this proposition has so far eluded us." The rearrangement-inequality argument below (see "The reference shapes really are optimal") settles exactly that question.
 
 [^frolov]: Frolov, Y. S. (1975). Measuring the shape of geographical phenomena: a history of the issue. *Soviet Geography*, 16(10), 676-687.
 
@@ -145,7 +145,7 @@ random_segments <- function(geom, n = 45) {
 
 # geom_sf() can't do free per-facet scales, so normalise each shape onto a
 # common local bounding box (centred, longest side scaled to 1) before
-# faceting - same fix used in vignette("b-understanding-convexity-index") -
+# faceting - same fix used in vignette("c-understanding-convexity-index") -
 # otherwise a shared fixed scale across all three panels (the square, the
 # 10x-aspect rectangle spanning 30+ units, and the origin-centred star)
 # would squash the compact shapes down to slivers and leave them off-centre
@@ -196,9 +196,9 @@ ggplot() +
 
 Each panel's own equal-area disk reference (dashed) shows the same story a different way: the square nearly fills its own reference circle, the elongated rectangle spills far outside it, and the notched star sits in between - visually the same ranking the segment colours already suggest.
 
-Look closely at the star panel and some segments visibly cut across a notch, leaving the polygon briefly before re-entering it. That's not a rendering artefact: span index only requires $s$ and $t$ themselves to be interior, never the line between them - unlike `convexity_index()`, which is built specifically around whether that connecting line stays inside (`vignette("b-understanding-convexity-index")`, and see the Introduction above for what this index has in common with the wider compactness literature). "Where this fits" below compares the two indices directly.
+Look closely at the star panel and some segments visibly cut across a notch, leaving the polygon briefly before re-entering it. That's not a rendering artefact: span index only requires $s$ and $t$ themselves to be interior, never the line between them - unlike `convexity_index()`, which is built specifically around whether that connecting line stays inside (`vignette("c-understanding-convexity-index")`, and see the Introduction above for what this index has in common with the wider compactness literature). "Where this fits" below compares the two indices directly.
 
-**Weighting** changes what this figure would show without changing what it means: points would be sampled in proportion to `weight` rather than uniform area, so segments would cluster wherever the density is highest rather than spreading evenly across the shape, and the dashed reference circle becomes the density-varying disk from `vignette("c-understanding-moment-of-inertia-index")`'s "Weighted version" (concentric rings, densest at the centre) rather than a flat one - the same reference construction "Weighted reference: the concentric annulus" below derives in full.
+**Weighting** changes what this figure would show without changing what it means: points would be sampled in proportion to `weight` rather than uniform area, so segments would cluster wherever the density is highest rather than spreading evenly across the shape, and the dashed reference circle becomes the density-varying disk from `vignette("d-understanding-moment-of-inertia-index")`'s "Weighted version" (concentric rings, densest at the centre) rather than a flat one - the same reference construction "Weighted reference: the concentric annulus" below derives in full.
 
 ## Why not squared distance?
 
@@ -353,7 +353,7 @@ knitr::kable(format = "html", convergence, digits = c(0, 0, 4, 3),
              col.names = c("subdivision depth", "centroids", "D estimate", "rel. error (%)"))
 ```
 
-`span_index()` caps depth at 4 (256 centroids), but doesn't spend it on every triangle - the depth is area-adaptive, the same idea `radial_concentration_index()` uses for its own point cloud (see `vignette("e-understanding-radial-concentration-index")`), anchored so the mesh's own largest triangle still gets the full 256 centroids and smaller ones get proportionally fewer. Adaptivity matters more here than for `radial_concentration_index()`: the self-term needs the *full pairwise distance matrix* among one triangle's own centroids, an $O((4^{\text{depth}})^2)$ cost per triangle rather than $O(4^{\text{depth}})$, so quartering a small triangle's depth cuts its share of this cost sixteenfold, not just fourfold. On real Census-block-derived meshes with hundreds of triangles and large size variation, this cuts total self-term point count by 40-60x with the resulting index changing by well under 0.1% - invisible at the 3 decimal places indices are typically read to. One subtlety weighting introduces: depth adapts to each triangle's own *contribution* to the self-term sum ($w_i^2\sqrt{\text{area}_i}$, since a triangle's self-distance scales with its own linear size), not to raw area alone - a physically tiny triangle carrying almost all the weight still gets real depth, rather than having its self-distance collapse to exactly 0 the way pure area-based adaptation would give it. This is the same principle behind the reference's ratio-bounded rings above: weight can make triangle size a misleading proxy for how much a triangle actually matters to the sum.
+`span_index()` caps depth at 4 (256 centroids), but doesn't spend it on every triangle - the depth is area-adaptive, the same idea `radial_concentration_index()` uses for its own point cloud (see `vignette("f-understanding-radial-concentration-index")`), anchored so the mesh's own largest triangle still gets the full 256 centroids and smaller ones get proportionally fewer. Adaptivity matters more here than for `radial_concentration_index()`: the self-term needs the *full pairwise distance matrix* among one triangle's own centroids, an $O((4^{\text{depth}})^2)$ cost per triangle rather than $O(4^{\text{depth}})$, so quartering a small triangle's depth cuts its share of this cost sixteenfold, not just fourfold. On real Census-block-derived meshes with hundreds of triangles and large size variation, this cuts total self-term point count by 40-60x with the resulting index changing by well under 0.1% - invisible at the 3 decimal places indices are typically read to. One subtlety weighting introduces: depth adapts to each triangle's own *contribution* to the self-term sum ($w_i^2\sqrt{\text{area}_i}$, since a triangle's self-distance scales with its own linear size), not to raw area alone - a physically tiny triangle carrying almost all the weight still gets real depth, rather than having its self-distance collapse to exactly 0 the way pure area-based adaptation would give it. This is the same principle behind the reference's ratio-bounded rings above: weight can make triangle size a misleading proxy for how much a triangle actually matters to the sum.
 
 **Monte Carlo mode** (`deterministic = FALSE`) sidesteps all of this: sample `n_lines` random point pairs directly (weighted sampling reuses the same per-triangle weighted sampler `convexity_index()` uses) and average their distance - no quadrature-cloud or subdivision needed, since there's no self/cross split to approximate in the first place. The argument is called `n_lines`, matching `convexity_index()`'s own Monte Carlo argument, even though no line geometry is actually built here - a line's length is exactly the distance between its two endpoints, so the name still fits, and sharing it means `shape_indices()` can set every mesh-based index's Monte Carlo sample count with one argument.
 
@@ -398,7 +398,7 @@ The two methods agree to within about 1%, as expected for 20000 random point pai
 
 ## Things to watch out for: almost, but not quite, radius-only
 
-`moment_of_inertia_index()` and `radial_concentration_index()` are both *exactly* blind to how mass is arranged angularly at a fixed radius, provided the arrangement keeps enough rotational symmetry to pin their reference point (centroid or median) in place - see their own "Things to watch out for" subsections in `vignette("c-understanding-moment-of-inertia-index")` and `vignette("e-understanding-radial-concentration-index")`. Span index shares their setup but not their conclusion, and the reason is structural: both siblings measure distance from a single fixed point, which depends only on radius, while span index measures distance *between two random points*, and $|s-t|^2 = r_s^2 + r_t^2 - 2r_sr_t\cos(\theta_s - \theta_t)$ depends on the angle *between* them too. Cutting a shape's mass into more, thinner angularly-separated pieces changes the distribution of that angular gap, so span index should move, even when its two siblings provably can't.
+`moment_of_inertia_index()` and `radial_concentration_index()` are both *exactly* blind to how mass is arranged angularly at a fixed radius, provided the arrangement keeps enough rotational symmetry to pin their reference point (centroid or median) in place - see their own "Things to watch out for" subsections in `vignette("d-understanding-moment-of-inertia-index")` and `vignette("f-understanding-radial-concentration-index")`. Span index shares their setup but not their conclusion, and the reason is structural: both siblings measure distance from a single fixed point, which depends only on radius, while span index measures distance *between two random points*, and $|s-t|^2 = r_s^2 + r_t^2 - 2r_sr_t\cos(\theta_s - \theta_t)$ depends on the angle *between* them too. Cutting a shape's mass into more, thinner angularly-separated pieces changes the distribution of that angular gap, so span index should move, even when its two siblings provably can't.
 
 ```{r blind-spot, echo=TRUE}
 tbl_spokes <- do.call(rbind, lapply(names(spoke_shapes), function(nm) {
@@ -416,9 +416,9 @@ It does move - but only a little. Going from 2 broad wedges to 16 thin ones (the
 
 # Where this fits
 
-`span_index()` is the no-fixed-reference-point member of a family of three. Its siblings measure the same "how spread out is the mass" question by anchoring to a single point: `moment_of_inertia_index()` uses *squared* distance to the centroid (`vignette("c-understanding-moment-of-inertia-index")`), and `radial_concentration_index()` uses plain distance to the geometric median (`vignette("e-understanding-radial-concentration-index")`). Span index needs no reference point at all - both ends of its distance are random - which is also why, alone among the three, it is not exactly blind to how mass is arranged angularly at a fixed radius (see "Things to watch out for" above): distance between two random points depends on the angle between them, not just their individual distances from any one centre.
+`span_index()` is the no-fixed-reference-point member of a family of three. Its siblings measure the same "how spread out is the mass" question by anchoring to a single point: `moment_of_inertia_index()` uses *squared* distance to the centroid (`vignette("d-understanding-moment-of-inertia-index")`), and `radial_concentration_index()` uses plain distance to the geometric median (`vignette("f-understanding-radial-concentration-index")`). Span index needs no reference point at all - both ends of its distance are random - which is also why, alone among the three, it is not exactly blind to how mass is arranged angularly at a fixed radius (see "Things to watch out for" above): distance between two random points depends on the angle between them, not just their individual distances from any one centre.
 
-`convexity_index()` (`vignette("b-understanding-convexity-index")`) sits outside that family entirely: it answers whether the segment connecting two interior points stays inside the shape, something span index was never trying to measure (see the Introduction above for how that relates to the wider compactness literature). The figure below plots span index against all three.
+`convexity_index()` (`vignette("c-understanding-convexity-index")`) sits outside that family entirely: it answers whether the segment connecting two interior points stays inside the shape, something span index was never trying to measure (see the Introduction above for how that relates to the wider compactness literature). The figure below plots span index against all three.
 
 ```{r glyph-helper}
 # a small polygon, scaled to fit within `size` data-units and centred at
