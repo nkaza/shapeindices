@@ -8,7 +8,7 @@ toward one direction (a one-sided appendage, an off-centre lobe). One
 caveat to know before using it: balanced does not mean round - a
 symmetric dumbbell (equal lobes on opposite sides) scores 1 here, same
 as a disk, because opposite pulls cancel exactly. See
-[`vignette("g-understanding-directional-balance-index")`](https://nkaza.github.io/shapeindices/articles/g-understanding-directional-balance-index.md)
+[`vignette("h-understanding-directional-balance-index")`](https://nkaza.github.io/shapeindices/articles/h-understanding-directional-balance-index.md)
 for the derivation, the bound proof, and that blind spot worked through.
 
 ## Usage

@@ -36,7 +36,7 @@ convexity_index(
   accurate option for shapes with small concavities relative to triangle
   size, since a fixed quadrature grid can miss a concavity that falls
   between its sample points (see
-  [`vignette("b-understanding-convexity-index")`](https://nkaza.github.io/shapeindices/articles/b-understanding-convexity-index.md)).
+  [`vignette("c-understanding-convexity-index")`](https://nkaza.github.io/shapeindices/articles/c-understanding-convexity-index.md)).
   `n_quad` is unused (and an error if passed explicitly) when
   deterministic = FALSE.
 

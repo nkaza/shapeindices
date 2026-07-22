@@ -3,16 +3,17 @@ pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   a-basic-usage: a-basic-usage.html
-  b-understanding-convexity-index: b-understanding-convexity-index.html
-  c-understanding-moment-of-inertia-index: c-understanding-moment-of-inertia-index.html
-  d-understanding-span-index: d-understanding-span-index.html
-  e-understanding-radial-concentration-index: e-understanding-radial-concentration-index.html
-  f-understanding-moment-isotropy-index: f-understanding-moment-isotropy-index.html
-  g-understanding-directional-balance-index: g-understanding-directional-balance-index.html
-  h-understanding-depth-index: h-understanding-depth-index.html
-  i-understanding-classical-indices: i-understanding-classical-indices.html
-  j-nc-counties-comparison: j-nc-counties-comparison.html
-last_built: 2026-07-22T04:57Z
+  b-understanding-triangulation: b-understanding-triangulation.html
+  c-understanding-convexity-index: c-understanding-convexity-index.html
+  d-understanding-moment-of-inertia-index: d-understanding-moment-of-inertia-index.html
+  e-understanding-span-index: e-understanding-span-index.html
+  f-understanding-radial-concentration-index: f-understanding-radial-concentration-index.html
+  g-understanding-moment-isotropy-index: g-understanding-moment-isotropy-index.html
+  h-understanding-directional-balance-index: h-understanding-directional-balance-index.html
+  i-understanding-depth-index: i-understanding-depth-index.html
+  j-understanding-classical-indices: j-understanding-classical-indices.html
+  k-nc-counties-comparison: k-nc-counties-comparison.html
+last_built: 2026-07-22T20:43Z
 urls:
   reference: https://nkaza.github.io/shapeindices/reference
   article: https://nkaza.github.io/shapeindices/articles

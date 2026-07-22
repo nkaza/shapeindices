@@ -36,15 +36,16 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/a-basic-usage.html">1. Basic Usage</a></li>
-    <li><a class="dropdown-item" href="../articles/b-understanding-convexity-index.html">2. Understanding Convexity Index</a></li>
-    <li><a class="dropdown-item" href="../articles/c-understanding-moment-of-inertia-index.html">3. Understanding Moment of Inertia Index</a></li>
-    <li><a class="dropdown-item" href="../articles/d-understanding-span-index.html">4. Understanding Span Index</a></li>
-    <li><a class="dropdown-item" href="../articles/e-understanding-radial-concentration-index.html">5. Understanding Radial Concentration Index</a></li>
-    <li><a class="dropdown-item" href="../articles/f-understanding-moment-isotropy-index.html">6. Understanding Moment Isotropy Index</a></li>
-    <li><a class="dropdown-item" href="../articles/g-understanding-directional-balance-index.html">7. Understanding Directional Balance Index</a></li>
-    <li><a class="dropdown-item" href="../articles/h-understanding-depth-index.html">8. Understanding Depth Index</a></li>
-    <li><a class="dropdown-item" href="../articles/i-understanding-classical-indices.html">9. Understanding the Classical Compactness Metrics</a></li>
-    <li><a class="dropdown-item" href="../articles/j-nc-counties-comparison.html">10. Comparing Shape Indices: North Carolina Counties</a></li>
+    <li><a class="dropdown-item" href="../articles/b-understanding-triangulation.html">2. Discretising Shapes</a></li>
+    <li><a class="dropdown-item" href="../articles/c-understanding-convexity-index.html">3. Understanding Convexity Index</a></li>
+    <li><a class="dropdown-item" href="../articles/d-understanding-moment-of-inertia-index.html">4. Understanding Moment of Inertia Index</a></li>
+    <li><a class="dropdown-item" href="../articles/e-understanding-span-index.html">5. Understanding Span Index</a></li>
+    <li><a class="dropdown-item" href="../articles/f-understanding-radial-concentration-index.html">6. Understanding Radial Concentration Index</a></li>
+    <li><a class="dropdown-item" href="../articles/g-understanding-moment-isotropy-index.html">7. Understanding Moment Isotropy Index</a></li>
+    <li><a class="dropdown-item" href="../articles/h-understanding-directional-balance-index.html">8. Understanding Directional Balance Index</a></li>
+    <li><a class="dropdown-item" href="../articles/i-understanding-depth-index.html">9. Understanding Depth Index</a></li>
+    <li><a class="dropdown-item" href="../articles/j-understanding-classical-indices.html">10. Understanding the Classical Compactness Metrics</a></li>
+    <li><a class="dropdown-item" href="../articles/k-nc-counties-comparison.html">11. Comparing Shape Indices: North Carolina Counties</a></li>
   </ul>
 </li>
       </ul>
@@ -86,7 +87,7 @@
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/get_theme.html" class="external-link">theme_set</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">11</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </details>
 </div>
-<p>This vignette is a practical, code-first tour of the package <code>shapeindices</code>. The goal of the package is to provide indices for <code>sf</code>, <code>sfc</code> objects that describe the shape/mass configurations. In this package, we demonstrate some key indices and approaches. For deep dive into specific index, see the corresponding vigenette.</p>
+<p>This vignette is a practical, code-first tour of the package <code>shapeindices</code>. The goal of the package is to provide indices for <code>sf</code>, <code>sfc</code> objects that describe the shape/mass configurations. In this package, I demonstrate some key indices and approaches. For deep dive into specific index, see the corresponding vignettes.</p>
 <section class="section level2" data-number="1"><h2 data-number="1" id="three-basic-shapes">
 <span class="header-section-number">1</span> Three basic shapes<a class="anchor" aria-label="anchor" href="#three-basic-shapes"></a>
 </h2>
@@ -173,8 +174,7 @@
 </section><section class="section level2" data-number="2"><h2 data-number="2" id="the-thirteen-indices">
 <span class="header-section-number">2</span> The thirteen indices<a class="anchor" aria-label="anchor" href="#the-thirteen-indices"></a>
 </h2>
-<p>Each index has its own function <code>*_index()</code> that takes, sf or sfc objects as input. The following table briefly describes the conceptual framing of the index and shows, as a thumbnail, a shape/mass distribution that achieves close to the maximum value. These are just some examples and the emphasis is on showing some unexpected profiles that score high on these indices (rather than repeating a disk)</p>
-<p>The shapes below are the same canonical ones used throughout this package’s other vignettes</p>
+<p>Each index has its own function <code>*_index()</code> that takes, sf or sfc objects as input. The following table briefly describes the conceptual framing of the index and shows, as a thumbnail, a shape/mass distribution that achieves close to the maximum value. These are just some examples and the emphasis is on showing some unexpected profiles that score high on these indices. While it is tempting to think that there is an unique shape and a mass profile configuration (e.g. center-weighted disk) that maximises the index, the following table shows the folly of such naivete.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
 <table class="table caption-top">
@@ -225,8 +225,8 @@ pinwheel (1.00)</td>
 <td style="text-align: left;">directional_balance_index()</td>
 <td style="text-align: left;">First-harmonic bearing bias of the mass distribution about its own centroid</td>
 <td style="text-align: left;">
-<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAMAAAANIilAAAAApVBMVEUAAABVVVVAQEAqKioxMTE3Nzc3Nzc2NjYyMjI2NjYxMTEyMjI0NDQzMzMyMjI0NDQzMzMzMzMzMzN1YDWAYh+BaTWTAByWfUiXiWGYj2uZk3Sal3qamn6fdRanDAC2ehG2gxC2hBG3jja7GwDNKgDRlAreOQDfnQbgnQXgqjjqTQDrpALspAPsszjtZADumALvpwLweADwtTjyigD0mwD1qgD2uTiI3IYKAAAAN3RSTlMAAwQGFRccISQmKlJTkJOUmqmq////////////////////////////////////////////////L1egWwAAAAlwSFlzAAAOwwAADsMBx2+oZAAAAQNJREFUSIntlll2wjAMRc08JBAgEOa0EEPBgIkqp/tfWl1oFyCpp/3xy/c9Okns+6RUSMi/pdHvN5hoczDdbqeDJoftpm8fiNU57dLZ2viGCP65jmtkOHpxYLQ2gLuIDCclWJ1nhXVlQoZHFZgiywoD1Yg++R2NznNtkTE5fvXvfDwacPuYDNcnF/+1AfEyqZNh1UtPzueU9uisUq3h7HCYDVsc1qczn3eYqFLtxaLNh5dLAbxeSeC1AN5sAvx3sOhXrSSw6HhKLobgSkpk8KUhRJ6GvgVoWQKM9w/1WpZ6k1IgfVnd/BQd3OmTox0+K9YxKlZU7qK1QrbQKNEqFRLyC/kEebgj3EWVGhUAAAAASUVORK5CYII=" style="vertical-align:middle" width="60" height="60"><br>
-dumbbell, centre-weighted (1.000)</td>
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAMAAAANIilAAAACAVBMVEUAAAAAAAAAAABVVVUzMzMkJCRAQEA5OTkuLi47Ozs3NzcwMDAtLS02NjYxMTEuLi43Nzc1NTUxMTEvLy83Nzc1NTUxMTEwMDA2NjY0NDQ0NDQzMzMyMjI0NDQxMTEyMjIzMzMyMjIyMjIyMjI0NDQ0NDQyMjIyMjIyMjI0NDQzMzM0NDQyMjIyMjIyMjIzMzMzMzMzMzMyMjI0NDQzMzMyMjIzMzMzMzMyMjI0NDQzMzMzMzMyMjIzMzMyMjIzMzMzMzMzMzMyMjIzMzMzMzMzMzMyMjIzMzMyMjJMIS5OIC1OIS5PIC5QHi1QHy1QHy5RHy5SHS1SHi1THCxTHS1UHC1VGyxVHC1XGixYGixYICtZGCtZHypaGCtaGCxaGSxbFytbGCxbJSFcFytcHSldFitdFyxdHCheFitfHClgFCtgGyhgJB9hGihiEipiEytkESpkEipkIh1lESplGCdmDylmGCdoDiloFyZrDChyESNyEiR0ESR0Hhd2DyN5DiJ7DCF8DSKBCSCCGRGDCB+FCCCGBx+HBh6IBR6IBh+KBR6LBR6MBB6OAx2PAh2PAx6QAh2SAR2TAByhDQKkDgKlDQGmDACmDQGnDACqHga7GwDNKgDeOQDqTQDtZADweADyigD0mwD1qgD2uTj4xl3503j63o/86aP+8rP/+sD//8hIG0GLAAAAq3RSTlMAAQIDBQcICQsNDhARExUWFxgaGxwdHyAhIicoKSw0ODxCR0hJSk1RUllaXWBlZm1yc3V2eX+HiImKjI2OkJOVlpeYmpucnaGi//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////9sClGkAAAACXBIWXMAAA7DAAAOwwHHb6hkAAADa0lEQVRIie2W11cTQRTGF7uIBewNG/beBRXR2CHELtgRe6/YsPeuq8ZxdjKzJYXwV/rdyRp8yCbR4zm+5Ds5Obz8cu/c8l0Mo6SS/puGjh1TMeAvuPL5G3ccuthx4/yJ5tDi4X+EVm/YdSfKTZOZjJnmk/0ba4pGB69ve8+Y4FxYJM7NT+e2jiqOndf0mnErJkSMJGKEs3fhBUWgvesuMc4tGYsppaSkD37B4uzyil4F4XWPKayU0tZybGVLqemHDWUF2KXXiVVSOVqu6zqObSvgjN9clp+dc4ZxgYRtwlwv7rmexkFbFuuYmo+tavJZIr14IhGHPM91MrGjjUPywJvfMksQCzIeTyQTWojvapq/2hTMVreBtX02kUzik8I3aC+TObs9ORAOfeRCSWIRD1wq1ZUCnfRphP60JYgdtJNbVGfNpkBmBJ4ydxCas5bRAfCcWxyjgTojZ82m0/QBjcxRNOTNH80NgNd/FULajkPvBZv2pVPXoZH3h4YAOIJVULaNamXY7nQ31BNaSWGZkQD4AsNsKXQYgbNst048iXY7SqHeO/vmrtdZwDGMZFzDPpuhs3mzlsqc8IR2U0fW5aLIv6QLDpiaxQ7mXuyJJ5kQNJnU466uLKvzRrN0p1n7uJxwVSsTkkYkjsFKZSOnKTJ12nHozafG54TLwhQZfSb4t7SpWYBdVylUe2957mpHsFJUbRprmpBstfWTPay1YGZzbtao/wL7UYp2MannKzskeHIcWy0F+xYKgGvuMQuPdjJT4o8YTTethuvpNnfODID7NKFXkryHEu9ZjGQKI2JjRmAmB/oEwMby5+QjZEEJTVN4f6EdF3sR4z9qg1hj2DWYgVQ6ccK1yEvISvBibp4eGQgbK59jQmG6bsYPEhkjorl2HDKxZ6uCWWNQY5RrGg8nF9P+R7Nl00ax6PGBeWBjxjFt+fBAMiOPvNcl/8bhwNW5PysfaxhLOk0OS6CH+56PP3B3cPb43UX5WcNYc5Vi06Wy6QfwAkXnRnB2ZXUh1jAWtn7nlj6R0ta3Tl8qHj1aMC5pyrYXGHLwIibxGwJXmrOX26cXw6Lma3e/5iSL6+PO2Mcj9cOKY6ERdeGnbxj9U4Gvzw/CGyYVjZLKp9U2R1oO79uzIxKa3e+PUF+VYyr6/w1XUkn/Rj8BxTm8YT299PYAAAAASUVORK5CYII=" style="vertical-align:middle" width="60" height="60"><br>
+disk, edge-weigthed (0.957)</td>
 <td style="text-align: left;">
 <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAMAAAANIilAAAAAaVBMVEUAAAAAAABJSUlPT09MTExLS0tOTk5NTU1OTk5NTU1NTU1OTk5NTU1OTk5NTU1NTU1NTU1NTU1OTk5NTU1YWFheXl5fX19wcHB2dnaAgICCgoKRkZGbm5udnZ2np6epqamrq6uysrK/v7/5NbLXAAAAI3RSTlMAARwdLz1BT1JWXWyIiszN0dXj6v///////////////////5HxFXUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACvSURBVEiJ7da3DsMwDEVRuvcq2XIv+v+PTDWyZKFegCy6+4EmkSSy2f6Wn6a+IQ3qbhi6OjCxsVz0vUXGfOuKXT/bhcvG+ajfjTkbl9uFt5KN2/PCZ8vG1eflio2L6cJTwcaeOF72EB4bUyLXh11lwrdEYdPPc9+EJpbIyZTKHDNLFCkVmVqLLbb4S8iXRIYBMoagAQiNXmjoQ+sGWnTQioWWO3RWYAcNQaeUzfaDbhKlHPVlO4PMAAAAAElFTkSuQmCC" style="vertical-align:middle" width="60" height="60"><br>
 dumbbell (1.00)</td>
@@ -283,8 +283,8 @@ disk (1.00)</td>
 <td style="text-align: left;">No weighted form</td>
 <td style="text-align: left;">
 <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAMAAABg3Am1AAAAKlBMVEUAAABLS0tHR0dLS0tMTExNTU1NTU1XUE5YUE5qVFCxZlfEaljJbFniclvxAEJjAAAADnRSTlMAERIinczU/////////3d22Q0AAAAJcEhZcwAADsMAAA7DAcdvqGQAAABRSURBVEiJ7dQ5DgAgCERRd8Hl/te1RzEh0UZ5JckvGWPUd0JkhWWQSmWUtA5aZ7SDAeYJbgPwlvCwDxy9Og00+DeQPpD4RS+vhnTIxFOpnjYAdxwSYfHuKM4AAAAASUVORK5CYII=" style="vertical-align:middle" width="48" height="48"><br>
-hole punched through it (1.00)<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAMAAABg3Am1AAAAwFBMVEUAAAB/f39VVVVVVVVAQEBMTExGRkZOTk5JSUlRUVFMTExOTk5KSkpPT09LS0tNTU1PT09MTExOTk5NTU1MTExOTk5OTk5NTU1MTExNTU1NTU1MTExNTU1MTExOTk5NTU1MTExNTU1NTU1NTU1MTExOTk5MTExOTk5NTU1NTU1NTU1NTU1NTU1MTExNTU1MTExMTExNTU1OTk5NTU1NTU1NTU1MTExNTU1NTU1NTU1NTU1NTU1NTU1PTU1UTk1VT079/njEAAAAQHRSTlMAAgMGCAoLDQ4THiQmKixCREpVWV5vgIGChIWGh4mKi4yPkZKTlJaXmJmbnKaqsLS7vM/U1tfc3+fr8/X/////IfQxrwAAAAlwSFlzAAAOwwAADsMBx2+oZAAAAM5JREFUSIljYBgFIxsIC5OoQUKcRA1SkiRqkJEmUYOcLIkaFOSJUcWJYCoqYhVGBYzmOlwwtpISjMWlY86ISwermL0SB4SpqgKh2YBC7Hgcxa1vKcoEYqirge0UsTDkxaMcBARMTQSBlKYGkOA3MhMioBwImEXtDPgYtLUYeHStxVgIqwcCLl1bZT09ZVtdLsJqoYDf2MbGmJ9o5SRrINFJzKJWJHmaxGAlMeJITRqkJz5SkzcyIC4DIQGSsyjJhQDJxQzJBRnJReUoGG4AAMtdFX9JcEjBAAAAAElFTkSuQmCC" style="vertical-align:middle" width="48" height="48"><br>
-six needle-thin spikes (0.87)<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAMAAABg3Am1AAAAWlBMVEUAAABKSkpOTk5KSkpNTU1MTExLS0tNTU1OTk5OTk5NTU1MTExNTU1NTU1NTU1NTU1STk1hUk9lU09mU09rVVB0VlCIXFKPXlOYYFSdYVWxZlfEaljJbFnicluWelQ2AAAAHnRSTlMAGBomKy8zWVyAiJ3KzNDU///////////////////2PadhAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAfklEQVRIie3T2QqAIBRF0UYbzGye1P//zQgJtCuk0EOU6/HAJqhuEHi/gwkhVagMGTlhY0A3xtpEGYqJSRs1B1yIXgsWIfGHgrobhiZ2CCKEkPqA2wB4YzCu0mwZpOUptwu8J2BwX3DRHBen3xdc9IBf/xy4+MD5tTp/OO/Tdla7Hp4HFCUQAAAAAElFTkSuQmCC" style="vertical-align:middle" width="48" height="48"><br>
+hole punched through it (1.00)<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAMAAABg3Am1AAAAwFBMVEUAAABMTExOTk5NTU1OTk5NTU1PT09OTk5MTExLS0tOTk5NTU1MTExOTk5NTU1MTExOTk5NTU1MTExMTExOTk5NTU1MTExOTk5NTU1OTk5NTU1MTExMTExOTk5OTk5NTU1MTExOTk5NTU1NTU1NTU1NTU1MTExOTk5NTU1MTExOTk5NTU1NTU1MTExNTU1NTU1MTExOTk5NTU1NTU1NTU1NTU1NTU1RTk1ST05TTk5UTk1VT01VT05WT05aUE5kUk8D+27bAAAAQHRSTlMAPD4/QUJERUZHSElKS0xNTk9QUVJTVFVWWFlaW1yAgYKDhIWHiImKi4yNjo+QkZKTlJWZvNr/////////////8hsVigAAAAlwSFlzAAAOwwAADsMBx2+oZAAAAO5JREFUSIntVNcSgjAQXBtYsGMXK/YOFtSA//9X0tQ3k5vxSd2H25vMbgjJ3QF//DaaTaKh2yEa+j2iYTgQ0+3jYaLrYRLfvzVEHDlIxqOAY07i/SckO+/zdOJT0lZ4h5KvBY/mMy+mr1meHkixkhuXCzdkWJ6vd7dlZWC9ArKsIKIHlHML2w0q55KYHlAtzdjVrIaoHqifbrdTnafSRiEM0zwcjwfTNB4r2mcM5CO9oFptY1cV/2nlonrXmrsIXiv14VKsCEppUItPsnM+i5Z3xJGC5NFAUU4DkVv0CdEh8ES/RzSQBxl5VP7xbbgD+0Uc7cLhN1wAAAAASUVORK5CYII=" style="vertical-align:middle" width="48" height="48"><br>
+needle-thin spikes (1.00)<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAMAAABg3Am1AAAAWlBMVEUAAABKSkpOTk5KSkpNTU1MTExLS0tNTU1OTk5OTk5NTU1MTExNTU1NTU1NTU1NTU1STk1hUk9lU09mU09rVVB0VlCIXFKPXlOYYFSdYVWxZlfEaljJbFnicluWelQ2AAAAHnRSTlMAGBomKy8zWVyAiJ3KzNDU///////////////////2PadhAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAfklEQVRIie3T2QqAIBRF0UYbzGye1P//zQgJtCuk0EOU6/HAJqhuEHi/gwkhVagMGTlhY0A3xtpEGYqJSRs1B1yIXgsWIfGHgrobhiZ2CCKEkPqA2wB4YzCu0mwZpOUptwu8J2BwX3DRHBen3xdc9IBf/xy4+MD5tTp/OO/Tdla7Hp4HFCUQAAAAAElFTkSuQmCC" style="vertical-align:middle" width="48" height="48"><br>
 3 disconnected pieces (1.00)</td>
 </tr>
 <tr class="odd">
@@ -315,8 +315,7 @@ star (0.89)</td>
 </table>
 </div>
 </div>
-<p>The three thumbnails on <code>width_length_ratio_index</code>’s own row aren’t a <em>good</em> example, but a caveat. A hole punched clean through a shape, six needle-thin spikes, and a shape split into several pieces with nothing joining them all still score close to <code>1</code> here, because the index only ever looks at the four corners of the minimum-area bounding rectangle. See <code><a href="../articles/i-understanding-classical-indices.html">vignette("i-understanding-classical-indices", package = "shapeindices")</a></code> for the other blind spots this family of indices shares.</p>
-<p>The <code>disk, centre-weighted</code> thumbnails carry a narrower caveat of their own, about the disk itself rather than any index’s own definition.<a class="footnote-ref" role="doc-noteref" tabindex="0" data-bs-toggle="popover" data-bs-content='&lt;p&gt;A &lt;em&gt;literal&lt;/em&gt; circle (&lt;code&gt;&lt;a href="https://r-spatial.github.io/sf/reference/geos_unary.html" class="external-link"&gt;st_buffer()&lt;/a&gt;&lt;/code&gt;‘s own output) has hundreds of boundary points sitting simultaneously near-cocircular by construction, which is exactly the input Delaunay triangulation handles worst: many simultaneous near-ties in which diagonal to pick, decided by whichever way floating-point rounding happens to break them. Verified directly - perturbing that circle’s own vertices by as little as &lt;code&gt;1e-12&lt;/code&gt;, far below anything a different GEOS version, compiler, or BLAS could produce, flips enough of &lt;code&gt;&lt;a href="../reference/subdivide_mesh.html"&gt;subdivide_mesh()&lt;/a&gt;&lt;/code&gt;’s own tie-breaking on that mesh to move a weighted &lt;code&gt;span_index&lt;/code&gt; by over a percentage point, even though the identical perturbation leaves the &lt;em&gt;unweighted&lt;/em&gt; index on that same unstable mesh essentially untouched (a 0.004% wobble - splitting a near-degenerate triangle one way instead of the other barely moves a uniform sum, but does change which fine sub-triangle’s centroid samples which part of a smoothly-varying weight field), and leaves an ordinary, non-symmetric shape’s mesh completely unchanged under the same test. None of the thirteen indices’ own &lt;em&gt;reference&lt;/em&gt; values are built this way - they’re closed-form formulas, or (&lt;code&gt;&lt;a href="../reference/exchange_index.html"&gt;exchange_index()&lt;/a&gt;&lt;/code&gt;’s reference circle) a GEOS boolean intersection, which doesn’t share Delaunay triangulation’s tie-breaking failure mode - so this is specific to weighted, &lt;code&gt;&lt;a href="../reference/subdivide_mesh.html"&gt;subdivide_mesh()&lt;/a&gt;&lt;/code&gt;-refined computation on unusually &lt;em&gt;symmetric&lt;/em&gt; input shapes, not a general cross-platform reproducibility concern for real polygons.&lt;/p&gt;'><sup>1</sup></a> <code>make_disk()</code> above already works around this: a 1% radial jitter rather than a literal circle, indistinguishable by eye but no longer sitting on that degeneracy.</p>
+<p>The three thumbnails on <code>width_length_ratio_index</code>’s own row aren’t a <em>good</em> example, but a caveat. A hole punched clean through a shape, needle-thin spikes, guitar picks, dendritic shapes with square convex hull and a shape split into several pieces all still score close to <code>1</code> here, because the index only ever looks at the minimum-area bounding rectangle. See <code><a href="../articles/j-understanding-classical-indices.html">vignette("j-understanding-classical-indices", package = "shapeindices")</a></code> for the other blind spots this family of indices shares.</p>
 <p>Called directly on a shape, for example,:</p>
 <div class="cell" data-layout-align="center">
 <div class="sourceCode cell-code" id="cb3"><pre class="downlit sourceCode r">
@@ -367,48 +366,76 @@ exchange             0.772  0.182          0.540</code></pre>
 <li>
 <code><a href="../reference/moment_isotropy_index.html">moment_isotropy_index()</a></code>, and the six classic metrics don’t have this argument. They are always computed directly off the CDT mesh / convex hull / bounding circle.</li>
 </ul>
-<p><code>deterministic = TRUE</code> (the default for all five) computes the index over a <strong>fixed grid</strong> on the CDT mesh - <code>O(n^2)</code> in piece count for convexity/span, <code>O(n)</code> for radial_concentration/directional_balance/depth but with each triangle’s own subdivision depth (up to 256 points) scaled to its area, so only the mesh’s largest triangles pay the full cost. It’s called <code>deterministic</code>, not <code>exact</code>, deliberately: for shapes with small concavities relative to triangle size, or (for radial_concentration/directional_balance/depth) an integral with no closed form at all, it’s still only an approximation of the true value, just a non-random one (see <code><a href="../articles/b-understanding-convexity-index.html">vignette("b-understanding-convexity-index")</a></code>’s convexity section for why).</p>
+<p><code>deterministic = TRUE</code> (the default for all five) computes the index over a <strong>fixed grid</strong> on the CDT mesh - <code>O(n^2)</code> in piece count for convexity/span, <code>O(n)</code> for radial_concentration/directional_balance/depth but with each triangle’s own subdivision depth (up to 256 points) scaled to its area, so only the mesh’s largest triangles pay the full cost. It’s called <code>deterministic</code>, not <code>exact</code>, deliberately: for shapes with small concavities relative to triangle size, or (for radial_concentration/directional_balance/depth) an integral with no closed form at all, it’s still only an approximation of the true value, just a non-random one (see <code><a href="../articles/c-understanding-convexity-index.html">vignette("c-understanding-convexity-index")</a></code>’s convexity section for why).</p>
 <p><code>deterministic = FALSE</code> instead computes a <strong>Monte Carlo estimate</strong>: all five functions draw <code>n_lines</code> independent random samples and average some property of them: - <code><a href="../reference/convexity_index.html">convexity_index()</a></code> the fraction of a connecting line’s length that falls outside the polygon, - <code><a href="../reference/span_index.html">span_index()</a></code> the line’s length itself - <code><a href="../reference/radial_concentration_index.html">radial_concentration_index()</a></code> the distance from each sampled point to the shape’s own geometric median - <code><a href="../reference/directional_balance_index.html">directional_balance_index()</a></code> the bearing of each sampled point from the shape’s own centroid, - <code><a href="../reference/depth_index.html">depth_index()</a></code> the distance from each sampled point to the shape’s own boundary.</p>
 <p>Only <code><a href="../reference/convexity_index.html">convexity_index()</a></code> ever actually builds line geometry. Sharing the argument name means one <code>n_lines</code> the sample count at once for all the five functions.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold"><summary>Code</summary><div class="sourceCode cell-code" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">det_compare</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">basic_shapes</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">nm</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">g</span> <span class="op">&lt;-</span> <span class="va">basic_shapes</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    shape              <span class="op">=</span> <span class="va">nm</span>,</span>
-<span>    ci_deterministic   <span class="op">=</span> <span class="fu"><a href="../reference/convexity_index.html">convexity_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
-<span>    ci_random_line     <span class="op">=</span> <span class="fu"><a href="../reference/convexity_index.html">convexity_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">FALSE</span>, n_lines <span class="op">=</span> <span class="fl">3000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
-<span>    span_deterministic <span class="op">=</span> <span class="fu"><a href="../reference/span_index.html">span_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
-<span>    span_random_pair   <span class="op">=</span> <span class="fu"><a href="../reference/span_index.html">span_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">FALSE</span>, n_lines <span class="op">=</span> <span class="fl">3000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
-<span>    rci_deterministic  <span class="op">=</span> <span class="fu"><a href="../reference/radial_concentration_index.html">radial_concentration_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
-<span>    rci_random_point   <span class="op">=</span> <span class="fu"><a href="../reference/radial_concentration_index.html">radial_concentration_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">FALSE</span>, n_lines <span class="op">=</span> <span class="fl">3000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
-<span>    db_deterministic   <span class="op">=</span> <span class="fu"><a href="../reference/directional_balance_index.html">directional_balance_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
-<span>    db_random_point    <span class="op">=</span> <span class="fu"><a href="../reference/directional_balance_index.html">directional_balance_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">FALSE</span>, n_lines <span class="op">=</span> <span class="fl">3000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
-<span>    depth_deterministic <span class="op">=</span> <span class="fu"><a href="../reference/depth_index.html">depth_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
-<span>    depth_random_point   <span class="op">=</span> <span class="fu"><a href="../reference/depth_index.html">depth_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">FALSE</span>, n_lines <span class="op">=</span> <span class="fl">3000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
-<span>    moi                <span class="op">=</span> <span class="fu"><a href="../reference/moment_of_inertia_index.html">moment_of_inertia_index</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
-<span>    moment_isotropy    <span class="op">=</span> <span class="fu"><a href="../reference/moment_isotropy_index.html">moment_isotropy_index</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
-<span>    hull_ratio         <span class="op">=</span> <span class="fu"><a href="../reference/hull_ratio_index.html">hull_ratio_index</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span><span class="op">$</span><span class="va">index</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://purrr.tidyverse.org/" class="external-link">purrr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://yihui.org/knitr/" class="external-link">knitr</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co">## t() on a data.frame containing the character `shape` column coerces</span></span>
-<span><span class="co">## the WHOLE thing to a character matrix first (R's usual data.frame -&gt;</span></span>
-<span><span class="co">## matrix promotion rule), which silently defeats kable(digits=): there's</span></span>
-<span><span class="co">## nothing numeric left to round, just already-stringified full-precision</span></span>
-<span><span class="co">## doubles. Pulling `shape` out as column names first keeps the</span></span>
-<span><span class="co">## transposed matrix genuinely numeric.</span></span>
+<span><span class="co"># Non-deterministic parameters helper</span></span>
+<span><span class="va">rand_opts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>deterministic <span class="op">=</span> <span class="cn">FALSE</span>, n_lines <span class="op">=</span> <span class="fl">3000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Helper function to compute metrics for a single shape </span></span>
+<span><span class="va">compute_shape_metrics</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">nm</span>, <span class="va">g</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">ci_det</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/convexity_index.html">convexity_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">index</span></span>
+<span>  <span class="va">ci_rand</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">convexity_index</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span>, <span class="va">rand_opts</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">index</span></span>
+<span>  </span>
+<span>  <span class="va">span_det</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/span_index.html">span_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">index</span></span>
+<span>  <span class="va">span_rand</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">span_index</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span>, <span class="va">rand_opts</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">index</span></span>
+<span>  </span>
+<span>  <span class="va">rci_det</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/radial_concentration_index.html">radial_concentration_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">index</span></span>
+<span>  <span class="va">rci_rand</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">radial_concentration_index</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span>, <span class="va">rand_opts</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">index</span></span>
+<span>  </span>
+<span>  <span class="va">db_det</span>   <span class="op">&lt;-</span> <span class="fu"><a href="../reference/directional_balance_index.html">directional_balance_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">index</span></span>
+<span>  <span class="va">db_rand</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">directional_balance_index</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span>, <span class="va">rand_opts</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">index</span></span>
+<span>  </span>
+<span>  <span class="va">depth_det</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/depth_index.html">depth_index</a></span><span class="op">(</span><span class="va">g</span>, deterministic <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">index</span></span>
+<span>  <span class="va">depth_rand</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">depth_index</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span>, <span class="va">rand_opts</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">index</span></span>
+<span></span>
+<span>  <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span></span>
+<span>    shape               <span class="op">=</span> <span class="va">nm</span>,</span>
+<span>    ci_deterministic    <span class="op">=</span> <span class="va">ci_det</span>,</span>
+<span>    ci_random_line      <span class="op">=</span> <span class="va">ci_rand</span>,</span>
+<span>    span_deterministic  <span class="op">=</span> <span class="va">span_det</span>,</span>
+<span>    span_random_pair    <span class="op">=</span> <span class="va">span_rand</span>,</span>
+<span>    rci_deterministic   <span class="op">=</span> <span class="va">rci_det</span>,</span>
+<span>    rci_random_point    <span class="op">=</span> <span class="va">rci_rand</span>,</span>
+<span>    db_deterministic    <span class="op">=</span> <span class="va">db_det</span>,</span>
+<span>    db_random_point     <span class="op">=</span> <span class="va">db_rand</span>,</span>
+<span>    depth_deterministic <span class="op">=</span> <span class="va">depth_det</span>,</span>
+<span>    depth_random_point  <span class="op">=</span> <span class="va">depth_rand</span>,</span>
+<span>    moi                 <span class="op">=</span> <span class="fu"><a href="../reference/moment_of_inertia_index.html">moment_of_inertia_index</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
+<span>    moment_isotropy     <span class="op">=</span> <span class="fu"><a href="../reference/moment_isotropy_index.html">moment_isotropy_index</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span><span class="op">$</span><span class="va">index</span>,</span>
+<span>    hull_ratio          <span class="op">=</span> <span class="fu"><a href="../reference/hull_ratio_index.html">hull_ratio_index</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span><span class="op">$</span><span class="va">index</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># 1. Loop over shape names to avoid type confusion with `basic_shapes[[nm]]`</span></span>
+<span><span class="va">det_compare</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://purrr.tidyverse.org/reference/map_dfr.html" class="external-link">map_dfr</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">basic_shapes</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">nm</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">compute_shape_metrics</span><span class="op">(</span><span class="va">nm</span>, <span class="va">basic_shapes</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2. Extract matrix cleanly</span></span>
 <span><span class="va">det_mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">det_compare</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">det_mat</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">det_compare</span><span class="op">$</span><span class="va">shape</span></span>
 <span></span>
-<span><span class="co"># shape_thumb() (a small base64-embedded PNG of a shape's own outline) is</span></span>
-<span><span class="co"># defined earlier, above the index table - reused here as a column header</span></span>
-<span><span class="va">headers</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">det_compare</span><span class="op">$</span><span class="va">shape</span>, <span class="kw">function</span><span class="op">(</span><span class="va">nm</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="co"># 3. Create thumbnail headers safely</span></span>
+<span><span class="va">headers</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://purrr.tidyverse.org/reference/map.html" class="external-link">map_chr</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">basic_shapes</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">nm</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="fu">shape_thumb</span><span class="op">(</span><span class="va">basic_shapes</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, <span class="va">nm</span><span class="op">)</span></span>
-<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>format <span class="op">=</span> <span class="st">"html"</span>, <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">det_mat</span><span class="op">)</span>, digits <span class="op">=</span> <span class="fl">2</span>, row.names <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>             col.names <span class="op">=</span> <span class="va">headers</span>, escape <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># 4. Render Table</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">det_mat</span><span class="op">)</span>,</span>
+<span>  format <span class="op">=</span> <span class="st">"html"</span>, </span>
+<span>  digits <span class="op">=</span> <span class="fl">2</span>, </span>
+<span>  row.names <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  col.names <span class="op">=</span> <span class="va">headers</span>, </span>
+<span>  escape <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
 </details><div class="cell-output-display">
 <table class="table caption-top">
 <colgroup>
@@ -513,39 +540,13 @@ blob with hole</th>
 </div>
 </div>
 <p>The Monte Carlo estimate is noisy, but close to the deterministic one, and that noise shrinks as <code>n_lines</code> grows.</p>
-</section><section class="section level2" data-number="4"><h2 data-number="4" id="standalone-utilities-coarsening-and-refining-the-mesh">
-<span class="header-section-number">4</span> Standalone utilities: coarsening and refining the mesh<a class="anchor" aria-label="anchor" href="#standalone-utilities-coarsening-and-refining-the-mesh"></a>
-</h2>
-<p><code><a href="../reference/convexity_index.html">convexity_index()</a></code> always works from the polygon’s own CDT triangle mesh - <code>n_quad</code> controls the quadrature refinement on that mesh (see above), but there’s no alternative tessellation to choose. Separately, two standalone mesh utilities are available for downstream geometry work, in opposite directions - neither is wired into any of the thirteen indices. <code><a href="../reference/convex_decompose.html">convex_decompose()</a></code> gives a Hertel-Mehlhorn convex decomposition (fewer, larger convex pieces than the raw triangle mesh):</p>
-<div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tri</span>    <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cdt_triangles.html">cdt_triangles</a></span><span class="op">(</span><span class="va">star</span><span class="op">)</span></span>
-<span><span class="va">pieces</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/convex_decompose.html">convex_decompose</a></span><span class="op">(</span><span class="va">star</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">tri</span><span class="op">)</span>     <span class="co"># many small triangles</span></span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 10</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">pieces</span><span class="op">)</span>  <span class="co"># fewer, larger convex pieces</span></span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 7</code></pre>
-</div>
-</div>
-<p><code><a href="../reference/subdivide_mesh.html">subdivide_mesh()</a></code> goes the other way - more, smaller triangles, via the same area-adaptive medial subdivision <code><a href="../reference/radial_concentration_index.html">radial_concentration_index()</a></code> uses internally for its own quadrature (see <code><a href="../articles/e-understanding-radial-concentration-index.html">vignette("e-understanding-radial-concentration-index")</a></code>), just kept as triangle geometries here rather than collapsed to weighted centroids:</p>
-<div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/subdivide_mesh.html">subdivide_mesh</a></span><span class="op">(</span><span class="va">star</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">fine</span><span class="op">)</span>    <span class="co"># more, smaller triangles than tri</span></span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 2560</code></pre>
-</div>
-</div>
-</section><section class="section level2" data-number="5"><h2 data-number="5" id="applying-it-to-an-sf-object-row-by-row">
-<span class="header-section-number">5</span> Applying it to an <code>sf</code> object, row by row<a class="anchor" aria-label="anchor" href="#applying-it-to-an-sf-object-row-by-row"></a>
+<p><code><a href="../reference/convexity_index.html">convexity_index()</a></code> always works from the polygon’s own CDT triangle mesh - <code>n_quad</code> controls the quadrature refinement on that mesh (see above), but there’s no alternative tessellation to choose. Two standalone mesh utilities, <code><a href="../reference/convex_decompose.html">convex_decompose()</a></code> and <code><a href="../reference/subdivide_mesh.html">subdivide_mesh()</a></code>, are also available for downstream geometry work (neither is wired into any of the thirteen indices) - see <code><a href="../articles/b-understanding-triangulation.html">vignette("b-understanding-triangulation")</a></code> for both, alongside the CDT mesh they both start from.</p>
+</section><section class="section level2" data-number="4"><h2 data-number="4" id="applying-it-to-an-sf-object-row-by-row">
+<span class="header-section-number">4</span> Applying it to an <code>sf</code> object, row by row<a class="anchor" aria-label="anchor" href="#applying-it-to-an-sf-object-row-by-row"></a>
 </h2>
 <p>Real polygons usually arrive as rows of an <code>sf</code> object. <code><a href="../reference/shape_indices_sf.html">shape_indices_sf()</a></code> with <code>byrow = TRUE</code> (the default) runs <code><a href="../reference/shape_indices.html">shape_indices()</a></code> on every row independently and appends four columns. Two North Carolina counties from the <code>sf</code> package - Wake (a simple, nearly-convex Piedmont county) and Dare (a mainland piece plus a separated barrier-island strip) - show the range:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_read.html" class="external-link">st_read</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"shape/nc.shp"</span>, package <span class="op">=</span> <span class="st">"sf"</span><span class="op">)</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_transform.html" class="external-link">st_transform</a></span><span class="op">(</span><span class="fl">32119</span><span class="op">)</span>   <span class="co"># NC state plane (meters) - nc.shp ships in NAD27 lon/lat</span></span>
 <span></span>
@@ -585,7 +586,7 @@ blob with hole</th>
 </div>
 </div>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">pair_res</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="va">convexity_index</span><span class="op">)</span>, color <span class="op">=</span> <span class="st">"grey20"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_fill_viridis_c</a></span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
@@ -597,193 +598,14 @@ blob with hole</th>
 </div>
 </div>
 </div>
-</section><section class="section level2" data-number="6"><h2 data-number="6" id="polygonization-is-different-in-a-weighting-scheme-">
-<span class="header-section-number">6</span> Polygonization is different in a weighting scheme.<a class="anchor" aria-label="anchor" href="#polygonization-is-different-in-a-weighting-scheme-"></a>
-</h2>
-<p><code>shape_indices_sf(byrow = FALSE)</code> treats a whole collection of rows as sub-polygons of one weighted shape (see <code><a href="../articles/a-basic-usage.html">vignette("a-basic-usage")</a></code> for the mechanics). Wake, Durham, Orange, and Chatham counties (the Research Triangle) are geographically contiguous. Only the six mesh-based indices have a genuine weighted form worth comparing this way.</p>
-<p>Note that the CDT trianglulation is different in the weighted and unweigthed case. In the weighted case, the internal borders are respected so that the weight transfers from the sub polygon to mesh more cleanly, which increases the mesh count. Also note the assumption of constant density within the sub polygon, thus large triangle get higher weight in the same polygon.</p>
-<div class="cell" data-layout-align="center">
-<details class="code-fold"><summary>Code</summary><div class="sourceCode cell-code" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">triangle</span> <span class="op">&lt;-</span> <span class="va">nc</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> </span>
-<span>            <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">NAME</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Wake"</span>, <span class="st">"Durham"</span>, <span class="st">"Orange"</span>, <span class="st">"Chatham"</span><span class="op">)</span><span class="op">)</span> </span>
-<span></span>
-<span><span class="co">### This is for demonstration of the triangulation only!</span></span>
-<span><span class="va">wmA</span> <span class="op">&lt;-</span> <span class="fu">shapeindices</span><span class="fu">:::</span><span class="fu">.weighted_mesh</span><span class="op">(</span><span class="va">triangle</span>, weights <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
-<span><span class="va">triA</span> <span class="op">&lt;-</span> <span class="va">wmA</span><span class="op">$</span><span class="va">pieces</span></span>
-<span><span class="va">triA</span><span class="op">$</span><span class="va">straddles</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lengths.html" class="external-link">lengths</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_binary_pred.html" class="external-link">st_overlaps</a></span><span class="op">(</span><span class="va">triA</span>, <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_geometry</a></span><span class="op">(</span><span class="va">triangle</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">1</span></span>
-<span></span>
-<span><span class="va">cwm</span> <span class="op">&lt;-</span> <span class="fu">shapeindices</span><span class="fu">:::</span><span class="fu">.constrained_weighted_mesh</span><span class="op">(</span><span class="va">triangle</span>, weights <span class="op">=</span> <span class="st">"BIR74"</span><span class="op">)</span></span>
-<span><span class="va">tri_to_sf</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">P</span>, <span class="va">T</span>, <span class="va">crs</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">polys</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="cn">T</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">v</span> <span class="op">&lt;-</span> <span class="va">P</span><span class="op">[</span><span class="cn">T</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
-<span>    <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st.html" class="external-link">st_polygon</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">v</span>, <span class="va">v</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span>tri_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="cn">T</span><span class="op">)</span><span class="op">)</span>, geometry <span class="op">=</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sfc.html" class="external-link">st_sfc</a></span><span class="op">(</span><span class="va">polys</span>, crs <span class="op">=</span> <span class="va">crs</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="va">triB</span> <span class="op">&lt;-</span> <span class="fu">tri_to_sf</span><span class="op">(</span><span class="va">cwm</span><span class="op">$</span><span class="va">P</span>, <span class="va">cwm</span><span class="op">$</span><span class="cn">T</span>, <span class="va">cwm</span><span class="op">$</span><span class="va">crs</span><span class="op">)</span></span>
-<span><span class="va">triB</span><span class="op">$</span><span class="va">weight</span> <span class="op">&lt;-</span> <span class="va">cwm</span><span class="op">$</span><span class="va">tri_weight</span></span>
-<span><span class="va">triB</span><span class="op">$</span><span class="va">straddles</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lengths.html" class="external-link">lengths</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_binary_pred.html" class="external-link">st_overlaps</a></span><span class="op">(</span><span class="va">triB</span>, <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_geometry</a></span><span class="op">(</span><span class="va">triangle</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">1</span></span>
-<span></span>
-<span><span class="va">pal</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/grDevices/palettes.html" class="external-link">hcl.colors</a></span><span class="op">(</span><span class="fl">100</span>, <span class="st">"YlOrRd"</span>, rev <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">w_scaled</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">triB</span><span class="op">$</span><span class="va">weight</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">triB</span><span class="op">$</span><span class="va">weight</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">triB</span><span class="op">$</span><span class="va">weight</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">triB</span><span class="op">$</span><span class="va">weight</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">triB</span><span class="op">$</span><span class="va">col</span> <span class="op">&lt;-</span> <span class="va">pal</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="va">w_scaled</span> <span class="op">*</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_geometry</a></span><span class="op">(</span><span class="va">triA</span><span class="op">)</span>, border <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">triA</span><span class="op">$</span><span class="va">straddles</span>, <span class="st">"firebrick"</span>, <span class="st">"steelblue"</span><span class="op">)</span>,</span>
-<span>     col <span class="op">=</span> <span class="cn">NA</span>, lwd <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_geometry</a></span><span class="op">(</span><span class="va">triangle</span><span class="op">)</span>, col <span class="op">=</span> <span class="cn">NA</span>, border <span class="op">=</span> <span class="st">"black"</span>, lwd <span class="op">=</span> <span class="fl">2.5</span>, add <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/title.html" class="external-link">title</a></span><span class="op">(</span>main <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"weights = NULL\n%d/%d triangles straddle a county line"</span>,</span>
-<span>                      <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">triA</span><span class="op">$</span><span class="va">straddles</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">triA</span><span class="op">)</span><span class="op">)</span>, cex.main <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_geometry</a></span><span class="op">(</span><span class="va">triB</span><span class="op">)</span>, col <span class="op">=</span> <span class="va">triB</span><span class="op">$</span><span class="va">col</span>, border <span class="op">=</span> <span class="st">"grey40"</span>, lwd <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_geometry</a></span><span class="op">(</span><span class="va">triangle</span><span class="op">)</span>, col <span class="op">=</span> <span class="cn">NA</span>, border <span class="op">=</span> <span class="st">"black"</span>, lwd <span class="op">=</span> <span class="fl">2.5</span>, add <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/title.html" class="external-link">title</a></span><span class="op">(</span>main <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'weights = "BIR74"\n%d/%d triangles straddle a county line'</span>,</span>
-<span>                      <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">triB</span><span class="op">$</span><span class="va">straddles</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">triB</span><span class="op">)</span><span class="op">)</span>, cex.main <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span></span></code></pre></div>
-</details><div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure><p><img src="a-basic-usage_files/figure-html/nc-weighted-1.png" class="quarto-figure quarto-figure-center" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section><section class="section level2" data-number="7"><h2 data-number="7" id="na-weights-change-the-shape-being-measured">
-<span class="header-section-number">7</span> 0/NA weights change the shape being measured<a class="anchor" aria-label="anchor" href="#na-weights-change-the-shape-being-measured"></a>
-</h2>
-<p>A row with weight 0 or NA isn’t just zero-weighted - it’s treated as a <strong>hole</strong>, excluded from the union entirely. This is a <em>design decision</em> of the package. That means switching <code>weights</code> can change <code>poly_u</code> itself, not just how it’s weighted - two calls that differ <em>only</em> in <code>weights</code> can disagree on <code>hull_ratio_index</code> too, even though <code>hull_ratio_index</code> has no weighted form of its own. It was simply computed on two different shapes.</p>
-<p>A 3x3 grid of unit squares makes this concrete. With every cell kept (<code>weights = NULL</code>), the union is a solid, convex block. Exclude just the <em>centre</em> cell (weight 0) and the union becomes a square ring - same 8 outer cells, but now with an actual hole punched through the middle, not just a smaller boundary:</p>
-<div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cell</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">cx</span>, <span class="va">cy</span><span class="op">)</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st.html" class="external-link">st_polygon</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">cx</span> <span class="op">-</span> <span class="fl">0.5</span>, <span class="va">cy</span> <span class="op">-</span> <span class="fl">0.5</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">cx</span> <span class="op">+</span> <span class="fl">0.5</span>, <span class="va">cy</span> <span class="op">-</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">cx</span> <span class="op">+</span> <span class="fl">0.5</span>, <span class="va">cy</span> <span class="op">+</span> <span class="fl">0.5</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">cx</span> <span class="op">-</span> <span class="fl">0.5</span>, <span class="va">cy</span> <span class="op">+</span> <span class="fl">0.5</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">cx</span> <span class="op">-</span> <span class="fl">0.5</span>, <span class="va">cy</span> <span class="op">-</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">ctr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>x <span class="op">=</span> <span class="op">-</span><span class="fl">1</span><span class="op">:</span><span class="fl">1</span>, y <span class="op">=</span> <span class="op">-</span><span class="fl">1</span><span class="op">:</span><span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">grid9</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span>pop <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">ctr</span><span class="op">$</span><span class="va">x</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">ctr</span><span class="op">$</span><span class="va">y</span> <span class="op">==</span> <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">10</span><span class="op">)</span>,</span>
-<span>               geometry <span class="op">=</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sfc.html" class="external-link">st_sfc</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mapply.html" class="external-link">mapply</a></span><span class="op">(</span><span class="va">cell</span>, <span class="va">ctr</span><span class="op">$</span><span class="va">x</span>, <span class="va">ctr</span><span class="op">$</span><span class="va">y</span>, SIMPLIFY <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>, crs <span class="op">=</span> <span class="fl">3857</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">solid_block</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/shape_indices_sf.html">shape_indices_sf</a></span><span class="op">(</span><span class="va">grid9</span>, byrow <span class="op">=</span> <span class="cn">FALSE</span>, id <span class="op">=</span> <span class="st">"solid_block"</span><span class="op">)</span>            <span class="co"># keeps all 9</span></span>
-<span><span class="va">ring</span>        <span class="op">&lt;-</span> <span class="fu"><a href="../reference/shape_indices_sf.html">shape_indices_sf</a></span><span class="op">(</span><span class="va">grid9</span>, byrow <span class="op">=</span> <span class="cn">FALSE</span>, weights <span class="op">=</span> <span class="st">"pop"</span>, id <span class="op">=</span> <span class="st">"ring"</span><span class="op">)</span>  <span class="co"># centre excluded</span></span>
-<span></span>
-<span><span class="co">## t() on a data.frame containing the character `id` column coerces the</span></span>
-<span><span class="co">## WHOLE thing to a character matrix first (R's usual data.frame -&gt; matrix</span></span>
-<span><span class="co">## promotion rule), which silently defeats kable(digits=): there's nothing</span></span>
-<span><span class="co">## numeric left to round, just already-stringified full-precision doubles.</span></span>
-<span><span class="co">## Pulling `id` out as rownames first keeps the transposed matrix numeric.</span></span>
-<span><span class="va">combined</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">solid_block</span>, <span class="va">ring</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_drop_geometry</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">combined_mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">combined</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">combined_mat</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">combined</span><span class="op">$</span><span class="va">id</span></span>
-<span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>format <span class="op">=</span> <span class="st">"html"</span>, <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">combined_mat</span><span class="op">)</span>, digits <span class="op">=</span> <span class="fl">2</span>, row.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<div class="cell-output-display">
-<table class="table caption-top">
-<thead><tr class="header">
-<th style="text-align: left;" data-quarto-table-cell-role="th"></th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">solid_block</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">ring</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">convexity_index</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">0.86</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">moment_of_inertia_index</td>
-<td style="text-align: right;">0.95</td>
-<td style="text-align: right;">0.76</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">moment_isotropy_index</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">1.00</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">directional_balance_index</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">1.00</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">span_index</td>
-<td style="text-align: right;">0.98</td>
-<td style="text-align: right;">0.88</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">radial_concentration_index</td>
-<td style="text-align: right;">0.98</td>
-<td style="text-align: right;">0.86</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">depth_index</td>
-<td style="text-align: right;">0.89</td>
-<td style="text-align: right;">0.48</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">hull_ratio_index</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">0.89</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">polsby_popper_index</td>
-<td style="text-align: right;">0.79</td>
-<td style="text-align: right;">0.39</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">width_length_ratio_index</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">1.00</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">reock_index</td>
-<td style="text-align: right;">0.64</td>
-<td style="text-align: right;">0.57</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">detour_index</td>
-<td style="text-align: right;">0.89</td>
-<td style="text-align: right;">0.84</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">exchange_index</td>
-<td style="text-align: right;">0.91</td>
-<td style="text-align: right;">0.84</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">total_weight</td>
-<td style="text-align: right;">9.00</td>
-<td style="text-align: right;">80.00</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">grid_compare</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
-<span>  <span class="va">solid_block</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>label <span class="op">=</span> <span class="st">"solid_block (weights = NULL)"</span><span class="op">)</span>,</span>
-<span>  <span class="va">ring</span>        <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>label <span class="op">=</span> <span class="st">"ring (centre cell weight = 0)"</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">grid_compare</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="va">label</span><span class="op">)</span>, alpha <span class="op">=</span> <span class="fl">0.6</span>, color <span class="op">=</span> <span class="st">"grey20"</span>, show.legend <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">label</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_fill_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"solid_block (weights = NULL)"</span> <span class="op">=</span> <span class="st">"steelblue"</span>,</span>
-<span>                                <span class="st">"ring (centre cell weight = 0)"</span> <span class="op">=</span> <span class="st">"firebrick"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_void</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">11</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>strip.text <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure><p><img src="a-basic-usage_files/figure-html/hole-grid-plot-1.png" class="quarto-figure quarto-figure-center" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<p><code>hull_ratio_index</code> drops from 1 to 0.889 (<code>= 8/9</code> - the ring’s true area over the <em>same</em> convex hull area the solid block had), and <code>convexity_index</code> drops even further (1 to 0.862), since a line between two points on opposite sides of the ring is forced to cross the hole. This is exactly what happened with real population data earlier in this vignette: rows with 0 population get excluded as holes, which can disconnect a collection into several pieces and punch new interior holes through it - a materially different (and usually more meaningful) shape than “count every row, weighted or not.”</p>
-</section><section class="section level2" data-number="8"><h2 data-number="8" id="parallelisation-and-efficiency">
-<span class="header-section-number">8</span> Parallelisation and efficiency<a class="anchor" aria-label="anchor" href="#parallelisation-and-efficiency"></a>
+<p><code><a href="../reference/shape_indices_sf.html">shape_indices_sf()</a></code> also supports <code>byrow = FALSE</code>, treating a whole collection of rows as sub-polygons of one weighted overall shape rather than scoring each row independently - and weighting them changes the CDT mesh itself, not just the resulting index values, down to a design decision that treats a row weighted <code>0</code> or <code>NA</code> as an excluded hole rather than a zero-weighted piece. See <code><a href="../articles/b-understanding-triangulation.html">vignette("b-understanding-triangulation")</a></code> for both mechanics, and <code><a href="../articles/k-nc-counties-comparison.html">vignette("k-nc-counties-comparison")</a></code>’s “Weighting a collection of polygons” for how the weighting choice moves the index values themselves.</p>
+</section><section class="section level2" data-number="5"><h2 data-number="5" id="parallelisation-and-efficiency">
+<span class="header-section-number">5</span> Parallelisation and efficiency<a class="anchor" aria-label="anchor" href="#parallelisation-and-efficiency"></a>
 </h2>
 <p>This package has one parallelism knob, at the row level: <code><a href="../reference/shape_indices_sf.html">shape_indices_sf()</a></code>’s <code>parallel_rows</code> argument. There is no parallelism <em>within</em> a single index call - a single very complex polygon can’t be split across cores, only a collection of rows can.</p>
 <p>With <code>byrow = TRUE</code>, <code>parallel_rows = TRUE</code> distributes whole rows across the active <code><a href="https://future.futureverse.org/reference/plan.html" class="external-link">future::plan()</a></code> via <code>furrr</code> - this dispatch is unconditional (no fast-path short-circuit), so it delivers real multi-core speedups. Row-level parallelism is only worth turning on once each row’s own cost is bounded - pass <code>deterministic_max_tri</code> (see <code><a href="../reference/shape_indices.html">shape_indices()</a></code>) so no single county can blow up into an expensive deterministic-mode computation (<code>O(n^2)</code> for convexity/span, <code>O(n)</code> with a large constant for radial_concentration) inside a worker. Raising <code>deterministic_max_tri</code> and <code>n_lines</code> below (relative to the row-by-row example earlier) gives every county enough work to make the per-worker overhead worth paying:</p>
 <div class="cell" data-layout-align="center">
-<div class="sourceCode cell-code" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/futureverse/furrr" class="external-link">furrr</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">future</span><span class="fu">::</span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="fu">future</span><span class="fu">::</span><span class="va"><a href="https://future.futureverse.org/reference/sequential.html" class="external-link">sequential</a></span><span class="op">)</span></span>
@@ -815,21 +637,21 @@ blob with hole</th>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">parallel_rows = FALSE</td>
-<td style="text-align: right;">32.68</td>
+<td style="text-align: right;">24.81</td>
 <td style="text-align: right;">1.00</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">parallel_rows = TRUE (4 workers)</td>
-<td style="text-align: right;">17.62</td>
-<td style="text-align: right;">1.86</td>
+<td style="text-align: right;">12.49</td>
+<td style="text-align: right;">1.99</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
 <p>Both modes agree on every county’s indices (not shown - parallelising changes <em>how</em> the 100 rows get computed, not the values themselves); the gain is in <code>elapsed</code>. Overhead from spinning up workers is fixed per call, so it matters less as the batch gets bigger or each row gets more expensive - not worth turning on for a handful of small, cheap polygons, but pays off exactly on the kind of workload this package targets: many real-world rows, each potentially complex enough to need <code>deterministic_max_tri</code>’s random-line fallback. For a real workload, size <code>workers</code> to <code><a href="https://parallelly.futureverse.org/reference/availableCores.html" class="external-link">future::availableCores()</a></code> (or fewer, to leave headroom) and prefer <code><a href="https://future.futureverse.org/reference/multicore.html" class="external-link">future::multicore</a></code> over <code><a href="https://future.futureverse.org/reference/multisession.html" class="external-link">future::multisession</a></code> on Mac/Linux, which forks rather than starting fresh R sessions per worker.</p>
-</section><section class="section level2" data-number="9"><h2 data-number="9" id="simplify_tolerance-reducing-boundary-detail-not-just-mesh-size">
-<span class="header-section-number">9</span> <code>simplify_tolerance</code>: reducing boundary detail, not just mesh size<a class="anchor" aria-label="anchor" href="#simplify_tolerance-reducing-boundary-detail-not-just-mesh-size"></a>
+</section><section class="section level2" data-number="6"><h2 data-number="6" id="simplify_tolerance-reducing-boundary-detail-not-just-mesh-size">
+<span class="header-section-number">6</span> <code>simplify_tolerance</code>: reducing boundary detail, not just mesh size<a class="anchor" aria-label="anchor" href="#simplify_tolerance-reducing-boundary-detail-not-just-mesh-size"></a>
 </h2>
 <p><code><a href="../reference/prepare_polygon.html">prepare_polygon()</a></code>, <code><a href="../reference/shape_indices.html">shape_indices()</a></code>, and <code><a href="../reference/shape_indices_sf.html">shape_indices_sf()</a></code> all accept a <code>simplify_tolerance</code> argument: an <code><a href="https://r-spatial.github.io/sf/reference/geos_unary.html" class="external-link">st_simplify()</a></code> pass, applied once the polygon is already cleaned and (for <code>byrow = FALSE</code>) already unioned, before triangulating. Its units are whatever the geometry’s own CRS uses at that point - metres for geographic (lon/lat) input, since these functions auto-project that to a metric CRS themselves, but whatever unit an <em>already</em>-projected input’s CRS uses otherwise (many US State Plane CRSs are US survey feet, not metres) - a warning fires if that unit isn’t metres, since the same numeric tolerance means a very different amount of simplification depending on which.</p>
 <p>It’s worth reaching for on genuinely detailed real-world boundaries (block/parcel data with hundreds of thousands of vertices), for a reason that isn’t obvious from mesh size alone: <code><a href="../reference/convexity_index.html">convexity_index()</a></code>’s <code>deterministic = FALSE</code> mode tests candidate lines against <em>every</em> boundary edge of the polygon, and that edge count doesn’t shrink just because the triangulated mesh does - simplifying the boundary itself is what actually bounds it.</p>

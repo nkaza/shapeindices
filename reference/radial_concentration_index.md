@@ -5,7 +5,7 @@ interior points to the shape's own geometric median (the point
 minimising that mean distance - not the centroid) and D1_ref is the same
 quantity for the reference shape (a circle, unweighted; a concentric
 annulus, weighted) - both provable minimisers of D1. See
-[`vignette("e-understanding-radial-concentration-index")`](https://nkaza.github.io/shapeindices/articles/e-understanding-radial-concentration-index.md)
+[`vignette("f-understanding-radial-concentration-index")`](https://nkaza.github.io/shapeindices/articles/f-understanding-radial-concentration-index.md)
 for the derivation and the proofs.
 
 ## Usage

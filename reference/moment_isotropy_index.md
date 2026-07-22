@@ -8,7 +8,7 @@ claim as convexity_index()'s or moment_of_inertia_index()'s "= 1 iff a
 disk"). Lower values mean the mass is more anisotropic - elongated along
 one direction - regardless of whether the shape itself is convex or
 dispersed. See
-[`vignette("f-understanding-moment-isotropy-index")`](https://nkaza.github.io/shapeindices/articles/f-understanding-moment-isotropy-index.md)
+[`vignette("g-understanding-moment-isotropy-index")`](https://nkaza.github.io/shapeindices/articles/g-understanding-moment-isotropy-index.md)
 for the derivation, the bound proof, and how this relates to (but
 differs from) classical eccentricity.
 

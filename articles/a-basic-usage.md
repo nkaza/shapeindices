@@ -15,8 +15,8 @@ theme_set(theme_minimal(base_size = 11))
 This vignette is a practical, code-first tour of the package
 `shapeindices`. The goal of the package is to provide indices for `sf`,
 `sfc` objects that describe the shape/mass configurations. In this
-package, we demonstrate some key indices and approaches. For deep dive
-into specific index, see the corresponding vigenette.
+package, I demonstrate some key indices and approaches. For deep dive
+into specific index, see the corresponding vignettes.
 
 ## 1 Three basic shapes
 
@@ -110,27 +110,21 @@ objects as input. The following table briefly describes the conceptual
 framing of the index and shows, as a thumbnail, a shape/mass
 distribution that achieves close to the maximum value. These are just
 some examples and the emphasis is on showing some unexpected profiles
-that score high on these indices (rather than repeating a disk)
-
-The shapes below are the same canonical ones used throughout this
-package’s other vignettes
+that score high on these indices. While it is tempting to think that
+there is an unique shape and a mass profile configuration
+(e.g. center-weighted disk) that maximises the index, the following
+table shows the folly of such naivete.
 
 [TABLE]
 
 The three thumbnails on `width_length_ratio_index`’s own row aren’t a
-*good* example, but a caveat. A hole punched clean through a shape, six
-needle-thin spikes, and a shape split into several pieces with nothing
-joining them all still score close to `1` here, because the index only
-ever looks at the four corners of the minimum-area bounding rectangle.
-See
-[`vignette("i-understanding-classical-indices", package = "shapeindices")`](https://nkaza.github.io/shapeindices/articles/i-understanding-classical-indices.md)
+*good* example, but a caveat. A hole punched clean through a shape,
+needle-thin spikes, guitar picks, dendritic shapes with square convex
+hull and a shape split into several pieces all still score close to `1`
+here, because the index only ever looks at the minimum-area bounding
+rectangle. See
+[`vignette("j-understanding-classical-indices", package = "shapeindices")`](https://nkaza.github.io/shapeindices/articles/j-understanding-classical-indices.md)
 for the other blind spots this family of indices shares.
-
-The `disk, centre-weighted` thumbnails carry a narrower caveat of their
-own, about the disk itself rather than any index’s own definition.[^1]
-`make_disk()` above already works around this: a 1% radial jitter rather
-than a literal circle, indistinguishable by eye but no longer sitting on
-that degeneracy.
 
 Called directly on a shape, for example,:
 
@@ -228,7 +222,7 @@ not `exact`, deliberately: for shapes with small concavities relative to
 triangle size, or (for radial_concentration/directional_balance/depth)
 an integral with no closed form at all, it’s still only an approximation
 of the true value, just a non-random one (see
-[`vignette("b-understanding-convexity-index")`](https://nkaza.github.io/shapeindices/articles/b-understanding-convexity-index.md)’s
+[`vignette("c-understanding-convexity-index")`](https://nkaza.github.io/shapeindices/articles/c-understanding-convexity-index.md)’s
 convexity section for why).
 
 `deterministic = FALSE` instead computes a **Monte Carlo estimate**: all
@@ -256,43 +250,71 @@ Code
 
 ``` r
 
-det_compare <- do.call(rbind, lapply(names(basic_shapes), function(nm) {
-  g <- basic_shapes[[nm]]
-  data.frame(
-    shape              = nm,
-    ci_deterministic   = convexity_index(g, deterministic = TRUE)$index,
-    ci_random_line     = convexity_index(g, deterministic = FALSE, n_lines = 3000, seed = 1)$index,
-    span_deterministic = span_index(g, deterministic = TRUE)$index,
-    span_random_pair   = span_index(g, deterministic = FALSE, n_lines = 3000, seed = 1)$index,
-    rci_deterministic  = radial_concentration_index(g, deterministic = TRUE)$index,
-    rci_random_point   = radial_concentration_index(g, deterministic = FALSE, n_lines = 3000, seed = 1)$index,
-    db_deterministic   = directional_balance_index(g, deterministic = TRUE)$index,
-    db_random_point    = directional_balance_index(g, deterministic = FALSE, n_lines = 3000, seed = 1)$index,
-    depth_deterministic = depth_index(g, deterministic = TRUE)$index,
-    depth_random_point   = depth_index(g, deterministic = FALSE, n_lines = 3000, seed = 1)$index,
-    moi                = moment_of_inertia_index(g)$index,
-    moment_isotropy    = moment_isotropy_index(g)$index,
-    hull_ratio         = hull_ratio_index(g)$index
-  )
-}))
+library(purrr)
+library(dplyr)
+library(knitr)
 
-## t() on a data.frame containing the character `shape` column coerces
-## the WHOLE thing to a character matrix first (R's usual data.frame ->
-## matrix promotion rule), which silently defeats kable(digits=): there's
-## nothing numeric left to round, just already-stringified full-precision
-## doubles. Pulling `shape` out as column names first keeps the
-## transposed matrix genuinely numeric.
+# Non-deterministic parameters helper
+rand_opts <- list(deterministic = FALSE, n_lines = 3000, seed = 1)
+
+# Helper function to compute metrics for a single shape 
+compute_shape_metrics <- function(nm, g) {
+  ci_det   <- convexity_index(g, deterministic = TRUE)$index
+  ci_rand  <- do.call(convexity_index, c(list(g), rand_opts))$index
+  
+  span_det  <- span_index(g, deterministic = TRUE)$index
+  span_rand <- do.call(span_index, c(list(g), rand_opts))$index
+  
+  rci_det  <- radial_concentration_index(g, deterministic = TRUE)$index
+  rci_rand <- do.call(radial_concentration_index, c(list(g), rand_opts))$index
+  
+  db_det   <- directional_balance_index(g, deterministic = TRUE)$index
+  db_rand  <- do.call(directional_balance_index, c(list(g), rand_opts))$index
+  
+  depth_det  <- depth_index(g, deterministic = TRUE)$index
+  depth_rand <- do.call(depth_index, c(list(g), rand_opts))$index
+
+  tibble::tibble(
+    shape               = nm,
+    ci_deterministic    = ci_det,
+    ci_random_line      = ci_rand,
+    span_deterministic  = span_det,
+    span_random_pair    = span_rand,
+    rci_deterministic   = rci_det,
+    rci_random_point    = rci_rand,
+    db_deterministic    = db_det,
+    db_random_point     = db_rand,
+    depth_deterministic = depth_det,
+    depth_random_point  = depth_rand,
+    moi                 = moment_of_inertia_index(g)$index,
+    moment_isotropy     = moment_isotropy_index(g)$index,
+    hull_ratio          = hull_ratio_index(g)$index
+  )
+}
+
+# 1. Loop over shape names to avoid type confusion with `basic_shapes[[nm]]`
+det_compare <- map_dfr(names(basic_shapes), function(nm) {
+  compute_shape_metrics(nm, basic_shapes[[nm]])
+})
+
+# 2. Extract matrix cleanly
 det_mat <- as.matrix(det_compare[, -1])
 rownames(det_mat) <- det_compare$shape
 
-# shape_thumb() (a small base64-embedded PNG of a shape's own outline) is
-# defined earlier, above the index table - reused here as a column header
-headers <- vapply(det_compare$shape, function(nm) {
+# 3. Create thumbnail headers safely
+headers <- map_chr(names(basic_shapes), function(nm) {
   paste0(shape_thumb(basic_shapes[[nm]]), nm)
-}, character(1))
+})
 
-knitr::kable(format = "html", t(det_mat), digits = 2, row.names = TRUE,
-             col.names = headers, escape = FALSE)
+# 4. Render Table
+kable(
+  t(det_mat),
+  format = "html", 
+  digits = 2, 
+  row.names = TRUE,
+  col.names = headers, 
+  escape = FALSE
+)
 ```
 
 [TABLE]
@@ -300,52 +322,19 @@ knitr::kable(format = "html", t(det_mat), digits = 2, row.names = TRUE,
 The Monte Carlo estimate is noisy, but close to the deterministic one,
 and that noise shrinks as `n_lines` grows.
 
-## 4 Standalone utilities: coarsening and refining the mesh
-
 [`convexity_index()`](https://nkaza.github.io/shapeindices/reference/convexity_index.md)
 always works from the polygon’s own CDT triangle mesh - `n_quad`
 controls the quadrature refinement on that mesh (see above), but there’s
-no alternative tessellation to choose. Separately, two standalone mesh
-utilities are available for downstream geometry work, in opposite
-directions - neither is wired into any of the thirteen indices.
+no alternative tessellation to choose. Two standalone mesh utilities,
 [`convex_decompose()`](https://nkaza.github.io/shapeindices/reference/convex_decompose.md)
-gives a Hertel-Mehlhorn convex decomposition (fewer, larger convex
-pieces than the raw triangle mesh):
+and
+[`subdivide_mesh()`](https://nkaza.github.io/shapeindices/reference/subdivide_mesh.md),
+are also available for downstream geometry work (neither is wired into
+any of the thirteen indices) - see
+[`vignette("b-understanding-triangulation")`](https://nkaza.github.io/shapeindices/articles/b-understanding-triangulation.md)
+for both, alongside the CDT mesh they both start from.
 
-``` r
-
-tri    <- cdt_triangles(star)
-pieces <- convex_decompose(star)
-nrow(tri)     # many small triangles
-```
-
-    [1] 10
-
-``` r
-
-nrow(pieces)  # fewer, larger convex pieces
-```
-
-    [1] 7
-
-[`subdivide_mesh()`](https://nkaza.github.io/shapeindices/reference/subdivide_mesh.md)
-goes the other way - more, smaller triangles, via the same area-adaptive
-medial subdivision
-[`radial_concentration_index()`](https://nkaza.github.io/shapeindices/reference/radial_concentration_index.md)
-uses internally for its own quadrature (see
-[`vignette("e-understanding-radial-concentration-index")`](https://nkaza.github.io/shapeindices/articles/e-understanding-radial-concentration-index.md)),
-just kept as triangle geometries here rather than collapsed to weighted
-centroids:
-
-``` r
-
-fine <- subdivide_mesh(star)
-nrow(fine)    # more, smaller triangles than tri
-```
-
-    [1] 2560
-
-## 5 Applying it to an `sf` object, row by row
+## 4 Applying it to an `sf` object, row by row
 
 Real polygons usually arrive as rows of an `sf` object.
 [`shape_indices_sf()`](https://nkaza.github.io/shapeindices/reference/shape_indices_sf.md)
@@ -385,152 +374,20 @@ ggplot(pair_res) +
 
 ![](a-basic-usage_files/figure-html/nc-byrow-plot-1.png)
 
-## 6 Polygonization is different in a weighting scheme.
+[`shape_indices_sf()`](https://nkaza.github.io/shapeindices/reference/shape_indices_sf.md)
+also supports `byrow = FALSE`, treating a whole collection of rows as
+sub-polygons of one weighted overall shape rather than scoring each row
+independently - and weighting them changes the CDT mesh itself, not just
+the resulting index values, down to a design decision that treats a row
+weighted `0` or `NA` as an excluded hole rather than a zero-weighted
+piece. See
+[`vignette("b-understanding-triangulation")`](https://nkaza.github.io/shapeindices/articles/b-understanding-triangulation.md)
+for both mechanics, and
+[`vignette("k-nc-counties-comparison")`](https://nkaza.github.io/shapeindices/articles/k-nc-counties-comparison.md)’s
+“Weighting a collection of polygons” for how the weighting choice moves
+the index values themselves.
 
-`shape_indices_sf(byrow = FALSE)` treats a whole collection of rows as
-sub-polygons of one weighted shape (see
-[`vignette("a-basic-usage")`](https://nkaza.github.io/shapeindices/articles/a-basic-usage.md)
-for the mechanics). Wake, Durham, Orange, and Chatham counties (the
-Research Triangle) are geographically contiguous. Only the six
-mesh-based indices have a genuine weighted form worth comparing this
-way.
-
-Note that the CDT trianglulation is different in the weighted and
-unweigthed case. In the weighted case, the internal borders are
-respected so that the weight transfers from the sub polygon to mesh more
-cleanly, which increases the mesh count. Also note the assumption of
-constant density within the sub polygon, thus large triangle get higher
-weight in the same polygon.
-
-Code
-
-``` r
-
-triangle <- nc %>% 
-            filter(NAME %in% c("Wake", "Durham", "Orange", "Chatham")) 
-
-### This is for demonstration of the triangulation only!
-wmA <- shapeindices:::.weighted_mesh(triangle, weights = NULL)
-triA <- wmA$pieces
-triA$straddles <- lengths(st_overlaps(triA, st_geometry(triangle))) > 1
-
-cwm <- shapeindices:::.constrained_weighted_mesh(triangle, weights = "BIR74")
-tri_to_sf <- function(P, T, crs) {
-  polys <- lapply(seq_len(nrow(T)), function(i) {
-    v <- P[T[i, ], , drop = FALSE]
-    st_polygon(list(rbind(v, v[1, ])))
-  })
-  st_sf(tri_id = seq_len(nrow(T)), geometry = st_sfc(polys, crs = crs))
-}
-triB <- tri_to_sf(cwm$P, cwm$T, cwm$crs)
-triB$weight <- cwm$tri_weight
-triB$straddles <- lengths(st_overlaps(triB, st_geometry(triangle))) > 1
-
-pal <- hcl.colors(100, "YlOrRd", rev = TRUE)
-w_scaled <- (triB$weight - min(triB$weight)) / (max(triB$weight) - min(triB$weight))
-triB$col <- pal[pmax(1, ceiling(w_scaled * 100))]
-
-par(mfrow = c(1, 2), mar = c(2, 1, 3, 1))
-plot(st_geometry(triA), border = ifelse(triA$straddles, "firebrick", "steelblue"),
-     col = NA, lwd = 0.6)
-plot(st_geometry(triangle), col = NA, border = "black", lwd = 2.5, add = TRUE)
-title(main = sprintf("weights = NULL\n%d/%d triangles straddle a county line",
-                      sum(triA$straddles), nrow(triA)), cex.main = 0.95)
-
-plot(st_geometry(triB), col = triB$col, border = "grey40", lwd = 0.6)
-plot(st_geometry(triangle), col = NA, border = "black", lwd = 2.5, add = TRUE)
-title(main = sprintf('weights = "BIR74"\n%d/%d triangles straddle a county line',
-                      sum(triB$straddles), nrow(triB)), cex.main = 0.95)
-```
-
-![](a-basic-usage_files/figure-html/nc-weighted-1.png)
-
-## 7 0/NA weights change the shape being measured
-
-A row with weight 0 or NA isn’t just zero-weighted - it’s treated as a
-**hole**, excluded from the union entirely. This is a *design decision*
-of the package. That means switching `weights` can change `poly_u`
-itself, not just how it’s weighted - two calls that differ *only* in
-`weights` can disagree on `hull_ratio_index` too, even though
-`hull_ratio_index` has no weighted form of its own. It was simply
-computed on two different shapes.
-
-A 3x3 grid of unit squares makes this concrete. With every cell kept
-(`weights = NULL`), the union is a solid, convex block. Exclude just the
-*centre* cell (weight 0) and the union becomes a square ring - same 8
-outer cells, but now with an actual hole punched through the middle, not
-just a smaller boundary:
-
-``` r
-
-cell <- function(cx, cy) st_polygon(list(rbind(
-  c(cx - 0.5, cy - 0.5), c(cx + 0.5, cy - 0.5),
-  c(cx + 0.5, cy + 0.5), c(cx - 0.5, cy + 0.5), c(cx - 0.5, cy - 0.5))))
-ctr <- expand.grid(x = -1:1, y = -1:1)
-grid9 <- st_sf(pop = ifelse(ctr$x == 0 & ctr$y == 0, 0, 10),
-               geometry = st_sfc(mapply(cell, ctr$x, ctr$y, SIMPLIFY = FALSE), crs = 3857))
-
-solid_block <- shape_indices_sf(grid9, byrow = FALSE, id = "solid_block")            # keeps all 9
-ring        <- shape_indices_sf(grid9, byrow = FALSE, weights = "pop", id = "ring")  # centre excluded
-
-## t() on a data.frame containing the character `id` column coerces the
-## WHOLE thing to a character matrix first (R's usual data.frame -> matrix
-## promotion rule), which silently defeats kable(digits=): there's nothing
-## numeric left to round, just already-stringified full-precision doubles.
-## Pulling `id` out as rownames first keeps the transposed matrix numeric.
-combined <- rbind(solid_block, ring) %>% st_drop_geometry()
-combined_mat <- as.matrix(combined[, -1])
-rownames(combined_mat) <- combined$id
-
-knitr::kable(format = "html", t(combined_mat), digits = 2, row.names = TRUE)
-```
-
-|                            | solid_block |  ring |
-|:---------------------------|------------:|------:|
-| convexity_index            |        1.00 |  0.86 |
-| moment_of_inertia_index    |        0.95 |  0.76 |
-| moment_isotropy_index      |        1.00 |  1.00 |
-| directional_balance_index  |        1.00 |  1.00 |
-| span_index                 |        0.98 |  0.88 |
-| radial_concentration_index |        0.98 |  0.86 |
-| depth_index                |        0.89 |  0.48 |
-| hull_ratio_index           |        1.00 |  0.89 |
-| polsby_popper_index        |        0.79 |  0.39 |
-| width_length_ratio_index   |        1.00 |  1.00 |
-| reock_index                |        0.64 |  0.57 |
-| detour_index               |        0.89 |  0.84 |
-| exchange_index             |        0.91 |  0.84 |
-| total_weight               |        9.00 | 80.00 |
-
-``` r
-
-grid_compare <- rbind(
-  solid_block %>% mutate(label = "solid_block (weights = NULL)"),
-  ring        %>% mutate(label = "ring (centre cell weight = 0)")
-)
-
-ggplot(grid_compare) +
-  geom_sf(aes(fill = label), alpha = 0.6, color = "grey20", show.legend = FALSE) +
-  facet_wrap(~ label) +
-  scale_fill_manual(values = c("solid_block (weights = NULL)" = "steelblue",
-                                "ring (centre cell weight = 0)" = "firebrick")) +
-  theme_void(base_size = 11) +
-  theme(strip.text = element_text(face = "bold"))
-```
-
-![](a-basic-usage_files/figure-html/hole-grid-plot-1.png)
-
-`hull_ratio_index` drops from 1 to 0.889 (`= 8/9` - the ring’s true area
-over the *same* convex hull area the solid block had), and
-`convexity_index` drops even further (1 to 0.862), since a line between
-two points on opposite sides of the ring is forced to cross the hole.
-This is exactly what happened with real population data earlier in this
-vignette: rows with 0 population get excluded as holes, which can
-disconnect a collection into several pieces and punch new interior holes
-through it - a materially different (and usually more meaningful) shape
-than “count every row, weighted or not.”
-
-## 8 Parallelisation and efficiency
+## 5 Parallelisation and efficiency
 
 This package has one parallelism knob, at the row level:
 [`shape_indices_sf()`](https://nkaza.github.io/shapeindices/reference/shape_indices_sf.md)’s
@@ -580,8 +437,8 @@ knitr::kable(format = "html", timing, digits = 2, row.names = FALSE)
 
 | mode                             | elapsed | speedup |
 |:---------------------------------|--------:|--------:|
-| parallel_rows = FALSE            |   32.68 |    1.00 |
-| parallel_rows = TRUE (4 workers) |   17.62 |    1.86 |
+| parallel_rows = FALSE            |   24.81 |    1.00 |
+| parallel_rows = TRUE (4 workers) |   12.49 |    1.99 |
 
 Both modes agree on every county’s indices (not shown - parallelising
 changes *how* the 100 rows get computed, not the values themselves); the
@@ -600,7 +457,7 @@ over
 on Mac/Linux, which forks rather than starting fresh R sessions per
 worker.
 
-## 9 `simplify_tolerance`: reducing boundary detail, not just mesh size
+## 6 `simplify_tolerance`: reducing boundary detail, not just mesh size
 
 [`prepare_polygon()`](https://nkaza.github.io/shapeindices/reference/prepare_polygon.md),
 [`shape_indices()`](https://nkaza.github.io/shapeindices/reference/shape_indices.md),
@@ -648,31 +505,3 @@ Weight accuracy is unaffected by design: the row-level weight overlay
 always uses the *unsimplified* original rows - only the mesh comes from
 the simplified union - so a tolerance modest relative to the shape’s own
 scale still captures upward of 99% of the true row-level weight total.
-
-[^1]: A *literal* circle
-    ([`st_buffer()`](https://r-spatial.github.io/sf/reference/geos_unary.html)‘s
-    own output) has hundreds of boundary points sitting simultaneously
-    near-cocircular by construction, which is exactly the input Delaunay
-    triangulation handles worst: many simultaneous near-ties in which
-    diagonal to pick, decided by whichever way floating-point rounding
-    happens to break them. Verified directly - perturbing that circle’s
-    own vertices by as little as `1e-12`, far below anything a different
-    GEOS version, compiler, or BLAS could produce, flips enough of
-    [`subdivide_mesh()`](https://nkaza.github.io/shapeindices/reference/subdivide_mesh.md)’s
-    own tie-breaking on that mesh to move a weighted `span_index` by
-    over a percentage point, even though the identical perturbation
-    leaves the *unweighted* index on that same unstable mesh essentially
-    untouched (a 0.004% wobble - splitting a near-degenerate triangle
-    one way instead of the other barely moves a uniform sum, but does
-    change which fine sub-triangle’s centroid samples which part of a
-    smoothly-varying weight field), and leaves an ordinary,
-    non-symmetric shape’s mesh completely unchanged under the same test.
-    None of the thirteen indices’ own *reference* values are built this
-    way - they’re closed-form formulas, or
-    ([`exchange_index()`](https://nkaza.github.io/shapeindices/reference/exchange_index.md)’s
-    reference circle) a GEOS boolean intersection, which doesn’t share
-    Delaunay triangulation’s tie-breaking failure mode - so this is
-    specific to weighted,
-    [`subdivide_mesh()`](https://nkaza.github.io/shapeindices/reference/subdivide_mesh.md)-refined
-    computation on unusually *symmetric* input shapes, not a general
-    cross-platform reproducibility concern for real polygons.

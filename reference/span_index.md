@@ -5,7 +5,7 @@ interior points and D_ref is the same quantity for the reference shape
 (a circle, unweighted; a concentric annulus, weighted) - both are
 provable minimisers of D. Distinct from moment_of_inertia_index(), which
 a squared-distance version of this index would just collapse to. See
-[`vignette("d-understanding-span-index")`](https://nkaza.github.io/shapeindices/articles/d-understanding-span-index.md)
+[`vignette("e-understanding-span-index")`](https://nkaza.github.io/shapeindices/articles/e-understanding-span-index.md)
 for the derivation and both proofs.
 
 ## Usage
