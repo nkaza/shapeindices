@@ -118,7 +118,7 @@ window.Quarto = {
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a></li>
   <li><a href="#indices-point-to-stories-about-geography-and-history" id="toc-indices-point-to-stories-about-geography-and-history" class="nav-link" data-scroll-target="#indices-point-to-stories-about-geography-and-history"><span class="header-section-number">2</span> Indices point to stories about geography and history</a></li>
   <li><a href="#how-do-the-indices-relate-to-each-other" id="toc-how-do-the-indices-relate-to-each-other" class="nav-link" data-scroll-target="#how-do-the-indices-relate-to-each-other"><span class="header-section-number">3</span> How do the indices relate to each other?</a></li>
-  <li><a href="#weighting-a-collection-the-triangle-counties-by-population" id="toc-weighting-a-collection-the-triangle-counties-by-population" class="nav-link" data-scroll-target="#weighting-a-collection-the-triangle-counties-by-population"><span class="header-section-number">4</span> Weighting a collection: the Triangle counties by population</a></li>
+  <li><a href="#weighting-a-collection-of-polygons" id="toc-weighting-a-collection-of-polygons" class="nav-link" data-scroll-target="#weighting-a-collection-of-polygons"><span class="header-section-number">4</span> Weighting a collection of polygons</a></li>
   <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">5</span> Conclusion</a></li>
   </ul>
 </nav>
@@ -332,25 +332,17 @@ Lincoln</th>
 <p>Connecting these groups, Polsby-Popper acts as a hybrid bridge between the convexity and elongation clusters (0.90 with hull ratio; 0.84 with MOI) because perimeter length is inherently inflated by both boundary roughness and stretched geometries.</p>
 <p><code>width_length_ratio_index</code> is no longer the outlier it once was. An earlier, axis-aligned version of this index correlated weakly with almost everything in this dataset, because its own orientation noise - which way a county happens to be drawn relative to the coordinate axes, not a property of its shape - swamped the real elongation signal underneath. With that noise removed, its strongest ties sit squarely inside the elongation cluster: 0.80 with moment isotropy, 0.78 with exchange, 0.76 with moment of inertia. It still correlates more loosely with the boundary-complexity side of things (0.31 with convexity, 0.31 with hull ratio) - a bounding rectangle, however it’s computed, still can’t see concavity the way a convex-hull-based measure can - but it is a member of a real cluster now, not an island of its own.</p>
 </section>
-<section id="weighting-a-collection-the-triangle-counties-by-population" class="level1" data-number="4">
-<h1 data-number="4"><span class="header-section-number">4</span> Weighting a collection: the Triangle counties by population</h1>
-<p><code>shape_indices_sf(byrow = FALSE)</code> treats a whole collection of rows as sub-polygons of one weighted shape (see <code>vignette("a-basic-usage")</code> for the mechanics). Wake, Durham, Orange, and Chatham counties (the Research Triangle) are geographically contiguous. Only the six mesh-based indices have a genuine weighted form worth comparing this way.</p>
-<p>Note that the CDT trianglulation is different in the weighted and unweigthed case. In the weighted case, the internal borders are respected so that the weight transfers from the sub polygon to mesh more cleanly, which increases the mesh count. Also note the assumption of constant density within the sub polygon, thus large triangle get higher weight in the same polygon.</p>
+<section id="weighting-a-collection-of-polygons" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Weighting a collection of polygons</h1>
+<p><code>byrow = FALSE</code> treats every row instead as a weighted sub-polygon of <strong>one</strong> overall shape (<code>st_union(x)</code>), returning a single-row result. <code>weights = NULL</code> (the default) weights each row by its own physical area, which reproduces the plain unweighted indices on the union; a column name or numeric vector weights rows by something else instead - here, births (<code>BIR74</code>) as a population proxy for four contiguous Research Triangle counties:</p>
 <div class="cell" data-layout-align="center">
-<div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="j-nc-counties-comparison_files/figure-html/nc-weighted-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
-</figure>
-</div>
-</div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;" data-quarto-table-cell-role="th"></th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">weights = NULL</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">weights = "BIR74"</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">weighted_by_area</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">weighted_by_births</th>
 </tr>
 </thead>
 <tbody>
@@ -385,6 +377,41 @@ Lincoln</th>
 <td style="text-align: right;">0.85</td>
 </tr>
 <tr class="odd">
+<td style="text-align: left;">depth_index</td>
+<td style="text-align: right;">0.69</td>
+<td style="text-align: right;">0.51</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hull_ratio_index</td>
+<td style="text-align: right;">0.83</td>
+<td style="text-align: right;">0.83</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">polsby_popper_index</td>
+<td style="text-align: right;">0.51</td>
+<td style="text-align: right;">0.51</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">width_length_ratio_index</td>
+<td style="text-align: right;">0.69</td>
+<td style="text-align: right;">0.69</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">reock_index</td>
+<td style="text-align: right;">0.48</td>
+<td style="text-align: right;">0.48</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">detour_index</td>
+<td style="text-align: right;">0.83</td>
+<td style="text-align: right;">0.83</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">exchange_index</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">0.81</td>
+</tr>
+<tr class="even">
 <td style="text-align: left;">total_weight</td>
 <td style="text-align: right;">5811314465.44</td>
 <td style="text-align: right;">27264.00</td>
@@ -393,8 +420,9 @@ Lincoln</th>
 </table>
 </div>
 </div>
+<p>Same union geometry results in the same <code>hull_ratio_index</code> (it has no weighted form - it’s a property of the convex hull’s boundary, not a sum over pieces) - but <code>convexity_index</code>, <code>moment_of_inertia_index</code>, and <code>span_index</code> all shift once births, rather than raw land area, decide how much each county’s shape “counts”.</p>
 <p>Weighted by each county’s own area (<code>weights = NULL</code>, the default), the four-county union scores convexity 0.983 and MOI 0.815. Switching the weight to 1974 births, so that Wake dominates in one part of the union, moves MOI, span, and radial concentration all <em>down</em> together (0.697, 0.849, 0.852). Convexity moves the other way, slightly <em>up</em> (0.990). It does not depend on where the centre of mass is at all and therefore behaves as expected.</p>
-<p>Reweighting the mesh by population reveals that moment isotropy and directional balance capture fundamentally different spatial mechanisms when mass shifts toward a dominant county like Wake. <strong>Moment isotropy moves up</strong> (0.507 to 0.643), shifting opposite to MOI, span, and radial concentration. This isn’t a contradiction: while center-relative metrics penalize how far mass drifts from the union’s geometric middle, moment isotropy evaluates only the <em>shape</em> of the distribution around its own center—concentrating weight into Wake (a relatively round county within a long four-county strip) makes the core mass footprint more isotropic even as its center drifts. Conversely, <strong>directional balance moves down</strong> (0.984 to 0.960), tracking alongside MOI and span because shifting weight toward Wake creates an asymmetric angular pull from the new centroid. Moment isotropy acts as the lone outlier here precisely because it ignores center-relative displacement, proving it operates as an independent axis rather than a redundant metric. <em>(Note: <code>total_weight</code> reflects raw area in <span class="math inline">\(m^2\)</span> versus total births, so row totals represent different scales).</em></p>
+<p>Reweighting the mesh reveals that moment isotropy and directional balance capture fundamentally different spatial mechanisms when mass shifts toward a dominant county like Wake. <strong>Moment isotropy moves up</strong> (0.507 to 0.643), shifting opposite to MOI, span, and radial concentration. While center-relative metrics penalize how far mass drifts from the union’s geometric middle, moment isotropy evaluates only the <em>shape</em> of the distribution around its own center—concentrating weight into Wake (a relatively round county within a long four-county strip) makes the core mass footprint more isotropic even as its center drifts. Conversely, <strong>directional balance moves down</strong> (0.984 to 0.960), tracking alongside MOI and span because shifting weight toward Wake creates an asymmetric angular pull from the new centroid. Moment isotropy acts as the lone outlier here precisely because it ignores center-relative displacement, proving it operates as an independent axis rather than a redundant metric. <em>(Note: <code>total_weight</code> reflects raw area in</em> <span class="math inline">\(m^2\)</span> versus total births, so row totals represent different scales).</p>
 </section>
 <section id="conclusion" class="level1" data-number="5">
 <h1 data-number="5"><span class="header-section-number">5</span> Conclusion</h1>

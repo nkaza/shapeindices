@@ -179,6 +179,23 @@ radial_field <- function(tc, ctr, power = 2) {
 # convexity_index()'s own weighted form tolerates ANY weighting, not just a
 # symmetric one - a plain left-to-right gradient makes that point visually
 linear_field <- function(tc, ctr) (tc[, 1] - min(tc[, 1])) / (max(tc[, 1]) - min(tc[, 1])) + 0.01
+# for the dumbbell specifically: centre-heavy around BOTH bell ends
+# (hardcoded at (0,0) and (0,5), matching make_dumbbell()'s own defaults)
+# rather than the shape's own overall centroid, which sits in the empty
+# middle of the connecting bar - weight concentrated where the mass
+# actually is, a clearer illustration than weighting the bar itself.
+# Symmetric across both ends by construction, so directional_balance_index()
+# still reads exactly 1 (verified) - moment_isotropy_index() does NOT: no
+# weighting of a 2-fold-symmetric shape can reach 1 there (see
+# vignette("f-understanding-moment-isotropy-index")'s own "at least
+# 3-fold symmetry" finding), which is why the pinwheel, not the dumbbell,
+# illustrates that row instead.
+dumbbell_field <- function(tc, ctr, power = 2) {
+  d1 <- sqrt((tc[, 1] - 0)^2 + (tc[, 2] - 0)^2)
+  d2 <- sqrt((tc[, 1] - 0)^2 + (tc[, 2] - 5)^2)
+  d_near <- pmin(d1, d2)
+  (1 - d_near / max(d_near))^power + 0.01
+}
 ```
 
 The shapes below are the same canonical ones used throughout this
@@ -194,7 +211,25 @@ make_regular_ngon <- function(n, r = 1) {
   coords <- cbind(r * cos(angles), r * sin(angles))
   st_polygon(list(rbind(coords, coords[1, ])))
 }
-make_disk <- function(r = 1, n = 96) st_buffer(st_sfc(st_point(c(0, 0))), dist = r, nQuadSegs = n)[[1]]
+# a 1% radial jitter, not a true st_buffer() circle - a perfectly regular
+# circle's boundary points sit simultaneously near-cocircular by
+# construction, which makes RTriangle's CDT triangulation pick a
+# near-degenerate diagonal at many points at once; subdivide_mesh()'s own
+# recursive refinement of that mesh is then sensitive to machine-epsilon
+# input differences (confirmed: platform-level floating-point noise alone
+# flipped enough of those ties to move a weighted, subdivided index by
+# over a percentage point - see the footnote on the table below). The
+# jitter is visually indistinguishable from a circle (well under 1% of
+# radius) but breaks the exact symmetry, so no nearby diagonal choice is
+# ever a genuine tie - verified stable under further perturbation down to
+# 1e-9, unlike the true circle it replaces.
+make_disk <- function(r = 1, n = 96, jitter = 0.01, seed = 1) {
+  set.seed(seed)
+  angles <- seq(0, 2 * pi, length.out = n + 1)[1:n]
+  radii  <- r * (1 + jitter * (runif(n) - 0.5))
+  coords <- cbind(radii * cos(angles), radii * sin(angles))
+  st_polygon(list(rbind(coords, coords[1, ])))
+}
 make_star <- function(n_points, r_outer, r_inner) {
   n <- n_points * 2
   angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
@@ -218,6 +253,12 @@ make_dumbbell <- function(r, cy = 5) {
   bot <- st_buffer(st_sfc(st_point(c(0, 0))), dist = r, nQuadSegs = 40)[[1]]
   bar <- st_polygon(list(rbind(c(-0.15, 0), c(0.15, 0), c(0.15, cy), c(-0.15, cy), c(-0.15, 0))))
   st_union(st_sfc(top, bot, bar))[[1]]
+}
+make_flower <- function(n_petals = 6, r_out = 1, r_in = 0.55, n_pts = 240) {
+  ang <- seq(0, 2 * pi, length.out = n_pts + 1)[1:n_pts]
+  r <- r_in + (r_out - r_in) * (0.5 + 0.5 * cos(n_petals * ang))
+  coords <- cbind(r * cos(ang), r * sin(ang))
+  st_polygon(list(rbind(coords, coords[1, ])))
 }
 # width_length_ratio_index()'s own three-way blind spot, all still == 1:
 # a hole (make_square_with_hole(), same as vignette i), needle-thin spikes
@@ -245,6 +286,7 @@ ex_square   <- make_square()
 ex_disk     <- make_disk()
 ex_pinwheel <- make_pinwheel(4)
 ex_dumbbell <- make_dumbbell(1)
+ex_flower    <- make_flower()
 ex_star_mild <- make_star(6, 1, 0.65)
 ex_hole      <- make_square_with_hole()
 ex_spike     <- make_star(6, 1, 0.02)
@@ -274,9 +316,9 @@ idx_table <- data.frame(
     weighted_thumb(ex_rect, linear_field, "rectangle, left-to-right gradient", index_fn = convexity_index, n_quad = 1),
     weighted_thumb(ex_hexagon, radial_field, "hexagon, centre-weighted", index_fn = moment_of_inertia_index),
     weighted_thumb(ex_pinwheel, radial_field, "pinwheel, centre-weighted", index_fn = moment_isotropy_index),
-    weighted_thumb(ex_dumbbell, radial_field, "dumbbell, centre-weighted", index_fn = directional_balance_index),
-    weighted_thumb(ex_disk, radial_field, "disk, centre-weighted", index_fn = span_index, n_quad = 1),
-    weighted_thumb(ex_disk, radial_field, "disk, centre-weighted", index_fn = radial_concentration_index),
+    weighted_thumb(ex_dumbbell, dumbbell_field, "dumbbell, centre-weighted", index_fn = directional_balance_index),
+    weighted_thumb(ex_square, radial_field, "square, centre-weighted", index_fn = span_index, n_quad = 1),
+    weighted_thumb(ex_flower, radial_field, "flower, centre-weighted", index_fn = radial_concentration_index),
     weighted_thumb(ex_disk, radial_field, "disk, centre-weighted", index_fn = depth_index),
     "No weighted form", "No weighted form", "No weighted form",
     "No weighted form", "No weighted form", "No weighted form"
@@ -314,6 +356,33 @@ the index only ever looks at the four corners of the minimum-area
 bounding rectangle. See
 `vignette("i-understanding-classical-indices", package = "shapeindices")`
 for the other blind spots this family of indices shares.
+
+The `disk, centre-weighted` thumbnails carry a narrower caveat of their
+own, about the disk itself rather than any index's own definition.^[A
+*literal* circle (`st_buffer()`'s own output) has hundreds of boundary
+points sitting simultaneously near-cocircular by construction, which is
+exactly the input Delaunay triangulation handles worst: many
+simultaneous near-ties in which diagonal to pick, decided by whichever
+way floating-point rounding happens to break them. Verified directly -
+perturbing that circle's own vertices by as little as `1e-12`, far
+below anything a different GEOS version, compiler, or BLAS could
+produce, flips enough of `subdivide_mesh()`'s own tie-breaking on that
+mesh to move a weighted `span_index` by over a percentage point, even
+though the identical perturbation leaves the *unweighted* index on that
+same unstable mesh essentially untouched (a 0.004% wobble - splitting a
+near-degenerate triangle one way instead of the other barely moves a
+uniform sum, but does change which fine sub-triangle's centroid samples
+which part of a smoothly-varying weight field), and leaves an ordinary,
+non-symmetric shape's mesh completely unchanged under the same test.
+None of the thirteen indices' own *reference* values are built this
+way - they're closed-form formulas, or (`exchange_index()`'s reference
+circle) a GEOS boolean intersection, which doesn't share Delaunay
+triangulation's tie-breaking failure mode - so this is specific to
+weighted, `subdivide_mesh()`-refined computation on unusually
+*symmetric* input shapes, not a general cross-platform reproducibility
+concern for real polygons.] `make_disk()` above already works around
+this: a 1% radial jitter rather than a literal circle, indistinguishable
+by eye but no longer sitting on that degeneracy.
 
 Called directly on a shape, for example,:
 
@@ -465,7 +534,7 @@ nrow(fine)    # more, smaller triangles than tri
 
 # Applying it to an `sf` object, row by row
 
-Real polygons usually arrive as rows of an `sf` data frame.
+Real polygons usually arrive as rows of an `sf` object.
 `shape_indices_sf()` with `byrow = TRUE` (the default) runs
 `shape_indices()` on every row independently and appends four
 columns. Two North Carolina counties from the `sf` package - Wake
