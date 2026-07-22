@@ -126,6 +126,12 @@ See
 [`vignette("i-understanding-classical-indices", package = "shapeindices")`](https://nkaza.github.io/shapeindices/articles/i-understanding-classical-indices.md)
 for the other blind spots this family of indices shares.
 
+The `disk, centre-weighted` thumbnails carry a narrower caveat of their
+own, about the disk itself rather than any index’s own definition.[^1]
+`make_disk()` above already works around this: a 1% radial jitter rather
+than a literal circle, indistinguishable by eye but no longer sitting on
+that degeneracy.
+
 Called directly on a shape, for example,:
 
 ``` r
@@ -341,7 +347,7 @@ nrow(fine)    # more, smaller triangles than tri
 
 ## 5 Applying it to an `sf` object, row by row
 
-Real polygons usually arrive as rows of an `sf` data frame.
+Real polygons usually arrive as rows of an `sf` object.
 [`shape_indices_sf()`](https://nkaza.github.io/shapeindices/reference/shape_indices_sf.md)
 with `byrow = TRUE` (the default) runs
 [`shape_indices()`](https://nkaza.github.io/shapeindices/reference/shape_indices.md)
@@ -574,8 +580,8 @@ knitr::kable(format = "html", timing, digits = 2, row.names = FALSE)
 
 | mode                             | elapsed | speedup |
 |:---------------------------------|--------:|--------:|
-| parallel_rows = FALSE            |    33.0 |    1.00 |
-| parallel_rows = TRUE (4 workers) |    17.8 |    1.85 |
+| parallel_rows = FALSE            |   32.68 |    1.00 |
+| parallel_rows = TRUE (4 workers) |   17.62 |    1.86 |
 
 Both modes agree on every county’s indices (not shown - parallelising
 changes *how* the 100 rows get computed, not the values themselves); the
@@ -642,3 +648,31 @@ Weight accuracy is unaffected by design: the row-level weight overlay
 always uses the *unsimplified* original rows - only the mesh comes from
 the simplified union - so a tolerance modest relative to the shape’s own
 scale still captures upward of 99% of the true row-level weight total.
+
+[^1]: A *literal* circle
+    ([`st_buffer()`](https://r-spatial.github.io/sf/reference/geos_unary.html)‘s
+    own output) has hundreds of boundary points sitting simultaneously
+    near-cocircular by construction, which is exactly the input Delaunay
+    triangulation handles worst: many simultaneous near-ties in which
+    diagonal to pick, decided by whichever way floating-point rounding
+    happens to break them. Verified directly - perturbing that circle’s
+    own vertices by as little as `1e-12`, far below anything a different
+    GEOS version, compiler, or BLAS could produce, flips enough of
+    [`subdivide_mesh()`](https://nkaza.github.io/shapeindices/reference/subdivide_mesh.md)’s
+    own tie-breaking on that mesh to move a weighted `span_index` by
+    over a percentage point, even though the identical perturbation
+    leaves the *unweighted* index on that same unstable mesh essentially
+    untouched (a 0.004% wobble - splitting a near-degenerate triangle
+    one way instead of the other barely moves a uniform sum, but does
+    change which fine sub-triangle’s centroid samples which part of a
+    smoothly-varying weight field), and leaves an ordinary,
+    non-symmetric shape’s mesh completely unchanged under the same test.
+    None of the thirteen indices’ own *reference* values are built this
+    way - they’re closed-form formulas, or
+    ([`exchange_index()`](https://nkaza.github.io/shapeindices/reference/exchange_index.md)’s
+    reference circle) a GEOS boolean intersection, which doesn’t share
+    Delaunay triangulation’s tie-breaking failure mode - so this is
+    specific to weighted,
+    [`subdivide_mesh()`](https://nkaza.github.io/shapeindices/reference/subdivide_mesh.md)-refined
+    computation on unusually *symmetric* input shapes, not a general
+    cross-platform reproducibility concern for real polygons.

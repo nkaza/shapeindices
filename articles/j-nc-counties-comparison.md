@@ -134,26 +134,28 @@ column name or numeric vector weights rows by something else instead -
 here, births (`BIR74`) as a population proxy for four contiguous
 Research Triangle counties:
 
-| id | convexity_index | moment_of_inertia_index | moment_isotropy_index | directional_balance_index | span_index | radial_concentration_index | depth_index | hull_ratio_index | polsby_popper_index | width_length_ratio_index | reock_index | detour_index | exchange_index | total_weight |
-|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| weighted_by_area | 0.983 | 0.815 | 0.507 | 0.984 | 0.917 | 0.924 | 0.685 | 0.831 | 0.514 | 0.686 | 0.483 | 0.83 | 0.807 | 5811314465 |
-| weighted_by_births | 0.990 | 0.697 | 0.643 | 0.960 | 0.849 | 0.852 | 0.507 | 0.831 | 0.514 | 0.686 | 0.483 | 0.83 | 0.807 | 27264 |
+|                            | weighted_by_area | weighted_by_births |
+|:---------------------------|-----------------:|-------------------:|
+| convexity_index            |             0.98 |               0.99 |
+| moment_of_inertia_index    |             0.82 |               0.70 |
+| moment_isotropy_index      |             0.51 |               0.64 |
+| directional_balance_index  |             0.98 |               0.96 |
+| span_index                 |             0.92 |               0.85 |
+| radial_concentration_index |             0.92 |               0.85 |
+| depth_index                |             0.69 |               0.51 |
+| hull_ratio_index           |             0.83 |               0.83 |
+| polsby_popper_index        |             0.51 |               0.51 |
+| width_length_ratio_index   |             0.69 |               0.69 |
+| reock_index                |             0.48 |               0.48 |
+| detour_index               |             0.83 |               0.83 |
+| exchange_index             |             0.81 |               0.81 |
+| total_weight               |    5811314465.44 |           27264.00 |
 
-Same union geometry, same `hull_ratio_index` (it has no weighted form -
-it’s a property of the convex hull’s boundary, not a sum over pieces) -
-but `convexity_index`, `moment_of_inertia_index`, and `span_index` all
-shift once births, rather than raw land area, decide how much each
-county’s shape “counts”.
-
-Whenever rows genuinely differ in weight, each row’s own boundary is
-supplied as a hard constraint on the combined triangulation, so no
-triangle can ever straddle two rows - density is allocated onto the mesh
-exactly, not approximated by averaging. This matters most for a handful
-of large, high-density rows sitting next to many small, low-density
-ones, where a single coarse triangle could otherwise span rows with very
-different weights. It falls back to the coarser, union-only mesh
-automatically (with a warning) if the kept rows genuinely overlap rather
-than just touch.
+Same union geometry results in the same `hull_ratio_index` (it has no
+weighted form - it’s a property of the convex hull’s boundary, not a sum
+over pieces) - but `convexity_index`, `moment_of_inertia_index`, and
+`span_index` all shift once births, rather than raw land area, decide
+how much each county’s shape “counts”.
 
 Weighted by each county’s own area (`weights = NULL`, the default), the
 four-county union scores convexity 0.983 and MOI 0.815. Switching the
@@ -163,23 +165,23 @@ moves MOI, span, and radial concentration all *down* together (0.697,
 does not depend on where the centre of mass is at all and therefore
 behaves as expected.
 
-Reweighting the mesh by population reveals that moment isotropy and
-directional balance capture fundamentally different spatial mechanisms
-when mass shifts toward a dominant county like Wake. **Moment isotropy
-moves up** (0.507 to 0.643), shifting opposite to MOI, span, and radial
-concentration. This isn’t a contradiction: while center-relative metrics
-penalize how far mass drifts from the union’s geometric middle, moment
-isotropy evaluates only the *shape* of the distribution around its own
-center—concentrating weight into Wake (a relatively round county within
-a long four-county strip) makes the core mass footprint more isotropic
-even as its center drifts. Conversely, **directional balance moves
-down** (0.984 to 0.960), tracking alongside MOI and span because
-shifting weight toward Wake creates an asymmetric angular pull from the
-new centroid. Moment isotropy acts as the lone outlier here precisely
-because it ignores center-relative displacement, proving it operates as
-an independent axis rather than a redundant metric. *(Note:
-`total_weight` reflects raw area in $`m^2`$ versus total births, so row
-totals represent different scales).*
+Reweighting the mesh reveals that moment isotropy and directional
+balance capture fundamentally different spatial mechanisms when mass
+shifts toward a dominant county like Wake. **Moment isotropy moves up**
+(0.507 to 0.643), shifting opposite to MOI, span, and radial
+concentration. While center-relative metrics penalize how far mass
+drifts from the union’s geometric middle, moment isotropy evaluates only
+the *shape* of the distribution around its own center—concentrating
+weight into Wake (a relatively round county within a long four-county
+strip) makes the core mass footprint more isotropic even as its center
+drifts. Conversely, **directional balance moves down** (0.984 to 0.960),
+tracking alongside MOI and span because shifting weight toward Wake
+creates an asymmetric angular pull from the new centroid. Moment
+isotropy acts as the lone outlier here precisely because it ignores
+center-relative displacement, proving it operates as an independent axis
+rather than a redundant metric. *(Note: `total_weight` reflects raw area
+in* $`m^2`$ versus total births, so row totals represent different
+scales).
 
 ## 5 Conclusion
 

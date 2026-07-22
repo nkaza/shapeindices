@@ -65,7 +65,7 @@
       <h1>10. Comparing Shape Indices: North Carolina Counties</h1>
 
       <p class="author">Nikhil Kaza</p>
-      <p class="date">2026-07-21</p>
+      <p class="date">2026-07-22</p>
 
       <small class="dont-index">Source: <a href="https://github.com/nkaza/shapeindices/blob/main/vignettes/j-nc-counties-comparison.qmd" class="external-link"><code>vignettes/j-nc-counties-comparison.qmd</code></a></small>
       <div class="d-none name"><code></code></div>
@@ -261,65 +261,88 @@ Lincoln</th>
 <div class="cell-output-display">
 <table class="table caption-top">
 <thead><tr class="header">
-<th style="text-align: left;" data-quarto-table-cell-role="th">id</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">convexity_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">moment_of_inertia_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">moment_isotropy_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">directional_balance_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">span_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">radial_concentration_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">depth_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">hull_ratio_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">polsby_popper_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">width_length_ratio_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">reock_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">detour_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">exchange_index</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">total_weight</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th"></th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">weighted_by_area</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">weighted_by_births</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">weighted_by_area</td>
-<td style="text-align: right;">0.983</td>
-<td style="text-align: right;">0.815</td>
-<td style="text-align: right;">0.507</td>
-<td style="text-align: right;">0.984</td>
-<td style="text-align: right;">0.917</td>
-<td style="text-align: right;">0.924</td>
-<td style="text-align: right;">0.685</td>
-<td style="text-align: right;">0.831</td>
-<td style="text-align: right;">0.514</td>
-<td style="text-align: right;">0.686</td>
-<td style="text-align: right;">0.483</td>
-<td style="text-align: right;">0.83</td>
-<td style="text-align: right;">0.807</td>
-<td style="text-align: right;">5811314465</td>
+<td style="text-align: left;">convexity_index</td>
+<td style="text-align: right;">0.98</td>
+<td style="text-align: right;">0.99</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">weighted_by_births</td>
-<td style="text-align: right;">0.990</td>
-<td style="text-align: right;">0.697</td>
-<td style="text-align: right;">0.643</td>
-<td style="text-align: right;">0.960</td>
-<td style="text-align: right;">0.849</td>
-<td style="text-align: right;">0.852</td>
-<td style="text-align: right;">0.507</td>
-<td style="text-align: right;">0.831</td>
-<td style="text-align: right;">0.514</td>
-<td style="text-align: right;">0.686</td>
-<td style="text-align: right;">0.483</td>
+<td style="text-align: left;">moment_of_inertia_index</td>
+<td style="text-align: right;">0.82</td>
+<td style="text-align: right;">0.70</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">moment_isotropy_index</td>
+<td style="text-align: right;">0.51</td>
+<td style="text-align: right;">0.64</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">directional_balance_index</td>
+<td style="text-align: right;">0.98</td>
+<td style="text-align: right;">0.96</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">span_index</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">0.85</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">radial_concentration_index</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">0.85</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">depth_index</td>
+<td style="text-align: right;">0.69</td>
+<td style="text-align: right;">0.51</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hull_ratio_index</td>
 <td style="text-align: right;">0.83</td>
-<td style="text-align: right;">0.807</td>
-<td style="text-align: right;">27264</td>
+<td style="text-align: right;">0.83</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">polsby_popper_index</td>
+<td style="text-align: right;">0.51</td>
+<td style="text-align: right;">0.51</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">width_length_ratio_index</td>
+<td style="text-align: right;">0.69</td>
+<td style="text-align: right;">0.69</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">reock_index</td>
+<td style="text-align: right;">0.48</td>
+<td style="text-align: right;">0.48</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">detour_index</td>
+<td style="text-align: right;">0.83</td>
+<td style="text-align: right;">0.83</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">exchange_index</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">0.81</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">total_weight</td>
+<td style="text-align: right;">5811314465.44</td>
+<td style="text-align: right;">27264.00</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>Same union geometry, same <code>hull_ratio_index</code> (it has no weighted form - it’s a property of the convex hull’s boundary, not a sum over pieces) - but <code>convexity_index</code>, <code>moment_of_inertia_index</code>, and <code>span_index</code> all shift once births, rather than raw land area, decide how much each county’s shape “counts”.</p>
-<p>Whenever rows genuinely differ in weight, each row’s own boundary is supplied as a hard constraint on the combined triangulation, so no triangle can ever straddle two rows - density is allocated onto the mesh exactly, not approximated by averaging. This matters most for a handful of large, high-density rows sitting next to many small, low-density ones, where a single coarse triangle could otherwise span rows with very different weights. It falls back to the coarser, union-only mesh automatically (with a warning) if the kept rows genuinely overlap rather than just touch.</p>
+<p>Same union geometry results in the same <code>hull_ratio_index</code> (it has no weighted form - it’s a property of the convex hull’s boundary, not a sum over pieces) - but <code>convexity_index</code>, <code>moment_of_inertia_index</code>, and <code>span_index</code> all shift once births, rather than raw land area, decide how much each county’s shape “counts”.</p>
 <p>Weighted by each county’s own area (<code>weights = NULL</code>, the default), the four-county union scores convexity 0.983 and MOI 0.815. Switching the weight to 1974 births, so that Wake dominates in one part of the union, moves MOI, span, and radial concentration all <em>down</em> together (0.697, 0.849, 0.852). Convexity moves the other way, slightly <em>up</em> (0.990). It does not depend on where the centre of mass is at all and therefore behaves as expected.</p>
-<p>Reweighting the mesh by population reveals that moment isotropy and directional balance capture fundamentally different spatial mechanisms when mass shifts toward a dominant county like Wake. <strong>Moment isotropy moves up</strong> (0.507 to 0.643), shifting opposite to MOI, span, and radial concentration. This isn’t a contradiction: while center-relative metrics penalize how far mass drifts from the union’s geometric middle, moment isotropy evaluates only the <em>shape</em> of the distribution around its own center—concentrating weight into Wake (a relatively round county within a long four-county strip) makes the core mass footprint more isotropic even as its center drifts. Conversely, <strong>directional balance moves down</strong> (0.984 to 0.960), tracking alongside MOI and span because shifting weight toward Wake creates an asymmetric angular pull from the new centroid. Moment isotropy acts as the lone outlier here precisely because it ignores center-relative displacement, proving it operates as an independent axis rather than a redundant metric. <em>(Note: <code>total_weight</code> reflects raw area in <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>m</mi><mn>2</mn></msup><annotation encoding="application/x-tex">m^2</annotation></semantics></math> versus total births, so row totals represent different scales).</em></p>
+<p>Reweighting the mesh reveals that moment isotropy and directional balance capture fundamentally different spatial mechanisms when mass shifts toward a dominant county like Wake. <strong>Moment isotropy moves up</strong> (0.507 to 0.643), shifting opposite to MOI, span, and radial concentration. While center-relative metrics penalize how far mass drifts from the union’s geometric middle, moment isotropy evaluates only the <em>shape</em> of the distribution around its own center—concentrating weight into Wake (a relatively round county within a long four-county strip) makes the core mass footprint more isotropic even as its center drifts. Conversely, <strong>directional balance moves down</strong> (0.984 to 0.960), tracking alongside MOI and span because shifting weight toward Wake creates an asymmetric angular pull from the new centroid. Moment isotropy acts as the lone outlier here precisely because it ignores center-relative displacement, proving it operates as an independent axis rather than a redundant metric. <em>(Note: <code>total_weight</code> reflects raw area in</em> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>m</mi><mn>2</mn></msup><annotation encoding="application/x-tex">m^2</annotation></semantics></math> versus total births, so row totals represent different scales).</p>
 </section><section class="section level2" data-number="5"><h2 data-number="5" id="conclusion">
 <span class="header-section-number">5</span> Conclusion<a class="anchor" aria-label="anchor" href="#conclusion"></a>
 </h2>
