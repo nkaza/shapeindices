@@ -8,9 +8,7 @@
 ## it overlaps via st_intersection() - a triangle straddling several rows
 ## gets their AVERAGE density baked in uniformly, smearing concentration
 ## and making the weighted index a function of the arbitrary triangulation,
-## not just of (shape, weights). Verified on real Census block data: this
-## overestimates compactness (moment_of_inertia_index()) by ~0.05-0.10
-## index points on realistic urban-area-scale inputs.
+## not just of (shape, weights).
 ##
 ## FIX: supply every kept row's own boundary as a CONSTRAINT SEGMENT to the
 ## triangulation itself (RTriangle::pslg()/triangulate() - the constrained-
@@ -20,10 +18,7 @@
 ## relying on them). A constrained Delaunay triangulation never produces a
 ## triangle crossing a constraint edge, so every triangle sits entirely
 ## inside exactly one row by construction - weight allocation is exact,
-## not approximated, with no depth/resolution parameter to tune. Verified:
-## weight recovery is exactly 100.00000% (to displayed precision) on three
-## real Urban Area files, including a 38,175-row/1,979,609-triangle case,
-## cross-checked against an independent implementation to the last digit.
+## not approximated, with no depth/resolution parameter to tune.
 ##
 ## SCOPE: only fixes shape_indices_sf(byrow = FALSE)'s WEIGHTED mesh -
 ## never touches byrow = TRUE or unweighted byrow = FALSE, neither of
@@ -35,11 +30,10 @@
 ##
 ## RAW ARRAYS, NOT SF PIECES: the returned mesh is RTriangle's own output
 ## format directly (P: point matrix, T: 3-column triangle-vertex-index
-## matrix) - never converted to sf POLYGON objects. Building ~2 million sf
-## polygons (one per triangle, at real Urban-Area scale) measured at ~500
-## seconds by itself, dominated by R's own per-object construction
-## overhead, not triangulation cost (the triangulation itself takes ~2s at
-## that scale). Every index that actually runs on this mesh - moment of
+## matrix) - never converted to sf POLYGON objects. Building one sf polygon
+## per triangle is dominated by R's own per-object construction overhead,
+## not triangulation cost, and becomes prohibitive at real Urban-Area scale
+## (millions of triangles). Every index that actually runs on this mesh - moment of
 ## inertia, moment isotropy, radial concentration, directional balance,
 ## and convexity/span's Monte Carlo sampling - only ever needs per-triangle
 ## centroids, areas, and corner coordinates, all read directly off P/T
@@ -50,6 +44,39 @@
 ## safety ceiling (see shape-indices.R's dispatch), so it never actually
 ## runs on this mesh in practice.
 
+#' Normalises a (possibly heterogeneous, post-st_make_valid()) sfc to a
+#' single homogeneous sfc_MULTIPOLYGON, one feature at a time. Not the same
+#' quirk .split_polygon_parts() (triangulation.R) works around, but the same
+#' underlying cause: st_make_valid() can tag a genuinely single-part
+#' MULTIPOLYGON down to POLYGON, so a multi-row collection where some rows
+#' are single-part and others aren't comes back as a mixed sfc_GEOMETRY -
+#' plain st_cast(geoms, "MULTIPOLYGON") already handles that case correctly
+#' (it dispatches per feature on that feature's own reliable type tag), but
+#' not a feature that itself validated down to a dimension-mixed
+#' GEOMETRYCOLLECTION (e.g. a polygon plus a degenerate lower-dimensional
+#' artifact) - st_collection_extract() peels off just the polygonal part of
+#' those first, matching .split_polygon_parts()'s own handling of the same
+#' case for a single feature. For example, in the NC counties shapefile,
+#' 4 of the first 5 rows validate down to plain POLYGON while the 5th
+#' stays MULTIPOLYGON, which breaks .extract_pslg()'s single
+#' st_coordinates() call below without this.
+#' @param geoms an sfc of (possibly mixed-type) (multi)polygon features
+#' @return sfc_MULTIPOLYGON, same length/order/CRS as `geoms`
+#' @noRd
+.normalize_multipolygon <- function(geoms) {
+    crs <- st_crs(geoms)
+    out <- purrr::map(geoms, \(g) {
+        type <- class(g)[2]
+        if (type == "GEOMETRYCOLLECTION") {
+            parts <- st_collection_extract(st_sfc(g, crs = crs), "POLYGON", warn = FALSE)
+            g <- if (length(parts) == 0) st_multipolygon() else parts[[1]]
+            type <- class(g)[2]
+        }
+        if (type == "POLYGON") st_multipolygon(list(unclass(g))) else g
+    })
+    st_sfc(out, crs = crs)
+}
+
 #' Vectorised sf-geometry -> Planar Straight Line Graph (PSLG) extraction:
 #' every ring (exterior AND holes, across every part of a MULTIPOLYGON) of
 #' every feature in `geoms` becomes a closed loop of constraint segments,
@@ -57,10 +84,8 @@
 #' deduplication. One st_coordinates() call for the whole input, one
 #' vectorised match() for vertex dedup, and a run-length-encoding-based
 #' "close each ring" shift - no per-feature R loop. A naive per-point
-#' environment-lookup version of this same dedup showed clear O(n^2)-ish
-#' blowup at scale (successive 5k-feature chunks took 0.1, 0.2, 0.4, 0.9
-#' minutes); this vectorised version processes a real 38,175-feature
-#' input's worth of coordinates in ~5 seconds.
+#' environment-lookup version of this same dedup shows clear O(n^2)-ish
+#' blowup at scale; this vectorised version stays roughly linear.
 #'
 #' st_coordinates() labels every row with ring/part/feature indices in
 #' columns named "L1", "L2", ... - for a plain POLYGON input the last such
@@ -70,11 +95,12 @@
 #' Grouping by every "L" column except the last (the feature index) gives
 #' exactly one group per ring instance, whatever the geometry type - this
 #' is what makes holes (an easy thing to silently drop by filtering only
-#' `L1 == 1`, a real mistake caught mid-development via a real block with
-#' a hole in real test data - area conservation immediately exposed the
-#' dropped ring) and multi-part features both work correctly with the same
+#' `L1 == 1`) and multi-part features both work correctly with the same
 #' code, rather than needing separate handling.
-#' @param geoms an sfc of POLYGON/MULTIPOLYGON geometries
+#' @param geoms an sfc of (possibly mixed-type) POLYGON/MULTIPOLYGON
+#'   geometries - normalised to a single homogeneous type internally (see
+#'   .normalize_multipolygon()) before the single st_coordinates() call
+#'   below, which requires one consistent type across every feature
 #' @param snap_digits decimal places to round coordinates to before
 #'   deduplicating vertices - touching features' shared boundary points
 #'   must round to the same key to be treated as one shared vertex
@@ -83,28 +109,31 @@
 #'   number of closed loops found (features + holes, informational only)
 #' @noRd
 .extract_pslg <- function(geoms, snap_digits = 6L) {
-    co <- st_coordinates(geoms)
+    co <- st_coordinates(.normalize_multipolygon(geoms))
     lcols <- grep("^L", colnames(co), value = TRUE)
-    feat_col  <- lcols[length(lcols)]
+    feat_col <- lcols[length(lcols)]
     ring_cols <- setdiff(lcols, feat_col)
-    ring_key <- if (length(ring_cols) == 0) co[, feat_col] else
+    ring_key <- if (length(ring_cols) == 0) {
+        co[, feat_col]
+    } else {
         interaction(co[, feat_col], do.call(paste, as.data.frame(co[, ring_cols, drop = FALSE])), drop = TRUE)
+    }
     grp_id <- as.integer(ring_key)
 
     key <- sprintf("%.*f_%.*f", snap_digits, co[, "X"], snap_digits, co[, "Y"])
-    uk  <- unique(key)
+    uk <- unique(key)
     vid <- match(key, uk)
-    ux  <- co[match(uk, key), "X"]
-    uy  <- co[match(uk, key), "Y"]
+    ux <- co[match(uk, key), "X"]
+    uy <- co[match(uk, key), "Y"]
 
     r <- rle(grp_id)
-    end_idx   <- cumsum(r$lengths)
+    end_idx <- cumsum(r$lengths)
     start_idx <- end_idx - r$lengths + 1L
-    is_close_dup <- seq_along(grp_id) %in% end_idx   # sf always repeats a ring's first point as its last
+    is_close_dup <- seq_along(grp_id) %in% end_idx # sf always repeats a ring's first point as its last
 
     from_rows <- which(!is_close_dup)
-    next_row  <- from_rows + 1L
-    grp_of_from  <- grp_id[from_rows]
+    next_row <- from_rows + 1L
+    grp_of_from <- grp_id[from_rows]
     is_last_kept <- is_close_dup[next_row]
     start_by_grp <- integer(max(grp_id))
     start_by_grp[r$values] <- start_idx
@@ -138,23 +167,28 @@
 #'   own boundary detail, which is never simplified, since simplifying it
 #'   would reintroduce exactly the smearing this mesh exists to avoid) -
 #'   only the union's own outer perimeter detail.
-#' @return list(ok, P, T, tri_area, tri_weight, poly_u, raw_total, crs).
-#'   When `ok = FALSE`, only `ok` and `reason` are meaningful - the caller
-#'   ignores every other field and calls .weighted_mesh() instead. P/T
+#' @return list(ok, P, T, tri_area, tri_weight, poly_id, poly_u, raw_total,
+#'   crs). When `ok = FALSE`, only `ok` and `reason` are meaningful - the
+#'   caller ignores every other field and calls .weighted_mesh() instead. P/T
 #'   are RTriangle::triangulate()'s own output format directly (a point
 #'   matrix and a 3-column triangle-vertex-index matrix) - see this
 #'   file's own header for why these are never converted to sf polygons.
+#'   `poly_id` is the same per-kept-triangle owning-row index computed below
+#'   as `row_idx` (1-based index into `x`'s kept rows) - kept in the return
+#'   value for callers that aggregate per input polygon rather than just
+#'   reading the row-blended `tri_weight`.
 #' @noRd
 .constrained_weighted_mesh <- function(x, weights, simplify_tolerance = NULL) {
-    ru    <- .resolve_union(x, weights, simplify_tolerance)
+    ru <- .resolve_union(x, weights, simplify_tolerance)
     geoms <- ru$geoms
     w_row <- ru$w_row
-    crs   <- st_crs(x)
+    crs <- st_crs(x)
 
     if (length(geoms) > 1 && any(lengths(suppressWarnings(st_overlaps(geoms))) > 0)) {
         return(list(ok = FALSE, reason = paste(
             "kept rows overlap (not just touch), which violates the",
-            "planar-partition assumption constrained triangulation needs")))
+            "planar-partition assumption constrained triangulation needs"
+        )))
     }
 
     pslg_res <- tryCatch(.extract_pslg(geoms), error = function(e) e)
@@ -180,30 +214,32 @@
     # uses for holes) get dropped from the returned mesh entirely
     cx <- rowMeans(matrix(tr$P[t(tr$T), 1], ncol = 3, byrow = TRUE))
     cy <- rowMeans(matrix(tr$P[t(tr$T), 2], ncol = 3, byrow = TRUE))
-    cent_sfc <- st_sfc(lapply(seq_along(cx), function(i) st_point(c(cx[i], cy[i]))), crs = crs)
+    cent_sfc <- st_sfc(purrr::map(seq_along(cx), \(i) st_point(c(cx[i], cy[i]))), crs = crs)
     hits <- st_intersects(cent_sfc, geoms)
-    row_idx <- vapply(hits, function(h) if (length(h)) h[1L] else NA_integer_, integer(1))
+    row_idx <- purrr::map_int(hits, \(h) if (length(h)) h[1L] else NA_integer_)
 
     keep_tri <- !is.na(row_idx)
-    T_keep   <- tr$T[keep_tri, , drop = FALSE]
-    row_idx  <- row_idx[keep_tri]
+    T_keep <- tr$T[keep_tri, , drop = FALSE]
+    row_idx <- row_idx[keep_tri]
 
-    tri_area <- vapply(seq_len(nrow(T_keep)), function(i) {
+    tri_area <- purrr::map_dbl(seq_len(nrow(T_keep)), \(i) {
         v <- tr$P[T_keep[i, ], ]
         abs((v[2, 1] - v[1, 1]) * (v[3, 2] - v[1, 2]) - (v[3, 1] - v[1, 1]) * (v[2, 2] - v[1, 2])) / 2
-    }, numeric(1))
+    })
 
     # density from RAW (pre-normalisation) row weight/area - the same
     # invariant .resolve_row_weights()/.resolve_union() already keep for
     # `raw_total`, kept explicit here since it's what makes each
     # triangle's weight exactly reproduce its own row's true density,
     # regardless of how many other rows/triangles exist
-    row_area    <- as.numeric(st_area(geoms))
+    row_area <- as.numeric(st_area(geoms))
     row_density <- w_row / row_area
-    tri_weight  <- tri_area * row_density[row_idx]
+    tri_weight <- tri_area * row_density[row_idx]
 
-    list(ok = TRUE, P = tr$P, T = T_keep, tri_area = tri_area, tri_weight = tri_weight,
-         poly_u = ru$poly_u, raw_total = ru$raw_total, crs = crs)
+    list(
+        ok = TRUE, P = tr$P, T = T_keep, tri_area = tri_area, tri_weight = tri_weight,
+        poly_id = row_idx, poly_u = ru$poly_u, raw_total = ru$raw_total, crs = crs
+    )
 }
 
 ## -- array-native computation, used only by the mesh above --------------
@@ -222,11 +258,10 @@
 #' same mass centroid / Ixx/Iyy/Ixy / concentric-rings-reference formulas,
 #' vectorised over P/T directly. Skips the per-triangle CCW-winding
 #' correction .moment_of_inertia_core() carries (needed there because CDT
-#' triangulation doesn't guarantee consistent winding) - verified
-#' empirically across several real and synthetic inputs that
-#' RTriangle::triangulate()'s own output is always consistently
-#' CCW-wound (every triangle's signed area positive, zero exceptions), so
-#' the shoelace formulas below can rely on that directly.
+#' triangulation doesn't guarantee consistent winding) -
+#' RTriangle::triangulate()'s own output is always consistently CCW-wound
+#' (every triangle's signed area positive), so the shoelace formulas below
+#' can rely on that directly.
 #' @param P Nx2 point matrix, T Mx3 triangle-vertex-index matrix - a
 #'   .constrained_weighted_mesh() result's own P/T
 #' @param tri_area numeric vector, length nrow(T)
@@ -241,43 +276,48 @@
     tc <- (P[T[, 1], , drop = FALSE] + P[T[, 2], , drop = FALSE] + P[T[, 3], , drop = FALSE]) / 3
     G <- c(sum(mass * tc[, 1]), sum(mass * tc[, 2])) / sum(mass)
 
-    vx1 <- P[T[, 1], 1] - G[1]; vy1 <- P[T[, 1], 2] - G[2]
-    vx2 <- P[T[, 2], 1] - G[1]; vy2 <- P[T[, 2], 2] - G[2]
-    vx3 <- P[T[, 3], 1] - G[1]; vy3 <- P[T[, 3], 2] - G[2]
+    vx1 <- P[T[, 1], 1] - G[1]
+    vy1 <- P[T[, 1], 2] - G[2]
+    vx2 <- P[T[, 2], 1] - G[1]
+    vy2 <- P[T[, 2], 2] - G[2]
+    vx3 <- P[T[, 3], 1] - G[1]
+    vy3 <- P[T[, 3], 2] - G[2]
 
     cross1 <- vx1 * vy2 - vx2 * vy1
     cross2 <- vx2 * vy3 - vx3 * vy2
     cross3 <- vx3 * vy1 - vx1 * vy3
 
     Ixx_tri <- ((vy1^2 + vy1 * vy2 + vy2^2) * cross1 +
-                (vy2^2 + vy2 * vy3 + vy3^2) * cross2 +
-                (vy3^2 + vy3 * vy1 + vy1^2) * cross3) / 12
+        (vy2^2 + vy2 * vy3 + vy3^2) * cross2 +
+        (vy3^2 + vy3 * vy1 + vy1^2) * cross3) / 12
     Iyy_tri <- ((vx1^2 + vx1 * vx2 + vx2^2) * cross1 +
-                (vx2^2 + vx2 * vx3 + vx3^2) * cross2 +
-                (vx3^2 + vx3 * vx1 + vx1^2) * cross3) / 12
+        (vx2^2 + vx2 * vx3 + vx3^2) * cross2 +
+        (vx3^2 + vx3 * vx1 + vx1^2) * cross3) / 12
     # standard polygon product-of-inertia formula, same cross/winding
     # setup as Ixx_tri/Iyy_tri above, just the xy cross term
     Ixy_tri <- ((vx1 * vy2 + 2 * vx1 * vy1 + 2 * vx2 * vy2 + vx2 * vy1) * cross1 +
-                (vx2 * vy3 + 2 * vx2 * vy2 + 2 * vx3 * vy3 + vx3 * vy2) * cross2 +
-                (vx3 * vy1 + 2 * vx3 * vy3 + 2 * vx1 * vy1 + vx1 * vy3) * cross3) / 24
+        (vx2 * vy3 + 2 * vx2 * vy2 + 2 * vx3 * vy3 + vx3 * vy2) * cross2 +
+        (vx3 * vy1 + 2 * vx3 * vy3 + 2 * vx1 * vy1 + vx1 * vy3) * cross3) / 24
 
     Ixx <- sum(rho * Ixx_tri)
     Iyy <- sum(rho * Iyy_tri)
     Ixy <- sum(rho * Ixy_tri)
-    J   <- Ixx + Iyy
-    A   <- sum(tri_area)
-    W   <- sum(rho * tri_area)
+    J <- Ixx + Iyy
+    A <- sum(tri_area)
+    W <- sum(rho * tri_area)
 
-    ord    <- order(rho, decreasing = TRUE)
-    S      <- cumsum(tri_area[ord])
+    ord <- order(rho, decreasing = TRUE)
+    S <- cumsum(tri_area[ord])
     S_prev <- c(0, S[-length(S)])
-    J_ref  <- sum(rho[ord] * (S^2 - S_prev^2)) / (2 * pi)
+    J_ref <- sum(rho[ord] * (S^2 - S_prev^2)) / (2 * pi)
 
     index <- if (J > 0) J_ref / J else NA_real_
 
-    list(index = index, J = J, Ixx = Ixx, Iyy = Iyy, Ixy = Ixy, J_ref = J_ref,
-         area = A, total_weight = W,
-         centroid = st_sfc(st_point(G), crs = crs), triangles = NULL)
+    list(
+        index = index, J = J, Ixx = Ixx, Iyy = Iyy, Ixy = Ixy, J_ref = J_ref,
+        area = A, total_weight = W,
+        centroid = st_sfc(st_point(G), crs = crs), triangles = NULL
+    )
 }
 
 #' Every triangle's own centroid, vectorised over P/T at once - used
@@ -330,7 +370,9 @@
         orig_idx <- seq_along(grp)
         for (k in seq_len(d)) {
             sub <- .subdivide_tri_batch(A, B, C)
-            A <- sub$A; B <- sub$B; C <- sub$C
+            A <- sub$A
+            B <- sub$B
+            C <- sub$C
             orig_idx <- rep(orig_idx, times = 4)
         }
         n_sub <- 4^d
@@ -354,15 +396,17 @@
 #' @noRd
 .mesh_directional_balance_index_array <- function(P, T, tri_area, weight, crs) {
     area <- sum(tri_area)
-    w    <- .normalize_weight(weight)
-    tc   <- .tri_centroids_array(P, T)
-    G    <- c(sum(w * tc[, 1]), sum(w * tc[, 2])) / sum(w)
+    w <- .normalize_weight(weight)
+    tc <- .tri_centroids_array(P, T)
+    G <- c(sum(w * tc[, 1]), sum(w * tc[, 2])) / sum(w)
 
     cloud <- .radial_point_cloud_array(P, T, tri_area, w)
-    res   <- .resultant_from_cloud(cloud$p, cloud$w, G)
+    res <- .resultant_from_cloud(cloud$p, cloud$w, G)
 
-    list(index = 1 - res$R, R = res$R, mean_angle = res$mean_angle, area = area,
-         total_weight = sum(weight), centroid = st_sfc(st_point(G), crs = crs), triangles = NULL)
+    list(
+        index = 1 - res$R, R = res$R, mean_angle = res$mean_angle, area = area,
+        total_weight = sum(weight), centroid = st_sfc(st_point(G), crs = crs), triangles = NULL
+    )
 }
 
 #' Array-native mirror of .mesh_radial_concentration_index() (radial-
@@ -379,16 +423,18 @@
 #' @noRd
 .mesh_radial_concentration_index_array <- function(P, T, tri_area, weight, crs) {
     area <- sum(tri_area)
-    w    <- .normalize_weight(weight)
+    w <- .normalize_weight(weight)
 
     cloud <- .radial_point_cloud_array(P, T, tri_area, w)
-    gm    <- .geometric_median(cloud$p, cloud$w)
+    gm <- .geometric_median(cloud$p, cloud$w)
 
     D1_ref <- .annulus_reference_D1(tri_area, weight)
-    index  <- D1_ref / gm$D1
+    index <- D1_ref / gm$D1
 
-    list(index = index, D1 = gm$D1, D1_ref = D1_ref, area = area,
-         total_weight = sum(weight), center = st_sfc(st_point(gm$center), crs = crs), triangles = NULL)
+    list(
+        index = index, D1 = gm$D1, D1_ref = D1_ref, area = area,
+        total_weight = sum(weight), center = st_sfc(st_point(gm$center), crs = crs), triangles = NULL
+    )
 }
 
 #' Array-native mirror of .random_point_directional_balance_index()'s
@@ -405,14 +451,16 @@
 #' @noRd
 .random_point_directional_balance_index_array <- function(P, T, tri_area, weight, points, crs) {
     area <- sum(tri_area)
-    w    <- .normalize_weight(weight)
-    tc   <- .tri_centroids_array(P, T)
-    G    <- c(sum(w * tc[, 1]), sum(w * tc[, 2])) / sum(w)
+    w <- .normalize_weight(weight)
+    tc <- .tri_centroids_array(P, T)
+    G <- c(sum(w * tc[, 1]), sum(w * tc[, 2])) / sum(w)
 
     res <- .resultant_from_cloud(points, rep(1, nrow(points)), G)
 
-    list(index = 1 - res$R, R = res$R, mean_angle = res$mean_angle, area = area,
-         total_weight = sum(weight), centroid = st_sfc(st_point(G), crs = crs), triangles = NULL)
+    list(
+        index = 1 - res$R, R = res$R, mean_angle = res$mean_angle, area = area,
+        total_weight = sum(weight), centroid = st_sfc(st_point(G), crs = crs), triangles = NULL
+    )
 }
 
 #' Array-native mirror of .random_point_radial_index()'s points-supplied
@@ -427,13 +475,15 @@
 #' @noRd
 .random_point_radial_index_array <- function(P, T, tri_area, weight, points, crs) {
     area <- sum(tri_area)
-    gm   <- .geometric_median(points, rep(1, nrow(points)))
+    gm <- .geometric_median(points, rep(1, nrow(points)))
 
     D1_ref <- .annulus_reference_D1(tri_area, weight)
-    index  <- D1_ref / gm$D1
+    index <- D1_ref / gm$D1
 
-    list(index = index, D1 = gm$D1, D1_ref = D1_ref, area = area,
-         total_weight = sum(weight), center = st_sfc(st_point(gm$center), crs = crs), triangles = NULL)
+    list(
+        index = index, D1 = gm$D1, D1_ref = D1_ref, area = area,
+        total_weight = sum(weight), center = st_sfc(st_point(gm$center), crs = crs), triangles = NULL
+    )
 }
 
 #' Array-native mirror of .mesh_depth_index() (depth-index.R) - same
@@ -453,18 +503,20 @@
 #' @noRd
 .mesh_depth_index_array <- function(P, T, tri_area, weight, poly_u) {
     area <- sum(tri_area)
-    w    <- .normalize_weight(weight)
+    w <- .normalize_weight(weight)
 
     cloud <- .radial_point_cloud_array(P, T, tri_area, w)
-    bnd   <- st_boundary(poly_u)
-    d     <- as.numeric(st_distance(.coords_to_points(cloud$p, st_crs(poly_u)), bnd))
+    bnd <- st_boundary(poly_u)
+    d <- as.numeric(st_distance(.coords_to_points(cloud$p, st_crs(poly_u)), bnd))
     mean_depth <- sum(cloud$w * d) / sum(cloud$w)
 
     ref_depth <- .annulus_reference_depth(tri_area, weight)
     index <- mean_depth / ref_depth
 
-    list(index = index, mean_depth = mean_depth, ref_depth = ref_depth, area = area,
-         total_weight = sum(weight), triangles = NULL)
+    list(
+        index = index, mean_depth = mean_depth, ref_depth = ref_depth, area = area,
+        total_weight = sum(weight), triangles = NULL
+    )
 }
 
 #' Array-native mirror of .random_point_depth_index()'s points-supplied
@@ -479,15 +531,17 @@
 #' @noRd
 .random_point_depth_index_array <- function(P, T, tri_area, weight, points, poly_u) {
     area <- sum(tri_area)
-    bnd  <- st_boundary(poly_u)
-    d    <- as.numeric(st_distance(.coords_to_points(points, st_crs(poly_u)), bnd))
+    bnd <- st_boundary(poly_u)
+    d <- as.numeric(st_distance(.coords_to_points(points, st_crs(poly_u)), bnd))
     mean_depth <- mean(d)
 
     ref_depth <- .annulus_reference_depth(tri_area, weight)
     index <- mean_depth / ref_depth
 
-    list(index = index, mean_depth = mean_depth, ref_depth = ref_depth, area = area,
-         total_weight = sum(weight), triangles = NULL)
+    list(
+        index = index, mean_depth = mean_depth, ref_depth = ref_depth, area = area,
+        total_weight = sum(weight), triangles = NULL
+    )
 }
 
 #' Lazily converts a slice of this mesh's own P/T arrays into real sf
@@ -498,9 +552,8 @@
 #' cost this file's own header describes as prohibitive at full mesh
 #' scale. Deterministic mode is only ever reached here below
 #' .safe_deterministic_tri_ceiling() (see shape-indices.R's dispatch), so
-#' n_tri is always small when this actually runs - the ~500s measured
-#' cost was at ~2 million triangles, not the few hundred/thousand this
-#' is bounded to.
+#' n_tri is always small (a few hundred/thousand) when this actually runs,
+#' not the millions of triangles a full mesh can have.
 #' @param P Nx2 point matrix, T Mx3 triangle-vertex-index matrix
 #' @param tri_area numeric vector, length nrow(T)
 #' @param crs the mesh's CRS
@@ -509,7 +562,7 @@
 #' @noRd
 .array_mesh_to_sf_pieces <- function(P, T, tri_area, crs) {
     n <- nrow(T)
-    geom <- st_sfc(lapply(seq_len(n), function(i) {
+    geom <- st_sfc(purrr::map(seq_len(n), \(i) {
         v <- P[T[i, ], , drop = FALSE]
         st_polygon(list(rbind(v, v[1, , drop = FALSE])))
     }), crs = crs)
@@ -533,26 +586,29 @@
     B <- P[T[tri_idx, 2], , drop = FALSE]
     C <- P[T[tri_idx, 3], , drop = FALSE]
 
-    r1 <- runif(n); r2 <- runif(n)
-    flip     <- (r1 + r2) > 1
+    r1 <- runif(n)
+    r2 <- runif(n)
+    flip <- (r1 + r2) > 1
     r1[flip] <- 1 - r1[flip]
     r2[flip] <- 1 - r2[flip]
 
-    cbind(x = A[, 1] + r1 * (B[, 1] - A[, 1]) + r2 * (C[, 1] - A[, 1]),
-          y = A[, 2] + r1 * (B[, 2] - A[, 2]) + r2 * (C[, 2] - A[, 2]))
+    cbind(
+        x = A[, 1] + r1 * (B[, 1] - A[, 1]) + r2 * (C[, 1] - A[, 1]),
+        y = A[, 2] + r1 * (B[, 2] - A[, 2]) + r2 * (C[, 2] - A[, 2])
+    )
 }
 
 ## -- memory-derived safety ceiling for O(n^2) deterministic modes -------
 ##
 ## A .constrained_weighted_mesh() can be orders of magnitude larger than
-## any CDT mesh this package has ever built (real Urban Area data: 1.98
-## million triangles, vs. a few tens of thousands from the coarse
+## any CDT mesh this package has ever built (millions of triangles for
+## real Urban Area data, vs. a few tens of thousands from the coarse
 ## .weighted_mesh() path) - large enough that convexity_index()'s/
 ## span_index()'s DETERMINISTIC mode, O(n^2) in triangle-pair count, goes
 ## from "slow" to genuinely unsafe: at that scale, n_candidate_lines
-## exceeds .mesh_convexity_index()'s own existing "large mesh" WARNING
-## threshold (20,000) by roughly 98 million times. A fixed hard-coded
-## ceiling would be the wrong shape for this - it can't know how much
+## vastly exceeds .mesh_convexity_index()'s own existing "large mesh"
+## WARNING threshold (20,000). A fixed hard-coded ceiling would be the
+## wrong shape for this - it can't know how much
 ## memory is actually available on whatever machine is running the
 ## computation. Instead, reuses this package's own existing
 ## .available_memory_mb()/.choose_line_chunk_size() pattern (utils.R,
@@ -581,7 +637,7 @@
 #' @return integer >= 1, the largest triangle count considered safe
 #' @noRd
 .safe_deterministic_tri_ceiling <- function(n_quad, formula = c("convexity", "span"),
-                                             bytes_per_pair = 200, mem_fraction = 0.2) {
+                                            bytes_per_pair = 200, mem_fraction = 0.2) {
     formula <- match.arg(formula)
     budget_bytes <- .available_memory_mb() * 1024^2 * mem_fraction
     max_units <- budget_bytes / bytes_per_pair

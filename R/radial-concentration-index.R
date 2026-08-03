@@ -39,10 +39,9 @@
 ## by Jensen's inequality collapsing a triangle to its own centroid
 ## systematically UNDERESTIMATES its contribution, while tri_quad_points()'s
 ## fixed 3-point rule (built for accurately estimating AREA integrals, not
-## distance-to-an-external-point) overshoots it instead - verified against
-## a direct Monte Carlo estimate to be a genuinely non-negligible bias
-## (single digits of percent) at the mesh sizes this package actually
-## sees, not a rounding-level nicety. The fix is the same one span_index()
+## distance-to-an-external-point) overshoots it instead - a genuinely
+## non-negligible bias (single digits of percent) at the mesh sizes this
+## package actually sees, not a rounding-level nicety. The fix is the same one span_index()
 ## uses for its self-term: recursively split each triangle by medial
 ## subdivision and use the sub-triangle centroids as the point cloud,
 ## which converges geometrically as subdivision deepens
@@ -91,14 +90,17 @@
 .geometric_median <- function(p, w, max_iter = 200, tol = 1e-10) {
     mean_dist <- function(c) sum(w * sqrt((p[, 1] - c[1])^2 + (p[, 2] - c[2])^2)) / sum(w)
 
-    c_t <- colSums(p * w) / sum(w)   # start from the centroid
+    c_t <- colSums(p * w) / sum(w) # start from the centroid
     obj <- mean_dist(c_t)
     for (i in seq_len(max_iter)) {
-        d  <- pmax(sqrt((p[, 1] - c_t[1])^2 + (p[, 2] - c_t[2])^2), 1e-12)
+        d <- pmax(sqrt((p[, 1] - c_t[1])^2 + (p[, 2] - c_t[2])^2), 1e-12)
         wd <- w / d
         c_t <- colSums(p * wd) / sum(wd)
         obj_new <- mean_dist(c_t)
-        if (abs(obj - obj_new) < tol * max(1, obj_new)) { obj <- obj_new; break }
+        if (abs(obj - obj_new) < tol * max(1, obj_new)) {
+            obj <- obj_new
+            break
+        }
         obj <- obj_new
     }
     list(center = c_t, D1 = obj)
@@ -167,7 +169,7 @@
 .radial_point_cloud <- function(tri, w, max_depth = 4) {
     n <- nrow(tri)
     tri_area <- tri$area
-    corner_mat <- vapply(st_geometry(tri), function(g) {
+    corner_mat <- vapply(st_geometry(tri), \(g) {
         v <- st_coordinates(g)[1:3, 1:2, drop = FALSE]
         c(v[1, ], v[2, ], v[3, ])
     }, numeric(6))
@@ -188,7 +190,9 @@
         orig_idx <- seq_along(grp)
         for (k in seq_len(d)) {
             sub <- .subdivide_tri_batch(A, B, C)
-            A <- sub$A; B <- sub$B; C <- sub$C
+            A <- sub$A
+            B <- sub$B
+            C <- sub$C
             orig_idx <- rep(orig_idx, times = 4)
         }
         n_sub <- 4^d
@@ -210,12 +214,12 @@
 #' @return D1_ref
 #' @noRd
 .annulus_reference_D1 <- function(tri_area, weight) {
-    W    <- .normalize_weight(weight)
-    rho  <- W / tri_area
-    ord  <- order(rho, decreasing = TRUE)
+    W <- .normalize_weight(weight)
+    rho <- W / tri_area
+    ord <- order(rho, decreasing = TRUE)
     r_hi <- sqrt(cumsum(tri_area[ord]) / pi)
     r_lo <- c(0, r_hi[-length(r_hi)])
-    W    <- W[ord]
+    W <- W[ord]
 
     mean_r <- (2 / 3) * (r_lo^2 + r_lo * r_hi + r_hi^2) / (r_lo + r_hi)
     sum(W * mean_r)
@@ -234,23 +238,27 @@
     }
     if (n == 0) {
         warning("Triangulation produced no triangles; index is not defined.")
-        return(list(index = NA_real_, D1 = NA_real_, D1_ref = NA_real_, area = NA_real_,
-                    total_weight = NA_real_, center = NULL, triangles = tri))
+        return(list(
+            index = NA_real_, D1 = NA_real_, D1_ref = NA_real_, area = NA_real_,
+            total_weight = NA_real_, center = NULL, triangles = tri
+        ))
     }
 
-    area      <- sum(tri$area)
+    area <- sum(tri$area)
     raw_total <- if (is.null(weight)) NULL else sum(weight)
-    w         <- if (is.null(weight)) tri$area else .normalize_weight(weight)
+    w <- if (is.null(weight)) tri$area else .normalize_weight(weight)
 
     cloud <- .radial_point_cloud(tri, w)
-    gm    <- .geometric_median(cloud$p, cloud$w)
+    gm <- .geometric_median(cloud$p, cloud$w)
 
     D1_ref <- if (is.null(weight)) .disk_reference_D1(area) else .annulus_reference_D1(tri$area, weight)
-    index  <- D1_ref / gm$D1
+    index <- D1_ref / gm$D1
 
-    list(index = index, D1 = gm$D1, D1_ref = D1_ref, area = area,
-         total_weight = if (is.null(raw_total)) area else raw_total,
-         center = st_sfc(st_point(gm$center), crs = st_crs(tri)), triangles = tri)
+    list(
+        index = index, D1 = gm$D1, D1_ref = D1_ref, area = area,
+        total_weight = if (is.null(raw_total)) area else raw_total,
+        center = st_sfc(st_point(gm$center), crs = st_crs(tri)), triangles = tri
+    )
 }
 
 ## Stochastic (deterministic = FALSE): draws `n_lines` points directly from
@@ -285,13 +293,15 @@
 #' @noRd
 .random_point_radial_index <- function(poly, n_lines, prep, seed, weight = NULL, points = NULL) {
     if (is.null(prep)) prep <- prepare_polygon(poly)
-    tri   <- prep$tri
+    tri <- prep$tri
     n_tri <- if (is.null(tri)) 0 else nrow(tri)
 
     if (!is.null(weight)) {
         if (n_tri == 0) {
-            stop("`weight` needs a triangle mesh to sample from, but this polygon ",
-                 "triangulated to no triangles.")
+            stop(
+                "`weight` needs a triangle mesh to sample from, but this polygon ",
+                "triangulated to no triangles."
+            )
         }
         if (length(weight) != n_tri) {
             stop("`weight` must have one entry per triangle (", n_tri, "), got ", length(weight), ".")
@@ -299,13 +309,15 @@
     }
     if (n_tri == 0) {
         warning("Triangulation produced no triangles; index is not defined.")
-        return(list(index = NA_real_, D1 = NA_real_, D1_ref = NA_real_, area = NA_real_,
-                    total_weight = NA_real_, center = NULL, triangles = tri))
+        return(list(
+            index = NA_real_, D1 = NA_real_, D1_ref = NA_real_, area = NA_real_,
+            total_weight = NA_real_, center = NULL, triangles = tri
+        ))
     }
 
     if (is.function(n_lines)) n_lines <- max(1L, round(n_lines(n_tri)))
 
-    area      <- sum(tri$area)
+    area <- sum(tri$area)
     raw_total <- if (is.null(weight)) NULL else sum(weight)
 
     if (!is.null(points)) {
@@ -318,11 +330,13 @@
     gm <- .geometric_median(coords, rep(1, nrow(coords)))
 
     D1_ref <- if (is.null(weight)) .disk_reference_D1(area) else .annulus_reference_D1(tri$area, weight)
-    index  <- D1_ref / gm$D1
+    index <- D1_ref / gm$D1
 
-    list(index = index, D1 = gm$D1, D1_ref = D1_ref, area = area,
-         total_weight = if (is.null(raw_total)) area else raw_total,
-         center = st_sfc(st_point(gm$center), crs = st_crs(tri)), triangles = tri)
+    list(
+        index = index, D1 = gm$D1, D1_ref = D1_ref, area = area,
+        total_weight = if (is.null(raw_total)) area else raw_total,
+        center = st_sfc(st_point(gm$center), crs = st_crs(tri)), triangles = tri
+    )
 }
 
 #' Radial concentration index: mean distance to the geometric median vs
@@ -390,18 +404,22 @@
 #' radial_concentration_index(wake, prep = prep, weight = prep$tri$area)$index
 #' @export
 radial_concentration_index <- function(poly, deterministic = TRUE, n_lines = 3000, seed = NULL,
-                                        prep = NULL, weight = NULL, points = NULL,
-                                        simplify_tolerance = NULL) {
+                                       prep = NULL, weight = NULL, points = NULL,
+                                       simplify_tolerance = NULL) {
     if (is.null(prep)) prep <- prepare_polygon(poly, simplify_tolerance = simplify_tolerance)
 
     if (!deterministic) {
-        return(.random_point_radial_index(poly, n_lines = n_lines, prep = prep, seed = seed,
-                                           weight = weight, points = points))
+        return(.random_point_radial_index(poly,
+            n_lines = n_lines, prep = prep, seed = seed,
+            weight = weight, points = points
+        ))
     }
     if (!is.null(points)) {
-        stop("`points` (a pre-drawn sample) has no meaning for deterministic = TRUE, which ",
-             "computes over the full subdivision point cloud, not a random sample. Drop ",
-             "`points`, or set deterministic = FALSE to use it.")
+        stop(
+            "`points` (a pre-drawn sample) has no meaning for deterministic = TRUE, which ",
+            "computes over the full subdivision point cloud, not a random sample. Drop ",
+            "`points`, or set deterministic = FALSE to use it."
+        )
     }
 
     .mesh_radial_concentration_index(prep$tri, weight = weight)
@@ -420,7 +438,7 @@ radial_concentration_index <- function(poly, deterministic = TRUE, n_lines = 300
 #' @export
 radial_concentration_index_sf <- function(x, ...) {
     geoms <- st_geometry(x)
-    res <- lapply(seq_along(geoms), function(i) radial_concentration_index(geoms[i], ...))
-    x$radial_concentration_index <- vapply(res, function(r) r$index, numeric(1))
+    res <- purrr::map(seq_along(geoms), \(i) radial_concentration_index(geoms[i], ...))
+    x$radial_concentration_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }

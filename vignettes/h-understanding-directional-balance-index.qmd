@@ -23,8 +23,10 @@ table {
 </style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
-                       fig.align = "center", cache = TRUE)
+knitr::opts_chunk$set(
+    echo = FALSE, warning = FALSE, message = FALSE,
+    fig.align = "center", cache = TRUE
+)
 ```
 
 ```{r load, cache=FALSE, echo=TRUE}
@@ -35,37 +37,38 @@ library(ggplot2)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"))
+    theme(strip.text = element_text(size = 9, face = "bold"))
 ```
 
 ```{r shapes, echo=TRUE}
 #| code-fold: true
-square <- st_polygon(list(rbind(c(0,0), c(10,0), c(10,10), c(0,10), c(0,0))))
+square <- st_polygon(list(rbind(c(0, 0), c(10, 0), c(10, 10), c(0, 10), c(0, 0))))
 
 make_regular_ngon <- function(n, r = 1, center = c(0, 0)) {
-  ang <- seq(0, 2*pi, length.out = n + 1)[1:n]
-  st_polygon(list(rbind(cbind(center[1] + r*cos(ang), center[2] + r*sin(ang)), center + c(r, 0))))
+    ang <- seq(0, 2 * pi, length.out = n + 1)[1:n]
+    st_polygon(list(rbind(cbind(center[1] + r * cos(ang), center[2] + r * sin(ang)), center + c(r, 0))))
 }
 hexagon <- make_regular_ngon(6, 5)
 disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]
 
 make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
-  n <- n_points * 2
-  angles <- seq(pi/2, pi/2 + 2*pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- center[1] + radii * cos(angles); y <- center[2] + radii * sin(angles)
-  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- center[1] + radii * cos(angles)
+    y <- center[2] + radii * sin(angles)
+    st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
 }
 star6 <- make_star(6, 5, 2.5)
 
 make_dumbbell <- function(r_top, r_bottom, cy = 10) {
-  top    <- st_buffer(st_sfc(st_point(c(0, cy))), r_top, nQuadSegs = 40)
-  bottom <- st_buffer(st_sfc(st_point(c(0, -cy))), r_bottom, nQuadSegs = 40)
-  neck   <- st_polygon(list(rbind(c(-0.3,-cy), c(0.3,-cy), c(0.3,cy), c(-0.3,cy), c(-0.3,-cy))))
-  st_make_valid(st_union(st_sfc(c(top[[1]], bottom[[1]], neck))))[[1]]
+    top <- st_buffer(st_sfc(st_point(c(0, cy))), r_top, nQuadSegs = 40)
+    bottom <- st_buffer(st_sfc(st_point(c(0, -cy))), r_bottom, nQuadSegs = 40)
+    neck <- st_polygon(list(rbind(c(-0.3, -cy), c(0.3, -cy), c(0.3, cy), c(-0.3, cy), c(-0.3, -cy))))
+    st_make_valid(st_union(st_sfc(c(top[[1]], bottom[[1]], neck))))[[1]]
 }
-dumbbell_sym  <- make_dumbbell(3, 3)     # equal lobes
-dumbbell_asym <- make_dumbbell(4, 1.2)   # unequal lobes
+dumbbell_sym <- make_dumbbell(3, 3) # equal lobes
+dumbbell_asym <- make_dumbbell(4, 1.2) # unequal lobes
 ```
 
 # Introduction
@@ -80,30 +83,30 @@ dumbbell_asym <- make_dumbbell(4, 1.2)   # unequal lobes
 # package dependency (it's already pulled in transitively via knitr, which
 # every vignette in this package already Suggests)
 shape_thumb <- function(geom, size_px = 40, col = "grey75") {
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
+    f <- tempfile(fileext = ".png")
+    grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+    par(mar = c(0.5, 0.5, 0.5, 0.5))
+    plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
+    grDevices::dev.off()
+    uri <- knitr::image_uri(f)
+    unlink(f)
+    sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
 }
 
 # same idea, but shaded by a triangle mesh's own per-triangle weight instead
 # of a flat fill - for tables comparing weight DISTRIBUTIONS on one fixed
 # shape rather than comparing different shapes
 weight_thumb <- function(tri, w, size_px = 40) {
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  pal  <- grDevices::colorRampPalette(c("grey95", "firebrick"))(100)
-  cols <- pal[as.integer(cut(w, 100, labels = FALSE))]
-  plot(st_geometry(tri), col = cols, border = NA)
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
+    f <- tempfile(fileext = ".png")
+    grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+    par(mar = c(0.5, 0.5, 0.5, 0.5))
+    pal <- grDevices::colorRampPalette(c("grey95", "firebrick"))(100)
+    cols <- pal[as.integer(cut(w, 100, labels = FALSE))]
+    plot(st_geometry(tri), col = cols, border = NA)
+    grDevices::dev.off()
+    uri <- knitr::image_uri(f)
+    unlink(f)
+    sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
 }
 ```
 
@@ -124,41 +127,55 @@ Each interior point $s$ contributes a *unit* arrow pointing along its own bearin
 ```{r resultant-vector, fig.width=9, fig.height=4.5}
 set.seed(2)
 resultant_panel <- function(g, dx = 0) {
-  gt <- st_sfc(g) + c(dx, 0)
-  db <- directional_balance_index(gt)
-  G  <- st_coordinates(db$centroid)[1, 1:2]
-  p  <- st_coordinates(st_sample(gt, size = 350, type = "random", exact = TRUE))[, 1:2]
-  th <- atan2(p[, 2] - G[2], p[, 1] - G[1])
-  list(pts = data.frame(x = p[, 1], y = p[, 2],
-                        col = hcl(h = (th * 180 / pi) %% 360, c = 80, l = 65)),
-       cen = data.frame(x = G[1], y = G[2]),
-       R = db$R, angle = db$mean_angle,
-       ring = { rc <- st_coordinates(gt)[, 1:2]; data.frame(x = rc[, 1], y = rc[, 2]) },
-       label = sprintf("index %.3f", db$index), lx = G[1])
+    gt <- st_sfc(g) + c(dx, 0)
+    db <- directional_balance_index(gt)
+    G <- st_coordinates(db$centroid)[1, 1:2]
+    p <- st_coordinates(st_sample(gt, size = 350, type = "random", exact = TRUE))[, 1:2]
+    th <- atan2(p[, 2] - G[2], p[, 1] - G[1])
+    list(
+        pts = data.frame(
+            x = p[, 1], y = p[, 2],
+            col = hcl(h = (th * 180 / pi) %% 360, c = 80, l = 65)
+        ),
+        cen = data.frame(x = G[1], y = G[2]),
+        R = db$R, angle = db$mean_angle,
+        ring = {
+            rc <- st_coordinates(gt)[, 1:2]
+            data.frame(x = rc[, 1], y = rc[, 2])
+        },
+        label = sprintf("index %.3f", db$index), lx = G[1]
+    )
 }
 disk_p <- resultant_panel(disk, dx = 0)
-db_p   <- resultant_panel(dumbbell_asym, dx = 16)
+db_p <- resultant_panel(dumbbell_asym, dx = 16)
 arrow_scale <- 6 / max(disk_p$R, db_p$R)
-arrows <- do.call(rbind, lapply(list(disk_p, db_p), function(q) data.frame(
-  x = q$cen$x, y = q$cen$y,
-  xend = q$cen$x + arrow_scale * q$R * cos(q$angle),
-  yend = q$cen$y + arrow_scale * q$R * sin(q$angle))))
-rings  <- do.call(rbind, Map(function(q, s) transform(q$ring, shape = s), list(disk_p, db_p), c("a", "b")))
-pts    <- do.call(rbind, lapply(list(disk_p, db_p), `[[`, "pts"))
-cens   <- do.call(rbind, lapply(list(disk_p, db_p), `[[`, "cen"))
-labs   <- data.frame(x = c(disk_p$lx, db_p$lx), y = 16,
-                     lab = c(disk_p$label, db_p$label))
+arrows <- do.call(rbind, lapply(list(disk_p, db_p), function(q) {
+    data.frame(
+        x = q$cen$x, y = q$cen$y,
+        xend = q$cen$x + arrow_scale * q$R * cos(q$angle),
+        yend = q$cen$y + arrow_scale * q$R * sin(q$angle)
+    )
+}))
+rings <- do.call(rbind, Map(function(q, s) transform(q$ring, shape = s), list(disk_p, db_p), c("a", "b")))
+pts <- do.call(rbind, lapply(list(disk_p, db_p), `[[`, "pts"))
+cens <- do.call(rbind, lapply(list(disk_p, db_p), `[[`, "cen"))
+labs <- data.frame(
+    x = c(disk_p$lx, db_p$lx), y = 16,
+    lab = c(disk_p$label, db_p$label)
+)
 
 ggplot() +
-  geom_polygon(data = rings, aes(x, y, group = shape), fill = NA, color = "grey55") +
-  geom_point(data = pts, aes(x, y, color = col), size = 0.5) +
-  scale_color_identity() +
-  geom_segment(data = arrows, aes(x, y, xend = xend, yend = yend),
-               arrow = arrow(length = unit(0.18, "cm")), linewidth = 0.9, color = "black") +
-  geom_point(data = cens, aes(x, y), shape = 3, size = 2.5, stroke = 1) +
-  geom_text(data = labs, aes(x, y, label = lab), size = 3.4) +
-  coord_equal() +
-  theme_gallery
+    geom_polygon(data = rings, aes(x, y, group = shape), fill = NA, color = "grey55") +
+    geom_point(data = pts, aes(x, y, color = col), size = 0.5) +
+    scale_color_identity() +
+    geom_segment(
+        data = arrows, aes(x, y, xend = xend, yend = yend),
+        arrow = arrow(length = unit(0.18, "cm")), linewidth = 0.9, color = "black"
+    ) +
+    geom_point(data = cens, aes(x, y), shape = 3, size = 2.5, stroke = 1) +
+    geom_text(data = labs, aes(x, y, label = lab), size = 3.4) +
+    coord_equal() +
+    theme_gallery
 ```
 
 The disk's bearings fill every direction evenly, the unit arrows cancel, and the average arrow collapses to essentially nothing - index $\approx 1$. The lopsided dumbbell's mass leans toward its bigger (upper) lobe, so its arrow is long and points that way, dropping the index. The arrow's *direction* is `mean_angle`; its *length* (relative to a fully one-directional shape) is $R$.
@@ -172,21 +189,21 @@ $|R| \le 1$ by the triangle inequality on a complex-valued expectation: $\left|E
 $I_{xx}$/$I_{yy}$/$I_{xy}$ are polynomial in the vertex coordinates - dividing by radius to get a pure bearing breaks that structure, so $\int e^{i\theta(x)}\,dA$ over a triangle has no closed form. `directional_balance_index()` is genuinely approximate in both modes, the same situation `convexity_index()`/`span_index()`/`radial_concentration_index()` are in (not `moment_of_inertia_index()`/`moment_isotropy_index()`, which are exact regardless of mode). One practical consequence, visible directly:
 
 ```{r no-closed-form-demo, echo=TRUE}
-directional_balance_index(st_sfc(square))$index   # vertex-exact symmetric shape
-directional_balance_index(st_sfc(disk))$index     # curve approximated by 240 segments
+directional_balance_index(st_sfc(square))$index # vertex-exact symmetric shape
+directional_balance_index(st_sfc(disk))$index # curve approximated by 240 segments
 ```
 
 The square scores exactly 1 (its mesh happens to be perfectly mirror-symmetric), while the segment-approximated disk lands a hair below. The gap is quadrature resolution, and refining the internal subdivision drives it to zero:
 
 ```{r discretization-convergence}
 prep <- prepare_polygon(st_sfc(disk))
-tri  <- prep$tri
-w    <- tri$area
-G    <- shapeindices:::.mass_centroid(st_geometry(tri), w)
+tri <- prep$tri
+w <- tri$area
+G <- shapeindices:::.mass_centroid(st_geometry(tri), w)
 depths <- c(0, 2, 4, 6, 8)
 Rs <- vapply(depths, function(d) {
-  cloud <- shapeindices:::.radial_point_cloud(tri, w, max_depth = d)
-  shapeindices:::.resultant_from_cloud(cloud$p, cloud$w, G)$R
+    cloud <- shapeindices:::.radial_point_cloud(tri, w, max_depth = d)
+    shapeindices:::.resultant_from_cloud(cloud$p, cloud$w, G)$R
 }, numeric(1))
 data.frame(subdivision_depth = depths, R = Rs, index = 1 - Rs) |> knitr::kable(format = "html", digits = 6)
 ```
@@ -198,14 +215,18 @@ A disk approximated by straight boundary segments is, in the continuous limit, e
 ## Basic shapes: directional balance vs. the property it isn't
 
 ```{r basic-table}
-rows <- list(square = square, hexagon = hexagon, disk = disk, star = star6,
-             symmetric_dumbbell = dumbbell_sym, asymmetric_dumbbell = dumbbell_asym)
+rows <- list(
+    square = square, hexagon = hexagon, disk = disk, star = star6,
+    symmetric_dumbbell = dumbbell_sym, asymmetric_dumbbell = dumbbell_asym
+)
 tbl <- do.call(rbind, lapply(names(rows), function(nm) {
-  poly <- st_sfc(rows[[nm]])
-  data.frame(shape = shape_thumb(rows[[nm]]), name = nm,
-             directional_balance = directional_balance_index(poly)$index,
-             moment_isotropy = moment_isotropy_index(poly)$index,
-             moment_of_inertia = moment_of_inertia_index(poly)$index)
+    poly <- st_sfc(rows[[nm]])
+    data.frame(
+        shape = shape_thumb(rows[[nm]]), name = nm,
+        directional_balance = directional_balance_index(poly)$index,
+        moment_isotropy = moment_isotropy_index(poly)$index,
+        moment_of_inertia = moment_of_inertia_index(poly)$index
+    )
 }))
 knitr::kable(format = "html", tbl, digits = 3, row.names = FALSE, escape = FALSE)
 ```
@@ -218,18 +239,18 @@ No separate reference shape means no separate weighted derivation - the resultan
 
 ```{r weighted-dumbbell, echo=TRUE, fig.width=8, fig.height=4}
 prep <- prepare_polygon(st_sfc(dumbbell_sym))
-tri  <- prep$tri
-cen  <- st_coordinates(st_centroid(st_geometry(tri)))
-w_top <- ifelse(cen[, 2] > 0, 3, 1)  # 3x weight on the top lobe, still symmetric-shape but not symmetric-mass
+tri <- prep$tri
+cen <- st_coordinates(st_centroid(st_geometry(tri)))
+w_top <- ifelse(cen[, 2] > 0, 3, 1) # 3x weight on the top lobe, still symmetric-shape but not symmetric-mass
 
-plain    <- directional_balance_index(st_sfc(dumbbell_sym), prep = prep)
+plain <- directional_balance_index(st_sfc(dumbbell_sym), prep = prep)
 weighted <- directional_balance_index(st_sfc(dumbbell_sym), prep = prep, weight = w_top)
 
 data.frame(
-  weighting = c(weight_thumb(tri, rep(1, nrow(tri))), weight_thumb(tri, w_top)),
-  name = c("uniform (area)", "3x weight on top lobe"),
-  index = c(plain$index, weighted$index),
-  mean_angle_deg = c(NA, weighted$mean_angle * 180 / pi)
+    weighting = c(weight_thumb(tri, rep(1, nrow(tri))), weight_thumb(tri, w_top)),
+    name = c("uniform (area)", "3x weight on top lobe"),
+    index = c(plain$index, weighted$index),
+    mean_angle_deg = c(NA, weighted$mean_angle * 180 / pi)
 ) |> knitr::kable(format = "html", digits = c(NA, NA, 3, 1), escape = FALSE)
 ```
 
@@ -240,14 +261,14 @@ The shape's own boundary never changes here - a geometrically symmetric dumbbell
 ### Balanced doesn't mean uniform
 
 ```{r blind-spot, echo=TRUE}
-res_sym  <- directional_balance_index(st_sfc(dumbbell_sym))
+res_sym <- directional_balance_index(st_sfc(dumbbell_sym))
 res_asym <- directional_balance_index(st_sfc(dumbbell_asym))
 data.frame(
-  shape = c(shape_thumb(dumbbell_sym), shape_thumb(dumbbell_asym)),
-  name = c("symmetric dumbbell (equal lobes)", "asymmetric dumbbell (top lobe bigger)"),
-  R = c(res_sym$R, res_asym$R),
-  index = c(res_sym$index, res_asym$index),
-  mean_angle_deg = c(NA, res_asym$mean_angle * 180 / pi)
+    shape = c(shape_thumb(dumbbell_sym), shape_thumb(dumbbell_asym)),
+    name = c("symmetric dumbbell (equal lobes)", "asymmetric dumbbell (top lobe bigger)"),
+    R = c(res_sym$R, res_asym$R),
+    index = c(res_sym$index, res_asym$index),
+    mean_angle_deg = c(NA, res_asym$mean_angle * 180 / pi)
 ) |> knitr::kable(format = "html", digits = c(NA, NA, 6, 4, 1), escape = FALSE)
 ```
 
@@ -255,12 +276,12 @@ The symmetric dumbbell scores `index = 1` - two equal masses on opposite bearing
 
 ```{r blind-spot-compare, echo=TRUE}
 data.frame(
-  shape = shape_thumb(dumbbell_sym),
-  name = "symmetric dumbbell",
-  directional_balance = res_sym$index,
-  moment_isotropy = moment_isotropy_index(st_sfc(dumbbell_sym))$index,
-  moment_of_inertia = moment_of_inertia_index(st_sfc(dumbbell_sym))$index,
-  span = span_index(st_sfc(dumbbell_sym))$index
+    shape = shape_thumb(dumbbell_sym),
+    name = "symmetric dumbbell",
+    directional_balance = res_sym$index,
+    moment_isotropy = moment_isotropy_index(st_sfc(dumbbell_sym))$index,
+    moment_of_inertia = moment_of_inertia_index(st_sfc(dumbbell_sym))$index,
+    span = span_index(st_sfc(dumbbell_sym))$index
 ) |> knitr::kable(format = "html", digits = 3, row.names = FALSE, escape = FALSE)
 ```
 
@@ -273,8 +294,12 @@ Making the two lobes unequal breaks the cancellation: the bigger lobe pulls more
 `deterministic = FALSE` draws points directly from the weighted density (the same mechanism `radial_concentration_index()` uses) and computes $\hat{R} = |\text{mean}(e^{i\theta_i})|$ over the sample, with $\theta_i$ measured relative to the *exact* centroid $G$ (found in closed form regardless of mode). Because $\hat{R}$ is the magnitude of a sample-mean vector - a nonlinear transform - Jensen's inequality means $E[\hat R] \ge |E[\text{sample mean})]| = R$: for a truly balanced shape, $\hat R$ is essentially never exactly 0 in a finite sample, so the Monte Carlo index sits systematically slightly *below* the true value. The gap shrinks as `n_lines` grows:
 
 ```{r mc-bias, echo=TRUE}
-gap <- function(n) 1 - directional_balance_index(st_sfc(square), deterministic = FALSE,
-                                                   n_lines = n, seed = 1)$index
+gap <- function(n) {
+    1 - directional_balance_index(st_sfc(square),
+        deterministic = FALSE,
+        n_lines = n, seed = 1
+    )$index
+}
 ns <- c(200, 1000, 5000, 20000)
 data.frame(n_lines = ns, gap_from_1 = vapply(ns, gap, numeric(1))) |> knitr::kable(format = "html", digits = 5)
 ```

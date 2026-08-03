@@ -79,8 +79,7 @@
 ## MECHANISM there (Jensen's inequality on a convex |x-c|) doesn't directly
 ## apply to e^{i*theta}, which isn't simply convex or concave in x. The fix
 ## is the same regardless: finer subdivision converges to the true
-## integral, verified empirically in this package's tests rather than
-## assumed to transfer.
+## integral, confirmed empirically in this package's own tests.
 ##
 ## MONTE CARLO MODE (deterministic = FALSE) draws points directly from the
 ## weighted density (reusing convexity_index()'s .sample_weighted_points(),
@@ -132,21 +131,25 @@
     }
     if (n == 0) {
         warning("Triangulation produced no triangles; index is not defined.")
-        return(list(index = NA_real_, R = NA_real_, mean_angle = NA_real_, area = NA_real_,
-                    total_weight = NA_real_, centroid = NULL, triangles = tri))
+        return(list(
+            index = NA_real_, R = NA_real_, mean_angle = NA_real_, area = NA_real_,
+            total_weight = NA_real_, centroid = NULL, triangles = tri
+        ))
     }
 
-    area      <- sum(tri$area)
+    area <- sum(tri$area)
     raw_total <- if (is.null(weight)) NULL else sum(weight)
-    w         <- if (is.null(weight)) tri$area else .normalize_weight(weight)
+    w <- if (is.null(weight)) tri$area else .normalize_weight(weight)
 
-    G     <- .mass_centroid(st_geometry(tri), w)
+    G <- .mass_centroid(st_geometry(tri), w)
     cloud <- .radial_point_cloud(tri, w)
-    res   <- .resultant_from_cloud(cloud$p, cloud$w, G)
+    res <- .resultant_from_cloud(cloud$p, cloud$w, G)
 
-    list(index = 1 - res$R, R = res$R, mean_angle = res$mean_angle, area = area,
-         total_weight = if (is.null(raw_total)) area else raw_total,
-         centroid = st_sfc(st_point(G), crs = st_crs(tri)), triangles = tri)
+    list(
+        index = 1 - res$R, R = res$R, mean_angle = res$mean_angle, area = area,
+        total_weight = if (is.null(raw_total)) area else raw_total,
+        centroid = st_sfc(st_point(G), crs = st_crs(tri)), triangles = tri
+    )
 }
 
 #' Weighted mean resultant length of a point cloud's bearing from a fixed
@@ -161,7 +164,7 @@
 #' @noRd
 .resultant_from_cloud <- function(p, w, G) {
     theta <- atan2(p[, 2] - G[2], p[, 1] - G[1])
-    Wtot  <- sum(w)
+    Wtot <- sum(w)
     Rx <- sum(w * cos(theta)) / Wtot
     Ry <- sum(w * sin(theta)) / Wtot
     list(R = sqrt(Rx^2 + Ry^2), mean_angle = atan2(Ry, Rx))
@@ -184,13 +187,15 @@
 #' @noRd
 .random_point_directional_balance_index <- function(poly, n_lines, prep, seed, weight = NULL, points = NULL) {
     if (is.null(prep)) prep <- prepare_polygon(poly)
-    tri   <- prep$tri
+    tri <- prep$tri
     n_tri <- if (is.null(tri)) 0 else nrow(tri)
 
     if (!is.null(weight)) {
         if (n_tri == 0) {
-            stop("`weight` needs a triangle mesh to sample from, but this polygon ",
-                 "triangulated to no triangles.")
+            stop(
+                "`weight` needs a triangle mesh to sample from, but this polygon ",
+                "triangulated to no triangles."
+            )
         }
         if (length(weight) != n_tri) {
             stop("`weight` must have one entry per triangle (", n_tri, "), got ", length(weight), ".")
@@ -198,15 +203,17 @@
     }
     if (n_tri == 0) {
         warning("Triangulation produced no triangles; index is not defined.")
-        return(list(index = NA_real_, R = NA_real_, mean_angle = NA_real_, area = NA_real_,
-                    total_weight = NA_real_, centroid = NULL, triangles = tri))
+        return(list(
+            index = NA_real_, R = NA_real_, mean_angle = NA_real_, area = NA_real_,
+            total_weight = NA_real_, centroid = NULL, triangles = tri
+        ))
     }
 
     if (is.function(n_lines)) n_lines <- max(1L, round(n_lines(n_tri)))
 
-    area      <- sum(tri$area)
+    area <- sum(tri$area)
     raw_total <- if (is.null(weight)) NULL else sum(weight)
-    w         <- if (is.null(weight)) tri$area else .normalize_weight(weight)
+    w <- if (is.null(weight)) tri$area else .normalize_weight(weight)
 
     G <- .mass_centroid(st_geometry(tri), w)
 
@@ -219,9 +226,11 @@
 
     res <- .resultant_from_cloud(coords, rep(1, nrow(coords)), G)
 
-    list(index = 1 - res$R, R = res$R, mean_angle = res$mean_angle, area = area,
-         total_weight = if (is.null(raw_total)) area else raw_total,
-         centroid = st_sfc(st_point(G), crs = st_crs(tri)), triangles = tri)
+    list(
+        index = 1 - res$R, R = res$R, mean_angle = res$mean_angle, area = area,
+        total_weight = if (is.null(raw_total)) area else raw_total,
+        centroid = st_sfc(st_point(G), crs = st_crs(tri)), triangles = tri
+    )
 }
 
 #' Directional balance index of a (multi)polygon's mass distribution
@@ -312,18 +321,22 @@
 #' directional_balance_index(wake, prep = prep, weight = prep$tri$area)$index
 #' @export
 directional_balance_index <- function(poly, deterministic = TRUE, n_lines = 3000, seed = NULL,
-                                       prep = NULL, weight = NULL, points = NULL,
-                                       simplify_tolerance = NULL) {
+                                      prep = NULL, weight = NULL, points = NULL,
+                                      simplify_tolerance = NULL) {
     if (is.null(prep)) prep <- prepare_polygon(poly, simplify_tolerance = simplify_tolerance)
 
     if (!deterministic) {
-        return(.random_point_directional_balance_index(poly, n_lines = n_lines, prep = prep,
-                                                         seed = seed, weight = weight, points = points))
+        return(.random_point_directional_balance_index(poly,
+            n_lines = n_lines, prep = prep,
+            seed = seed, weight = weight, points = points
+        ))
     }
     if (!is.null(points)) {
-        stop("`points` (a pre-drawn sample) has no meaning for deterministic = TRUE, which ",
-             "computes over the full subdivision point cloud, not a random sample. Drop ",
-             "`points`, or set deterministic = FALSE to use it.")
+        stop(
+            "`points` (a pre-drawn sample) has no meaning for deterministic = TRUE, which ",
+            "computes over the full subdivision point cloud, not a random sample. Drop ",
+            "`points`, or set deterministic = FALSE to use it."
+        )
     }
 
     .mesh_directional_balance_index(prep$tri, weight = weight)
@@ -342,7 +355,7 @@ directional_balance_index <- function(poly, deterministic = TRUE, n_lines = 3000
 #' @export
 directional_balance_index_sf <- function(x, ...) {
     geoms <- st_geometry(x)
-    res <- lapply(seq_along(geoms), function(i) directional_balance_index(geoms[i], ...))
-    x$directional_balance_index <- vapply(res, function(r) r$index, numeric(1))
+    res <- purrr::map(seq_along(geoms), \(i) directional_balance_index(geoms[i], ...))
+    x$directional_balance_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }

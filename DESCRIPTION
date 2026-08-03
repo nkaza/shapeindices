@@ -1,6 +1,6 @@
 Package: shapeindices
 Title: Shape Indices for (Multi)Polygons via Constrained Delaunay Triangulation
-Version: 0.3.1
+Version: 0.5.0
 Authors@R:
     person("Nikhil", "Kaza", , "nkaza@unc.edu", role = c("aut", "cre"))
 Description: Computes convexity, moment-of-inertia compactness, moment
@@ -21,8 +21,9 @@ License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends:
-    R (>= 3.5)
+    R (>= 4.1)
 Imports:
+    purrr,
     RTriangle,
     sf,
     sfdct,

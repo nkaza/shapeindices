@@ -55,10 +55,10 @@
 ## unambiguously nearest) it's exactly LINEAR, so a bare centroid has ZERO
 ## bias; only triangles straddling the medial axis itself (where d(s) is a
 ## concave "tent", min of two linear pieces) collapse badly, and there a
-## bare centroid OVERestimates. Verified directly on a deeply-notched star
-## (rich medial-axis structure): unsubdivided centroids overshot the true
-## mean depth by ~83%, subdivision landed within a fraction of a percent of
-## a 200,000-point Monte Carlo reference (see
+## bare centroid OVERestimates - on a deeply-notched star (rich medial-axis
+## structure), unsubdivided centroids overshoot the true mean depth
+## substantially, while subdivision lands within a fraction of a percent
+## of a large Monte Carlo reference (see
 ## vignette("i-understanding-depth-index")'s own "Algorithmic choices"
 ## section). deterministic = FALSE reuses
 ## .sample_weighted_points()/.sample_weighted_points_array() unchanged.
@@ -66,8 +66,7 @@
 ## five mesh indices) is the field itself: st_distance() from the point
 ## cloud to st_boundary(poly_u) - the actual polygon boundary, not
 ## anything derivable from triangle centroids/areas alone, so poly_u (not
-## just the mesh) is threaded through every engine below. Confirmed
-## empirically (a real ~50k-vertex-boundary polygon) that this scales
+## just the mesh) is threaded through every engine below. This scales
 ## sub-linearly in boundary vertex count and roughly linearly in sample
 ## point count - no chunking/memory-safety mechanism needed the way
 ## convexity_index()'s pairwise cross-product matrix requires.
@@ -119,24 +118,28 @@
     }
     if (n == 0) {
         warning("Triangulation produced no triangles; index is not defined.")
-        return(list(index = NA_real_, mean_depth = NA_real_, ref_depth = NA_real_,
-                    area = NA_real_, total_weight = NA_real_, triangles = tri))
+        return(list(
+            index = NA_real_, mean_depth = NA_real_, ref_depth = NA_real_,
+            area = NA_real_, total_weight = NA_real_, triangles = tri
+        ))
     }
 
-    area      <- sum(tri$area)
+    area <- sum(tri$area)
     raw_total <- if (is.null(weight)) NULL else sum(weight)
-    w         <- if (is.null(weight)) tri$area else .normalize_weight(weight)
+    w <- if (is.null(weight)) tri$area else .normalize_weight(weight)
 
     cloud <- .radial_point_cloud(tri, w)
-    bnd   <- st_boundary(poly_u)
-    d     <- as.numeric(st_distance(.coords_to_points(cloud$p, st_crs(poly_u)), bnd))
+    bnd <- st_boundary(poly_u)
+    d <- as.numeric(st_distance(.coords_to_points(cloud$p, st_crs(poly_u)), bnd))
     mean_depth <- sum(cloud$w * d) / sum(cloud$w)
 
     ref_depth <- if (is.null(weight)) .disk_reference_depth(area) else .annulus_reference_depth(tri$area, weight)
     index <- mean_depth / ref_depth
 
-    list(index = index, mean_depth = mean_depth, ref_depth = ref_depth, area = area,
-         total_weight = if (is.null(raw_total)) area else raw_total, triangles = tri)
+    list(
+        index = index, mean_depth = mean_depth, ref_depth = ref_depth, area = area,
+        total_weight = if (is.null(raw_total)) area else raw_total, triangles = tri
+    )
 }
 
 ## Stochastic (deterministic = FALSE): draws `n_lines` points directly from
@@ -162,14 +165,16 @@
 #' @noRd
 .random_point_depth_index <- function(poly, n_lines, prep, seed, weight = NULL, points = NULL) {
     if (is.null(prep)) prep <- prepare_polygon(poly)
-    tri    <- prep$tri
+    tri <- prep$tri
     poly_u <- prep$poly
-    n_tri  <- if (is.null(tri)) 0 else nrow(tri)
+    n_tri <- if (is.null(tri)) 0 else nrow(tri)
 
     if (!is.null(weight)) {
         if (n_tri == 0) {
-            stop("`weight` needs a triangle mesh to sample from, but this polygon ",
-                 "triangulated to no triangles.")
+            stop(
+                "`weight` needs a triangle mesh to sample from, but this polygon ",
+                "triangulated to no triangles."
+            )
         }
         if (length(weight) != n_tri) {
             stop("`weight` must have one entry per triangle (", n_tri, "), got ", length(weight), ".")
@@ -177,13 +182,15 @@
     }
     if (n_tri == 0) {
         warning("Triangulation produced no triangles; index is not defined.")
-        return(list(index = NA_real_, mean_depth = NA_real_, ref_depth = NA_real_,
-                    area = NA_real_, total_weight = NA_real_, triangles = tri))
+        return(list(
+            index = NA_real_, mean_depth = NA_real_, ref_depth = NA_real_,
+            area = NA_real_, total_weight = NA_real_, triangles = tri
+        ))
     }
 
     if (is.function(n_lines)) n_lines <- max(1L, round(n_lines(n_tri)))
 
-    area      <- sum(tri$area)
+    area <- sum(tri$area)
     raw_total <- if (is.null(weight)) NULL else sum(weight)
 
     if (!is.null(points)) {
@@ -194,14 +201,16 @@
     }
 
     bnd <- st_boundary(poly_u)
-    d   <- as.numeric(st_distance(.coords_to_points(coords, st_crs(poly_u)), bnd))
+    d <- as.numeric(st_distance(.coords_to_points(coords, st_crs(poly_u)), bnd))
     mean_depth <- mean(d)
 
     ref_depth <- if (is.null(weight)) .disk_reference_depth(area) else .annulus_reference_depth(tri$area, weight)
     index <- mean_depth / ref_depth
 
-    list(index = index, mean_depth = mean_depth, ref_depth = ref_depth, area = area,
-         total_weight = if (is.null(raw_total)) area else raw_total, triangles = tri)
+    list(
+        index = index, mean_depth = mean_depth, ref_depth = ref_depth, area = area,
+        total_weight = if (is.null(raw_total)) area else raw_total, triangles = tri
+    )
 }
 
 #' Depth index: mean distance to the boundary vs an equal-area circle
@@ -268,18 +277,22 @@
 #' depth_index(wake, prep = prep, weight = prep$tri$area)$index
 #' @export
 depth_index <- function(poly, deterministic = TRUE, n_lines = 3000, seed = NULL,
-                         prep = NULL, weight = NULL, points = NULL,
-                         simplify_tolerance = NULL) {
+                        prep = NULL, weight = NULL, points = NULL,
+                        simplify_tolerance = NULL) {
     if (is.null(prep)) prep <- prepare_polygon(poly, simplify_tolerance = simplify_tolerance)
 
     if (!deterministic) {
-        return(.random_point_depth_index(poly, n_lines = n_lines, prep = prep, seed = seed,
-                                          weight = weight, points = points))
+        return(.random_point_depth_index(poly,
+            n_lines = n_lines, prep = prep, seed = seed,
+            weight = weight, points = points
+        ))
     }
     if (!is.null(points)) {
-        stop("`points` (a pre-drawn sample) has no meaning for deterministic = TRUE, which ",
-             "computes over the full subdivision point cloud, not a random sample. Drop ",
-             "`points`, or set deterministic = FALSE to use it.")
+        stop(
+            "`points` (a pre-drawn sample) has no meaning for deterministic = TRUE, which ",
+            "computes over the full subdivision point cloud, not a random sample. Drop ",
+            "`points`, or set deterministic = FALSE to use it."
+        )
     }
 
     .mesh_depth_index(prep$tri, prep$poly, weight = weight)
@@ -298,7 +311,7 @@ depth_index <- function(poly, deterministic = TRUE, n_lines = 3000, seed = NULL,
 #' @export
 depth_index_sf <- function(x, ...) {
     geoms <- st_geometry(x)
-    res <- lapply(seq_along(geoms), function(i) depth_index(geoms[i], ...))
-    x$depth_index <- vapply(res, function(r) r$index, numeric(1))
+    res <- purrr::map(seq_along(geoms), \(i) depth_index(geoms[i], ...))
+    x$depth_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }

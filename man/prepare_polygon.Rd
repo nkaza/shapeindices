@@ -4,7 +4,7 @@
 \alias{prepare_polygon}
 \title{Validate and triangulate a polygon once}
 \usage{
-prepare_polygon(poly, simplify_tolerance = NULL)
+prepare_polygon(poly, simplify_tolerance = NULL, already_projected = FALSE)
 }
 \arguments{
 \item{poly}{a single sfg/sfc (MULTI)POLYGON}
@@ -22,6 +22,15 @@ uses - many US State Plane CRSs are US survey feet, for example.
 Warns if that unit isn't metres, since a silently-wrong unit makes
 the same tolerance value mean a very different amount of
 simplification than intended.}
+
+\item{already_projected}{skip \code{.ensure_projected()}'s own geographic-vs-
+planar check (\code{st_is_longlat()}, which re-parses the CRS from scratch
+on every call, uncached) - only ever safe to set when the CALLER has
+already confirmed \code{poly} is planar (e.g. \code{shape_indices_sf(byrow = TRUE)} projects the whole input once up front, so re-checking every
+row individually is pure repeated work). Setting this on geographic
+(lon/lat) input silently skips projection entirely and every
+downstream length/area/triangulation will be wrong - default \code{FALSE}
+keeps today's always-safe behaviour.}
 }
 \value{
 list(poly, tri) - cleaned, planar geometry and its triangle mesh

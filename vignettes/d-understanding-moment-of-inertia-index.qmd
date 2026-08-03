@@ -23,8 +23,10 @@ table {
 </style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
-                       fig.align = "center", cache = TRUE)
+knitr::opts_chunk$set(
+    echo = FALSE, warning = FALSE, message = FALSE,
+    fig.align = "center", cache = TRUE
+)
 ```
 
 ```{r load, cache=FALSE, echo=TRUE}
@@ -35,24 +37,27 @@ library(ggplot2)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"),
-        legend.position = "bottom")
+    theme(
+        strip.text = element_text(size = 9, face = "bold"),
+        legend.position = "bottom"
+    )
 ```
 
 ```{r shapes, echo=TRUE}
 #| code-fold: true
-square <- st_polygon(list(rbind(c(0,0), c(10,0), c(10,10), c(0,10), c(0,0))))
-make_rect <- function(w, h) st_polygon(list(rbind(c(0,0), c(w,0), c(w,h), c(0,h), c(0,0))))
+square <- st_polygon(list(rbind(c(0, 0), c(10, 0), c(10, 10), c(0, 10), c(0, 0))))
+make_rect <- function(w, h) st_polygon(list(rbind(c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
 aspect_seq <- c(1, 2, 4, 10, 20)
 rectangles <- lapply(aspect_seq, function(a) make_rect(sqrt(100 * a), sqrt(100 / a)))
 names(rectangles) <- sprintf("aspect %gx", aspect_seq)
 
 make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
-  n <- n_points * 2
-  angles <- seq(pi/2, pi/2 + 2*pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- center[1] + radii * cos(angles); y <- center[2] + radii * sin(angles)
-  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- center[1] + radii * cos(angles)
+    y <- center[2] + radii * sin(angles)
+    st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
 }
 ratio_seq <- c(0.9, 0.7, 0.5, 0.3, 0.15)
 stars_r <- lapply(ratio_seq, function(r) make_star(6, 5, 5 * r))
@@ -66,15 +71,15 @@ disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]
 # much of it there is; area and the radius-vs-mass profile stay identical
 # across n_arms by construction
 make_spokes <- function(r_in, r_out, n_arms, total_angle_frac = 0.5) {
-  angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
-  half_w <- total_angle_frac * pi / n_arms
-  polys <- lapply(angles, function(a0) {
-    th <- seq(a0 - half_w, a0 + half_w, length.out = max(6, 40 %/% n_arms))
-    outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
-    inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
-    st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
-  })
-  Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
+    angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
+    half_w <- total_angle_frac * pi / n_arms
+    polys <- lapply(angles, function(a0) {
+        th <- seq(a0 - half_w, a0 + half_w, length.out = max(6, 40 %/% n_arms))
+        outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
+        inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
+        st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
+    })
+    Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
 }
 arm_counts <- c(2, 4, 8, 16)
 spokes <- lapply(arm_counts, function(n) make_spokes(3, 5, n))
@@ -105,30 +110,30 @@ This exact construction - the polar second moment of a polygon's own mass, compa
 # package dependency (it's already pulled in transitively via knitr, which
 # every vignette in this package already Suggests)
 shape_thumb <- function(geom, size_px = 40, col = "grey75") {
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
+    f <- tempfile(fileext = ".png")
+    grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+    par(mar = c(0.5, 0.5, 0.5, 0.5))
+    plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
+    grDevices::dev.off()
+    uri <- knitr::image_uri(f)
+    unlink(f)
+    sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
 }
 
 # same idea, but shaded by a triangle mesh's own per-triangle weight instead
 # of a flat fill - for tables comparing weight DISTRIBUTIONS on one fixed
 # shape rather than comparing different shapes
 weight_thumb <- function(tri, w, size_px = 40) {
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  pal  <- grDevices::colorRampPalette(c("grey95", "firebrick"))(100)
-  cols <- pal[as.integer(cut(w, 100, labels = FALSE))]
-  plot(st_geometry(tri), col = cols, border = NA)
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
+    f <- tempfile(fileext = ".png")
+    grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+    par(mar = c(0.5, 0.5, 0.5, 0.5))
+    pal <- grDevices::colorRampPalette(c("grey95", "firebrick"))(100)
+    cols <- pal[as.integer(cut(w, 100, labels = FALSE))]
+    plot(st_geometry(tri), col = cols, border = NA)
+    grDevices::dev.off()
+    uri <- knitr::image_uri(f)
+    unlink(f)
+    sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
 }
 ```
 
@@ -171,37 +176,47 @@ The index asks how far the shape's mass sits from its own centroid, in squared t
 ```{r what-it-sees, fig.width=9, fig.height=4.5}
 set.seed(1)
 dispersal_panel <- function(g, dx = 0) {
-  gt <- st_sfc(g) + c(dx, 0)
-  m  <- moment_of_inertia_index(gt)
-  G  <- st_coordinates(m$centroid)[1, 1:2]
-  Rref <- sqrt(m$area / pi)
-  disk_ref <- st_coordinates(st_buffer(st_sfc(st_point(G)), Rref, nQuadSegs = 60))[, 1:2]
-  p  <- st_coordinates(st_sample(gt, size = 500, type = "random", exact = TRUE))[, 1:2]
-  list(pts  = data.frame(x = p[, 1], y = p[, 2], d2 = (p[, 1] - G[1])^2 + (p[, 2] - G[2])^2),
-       ring = data.frame(x = st_coordinates(gt)[, 1], y = st_coordinates(gt)[, 2]),
-       disk = data.frame(x = disk_ref[, 1], y = disk_ref[, 2]),
-       cen  = data.frame(x = G[1], y = G[2]),
-       label = sprintf("moi %.3f", m$index), lx = G[1])
+    gt <- st_sfc(g) + c(dx, 0)
+    m <- moment_of_inertia_index(gt)
+    G <- st_coordinates(m$centroid)[1, 1:2]
+    Rref <- sqrt(m$area / pi)
+    disk_ref <- st_coordinates(st_buffer(st_sfc(st_point(G)), Rref, nQuadSegs = 60))[, 1:2]
+    p <- st_coordinates(st_sample(gt, size = 500, type = "random", exact = TRUE))[, 1:2]
+    list(
+        pts = data.frame(x = p[, 1], y = p[, 2], d2 = (p[, 1] - G[1])^2 + (p[, 2] - G[2])^2),
+        ring = data.frame(x = st_coordinates(gt)[, 1], y = st_coordinates(gt)[, 2]),
+        disk = data.frame(x = disk_ref[, 1], y = disk_ref[, 2]),
+        cen = data.frame(x = G[1], y = G[2]),
+        label = sprintf("moi %.3f", m$index), lx = G[1]
+    )
 }
-demo   <- list(compact = square, elongated = rectangles[["aspect 4x"]])
-offs   <- c(0, 26)
+demo <- list(compact = square, elongated = rectangles[["aspect 4x"]])
+offs <- c(0, 26)
 panels <- Map(dispersal_panel, demo, offs)
-grab <- function(k) do.call(rbind, lapply(names(panels), function(nm) {
-  d <- panels[[nm]][[k]]; d$shape <- nm; d
-}))
-labs <- data.frame(x = vapply(panels, `[[`, numeric(1), "lx"), y = 11,
-                   lab = vapply(panels, `[[`, character(1), "label"))
+grab <- function(k) {
+    do.call(rbind, lapply(names(panels), function(nm) {
+        d <- panels[[nm]][[k]]
+        d$shape <- nm
+        d
+    }))
+}
+labs <- data.frame(
+    x = vapply(panels, `[[`, numeric(1), "lx"), y = 11,
+    lab = vapply(panels, `[[`, character(1), "label")
+)
 
 ggplot() +
-  geom_point(data = grab("pts"), aes(x, y, color = sqrt(d2)), size = 0.6) +
-  scale_color_gradient(low = "steelblue", high = "firebrick", name = "distance from centroid") +
-  geom_path(data = grab("ring"), aes(x, y, group = shape), color = "grey40") +
-  geom_path(data = grab("disk"), aes(x, y, group = shape),
-            color = "grey20", linetype = "dashed") +
-  geom_point(data = grab("cen"), aes(x, y), shape = 3, size = 2.5, stroke = 1) +
-  geom_text(data = labs, aes(x, y, label = lab), size = 3.4) +
-  coord_equal() +
-  theme_gallery
+    geom_point(data = grab("pts"), aes(x, y, color = sqrt(d2)), size = 0.6) +
+    scale_color_gradient(low = "steelblue", high = "firebrick", name = "distance from centroid") +
+    geom_path(data = grab("ring"), aes(x, y, group = shape), color = "grey40") +
+    geom_path(
+        data = grab("disk"), aes(x, y, group = shape),
+        color = "grey20", linetype = "dashed"
+    ) +
+    geom_point(data = grab("cen"), aes(x, y), shape = 3, size = 2.5, stroke = 1) +
+    geom_text(data = labs, aes(x, y, label = lab), size = 3.4) +
+    coord_equal() +
+    theme_gallery
 ```
 
 The dashed circle is the equal-area disk each shape is scored against. The square (moi `r sprintf("%.3f", moment_of_inertia_index(st_sfc(square))$index)`) nearly fills it; the rectangle (moi `r sprintf("%.3f", moment_of_inertia_index(st_sfc(rectangles[["aspect 4x"]]))$index)`) spills far past it at both ends, where the reddest points contribute most to $J$.
@@ -211,12 +226,14 @@ The dashed circle is the equal-area disk each shape is scored against. The squar
 ```{r basic-table}
 rows <- c(list(square = square, disk = disk), rectangles, stars_r)
 tbl <- do.call(rbind, lapply(names(rows), function(nm) {
-  poly <- st_sfc(rows[[nm]])
-  data.frame(shape = shape_thumb(rows[[nm]]),
-             name = nm,
-             moment_of_inertia = moment_of_inertia_index(poly)$index,
-             span = span_index(poly)$index,
-             convexity = convexity_index(poly)$index)
+    poly <- st_sfc(rows[[nm]])
+    data.frame(
+        shape = shape_thumb(rows[[nm]]),
+        name = nm,
+        moment_of_inertia = moment_of_inertia_index(poly)$index,
+        span = span_index(poly)$index,
+        convexity = convexity_index(poly)$index
+    )
 }))
 knitr::kable(format = "html", tbl, digits = 3, row.names = FALSE, escape = FALSE)
 ```
@@ -230,18 +247,19 @@ Weighting by each triangle's own area reproduces the unweighted index exactly; c
 ```{r weighting, echo=TRUE}
 star <- st_sfc(make_star(6, 5, 2))
 prep <- prepare_polygon(star)
-tri  <- prep$tri
-d    <- as.numeric(st_distance(st_centroid(st_geometry(tri)), st_centroid(star)))
+tri <- prep$tri
+d <- as.numeric(st_distance(st_centroid(st_geometry(tri)), st_centroid(star)))
 w_centre <- exp(-d / mean(d))
-w_edge   <- exp( d / mean(d))
+w_edge <- exp(d / mean(d))
 
 data.frame(
-  weighting = c(weight_thumb(tri, rep(1, nrow(tri))), weight_thumb(tri, w_centre), weight_thumb(tri, w_edge)),
-  name = c("uniform (area)", "toward centre", "toward edge"),
-  moment_of_inertia = c(
-    moment_of_inertia_index(star, prep = prep, weight = tri$area)$index,
-    moment_of_inertia_index(star, prep = prep, weight = w_centre)$index,
-    moment_of_inertia_index(star, prep = prep, weight = w_edge)$index)
+    weighting = c(weight_thumb(tri, rep(1, nrow(tri))), weight_thumb(tri, w_centre), weight_thumb(tri, w_edge)),
+    name = c("uniform (area)", "toward centre", "toward edge"),
+    moment_of_inertia = c(
+        moment_of_inertia_index(star, prep = prep, weight = tri$area)$index,
+        moment_of_inertia_index(star, prep = prep, weight = w_centre)$index,
+        moment_of_inertia_index(star, prep = prep, weight = w_edge)$index
+    )
 ) |> knitr::kable(format = "html", digits = 3, row.names = FALSE, escape = FALSE)
 ```
 
@@ -251,11 +269,15 @@ $J = \int_P \rho(s)\,|s-G|^2\,ds$ depends on each point only through its distanc
 
 ```{r blind-spot, echo=TRUE}
 tbl_spokes <- do.call(rbind, lapply(names(spokes), function(nm) {
-  poly <- st_sfc(spokes[[nm]])
-  data.frame(shape = shape_thumb(spokes[[nm]]), name = nm,
-             moment_of_inertia = moment_of_inertia_index(poly)$index,
-             convexity = suppressWarnings(convexity_index(poly, deterministic = FALSE,
-                                                            n_lines = 5000, seed = 1)$index))
+    poly <- st_sfc(spokes[[nm]])
+    data.frame(
+        shape = shape_thumb(spokes[[nm]]), name = nm,
+        moment_of_inertia = moment_of_inertia_index(poly)$index,
+        convexity = suppressWarnings(convexity_index(poly,
+            deterministic = FALSE,
+            n_lines = 5000, seed = 1
+        )$index)
+    )
 }))
 knitr::kable(format = "html", tbl_spokes, digits = 4, row.names = FALSE, escape = FALSE)
 ```
@@ -264,19 +286,19 @@ Each row is a ring of radial wedges spanning the same inner/outer radius and cov
 
 ```{r blind-spot-symmetry-check, echo=TRUE}
 make_spokes_at <- function(r_in, r_out, angles, half_w) {
-  polys <- lapply(angles, function(a0) {
-    th <- seq(a0 - half_w, a0 + half_w, length.out = 12)
-    outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
-    inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
-    st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
-  })
-  Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
+    polys <- lapply(angles, function(a0) {
+        th <- seq(a0 - half_w, a0 + half_w, length.out = 12)
+        outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
+        inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
+        st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
+    })
+    Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
 }
 half_w <- 0.5 * pi / 4
-evenly  <- st_sfc(make_spokes_at(3, 5, seq(0, 2 * pi, length.out = 5)[1:4], half_w))
-bunched <- st_sfc(make_spokes_at(3, 5, c(0, 1.3, 2.7, 4.6), half_w))  # same 4 wedges, uneven bearings
+evenly <- st_sfc(make_spokes_at(3, 5, seq(0, 2 * pi, length.out = 5)[1:4], half_w))
+bunched <- st_sfc(make_spokes_at(3, 5, c(0, 1.3, 2.7, 4.6), half_w)) # same 4 wedges, uneven bearings
 
-moi_evenly  <- moment_of_inertia_index(evenly)$index
+moi_evenly <- moment_of_inertia_index(evenly)$index
 moi_bunched <- moment_of_inertia_index(bunched)$index
 ```
 
@@ -290,31 +312,36 @@ The most interesting sibling comparison is with `radial_concentration_index()`, 
 
 ```{r moi-vs-rci, fig.width=7, fig.height=4.5}
 make_tadpole <- function(tail_len) {
-  st_union(
-    st_buffer(st_sfc(st_point(c(0, 0))), 4, nQuadSegs = 40),
-    st_sfc(st_polygon(list(rbind(
-      c(0, -0.6), c(tail_len, -0.6), c(tail_len, 0.6), c(0, 0.6), c(0, -0.6))))))
+    st_union(
+        st_buffer(st_sfc(st_point(c(0, 0))), 4, nQuadSegs = 40),
+        st_sfc(st_polygon(list(rbind(
+            c(0, -0.6), c(tail_len, -0.6), c(tail_len, 0.6), c(0, 0.6), c(0, -0.6)
+        ))))
+    )
 }
 tail_lens <- c(2, 6, 10, 14, 18, 24, 30)
 tadpole_cmp <- do.call(rbind, lapply(tail_lens, function(tl) {
-  g <- make_tadpole(tl)
-  data.frame(tail_len = tl,
-             moment_of_inertia = moment_of_inertia_index(g)$index,
-             radial_concentration = radial_concentration_index(g)$index)
+    g <- make_tadpole(tl)
+    data.frame(
+        tail_len = tl,
+        moment_of_inertia = moment_of_inertia_index(g)$index,
+        radial_concentration = radial_concentration_index(g)$index
+    )
 }))
 tadpole_long <- data.frame(
-  tail_len = rep(tadpole_cmp$tail_len, 2),
-  index_name = rep(c("moment_of_inertia_index", "radial_concentration_index"), each = nrow(tadpole_cmp)),
-  value = c(tadpole_cmp$moment_of_inertia, tadpole_cmp$radial_concentration))
+    tail_len = rep(tadpole_cmp$tail_len, 2),
+    index_name = rep(c("moment_of_inertia_index", "radial_concentration_index"), each = nrow(tadpole_cmp)),
+    value = c(tadpole_cmp$moment_of_inertia, tadpole_cmp$radial_concentration)
+)
 
 ggplot(tadpole_long, aes(tail_len, value, color = index_name)) +
-  geom_line(linewidth = 0.8) +
-  geom_point(size = 2) +
-  scale_color_manual(values = c("firebrick", "steelblue"), name = NULL) +
-  labs(x = "tail length", y = "index value") +
-  ylim(0, 1) +
-  theme_minimal(base_size = 11) +
-  theme(legend.position = "bottom")
+    geom_line(linewidth = 0.8) +
+    geom_point(size = 2) +
+    scale_color_manual(values = c("firebrick", "steelblue"), name = NULL) +
+    labs(x = "tail length", y = "index value") +
+    ylim(0, 1) +
+    theme_minimal(base_size = 11) +
+    theme(legend.position = "bottom")
 ```
 
 Both fall as the tail lengthens, but `moment_of_inertia_index()` falls faster and further. Squaring the distance amplifies the penalty for the tail's far tip, and the centroid it's measured from is itself being dragged outward toward that tip - two effects compounding in the same direction. `radial_concentration_index()`'s median, by contrast, resists the pull (it minimises *plain* distance, which weights far points less aggressively than squared distance does), so the same growing tail costs it less. At `tail_len = ` `r max(tail_lens)`, `moment_of_inertia_index()` reads `r sprintf("%.3f", tadpole_cmp$moment_of_inertia[nrow(tadpole_cmp)])` against `radial_concentration_index()`'s `r sprintf("%.3f", tadpole_cmp$radial_concentration[nrow(tadpole_cmp)])` - the same shape, read as more than three times as far from ideal by one index as the other.

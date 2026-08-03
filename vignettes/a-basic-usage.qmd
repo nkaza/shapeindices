@@ -14,8 +14,10 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE,
-                       fig.align = "center")
+knitr::opts_chunk$set(
+    echo = TRUE, warning = FALSE, message = FALSE,
+    fig.align = "center"
+)
 ```
 
 ```{r load}
@@ -40,54 +42,55 @@ and a **blob with a hole** (an irregular ring with an interior void).
 ```{r shapes}
 #| code-fold: true
 make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
-  n <- n_points * 2
-  angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- center[1] + radii * cos(angles)
-  y <- center[2] + radii * sin(angles)
-  coords <- rbind(cbind(x, y), c(x[1], y[1]))
-  st_polygon(list(coords))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- center[1] + radii * cos(angles)
+    y <- center[2] + radii * sin(angles)
+    coords <- rbind(cbind(x, y), c(x[1], y[1]))
+    st_polygon(list(coords))
 }
 
 make_turtle_path <- function(n_steps, angle_deg, step0 = 1, step_growth = 0) {
-  angle <- 0
-  pos   <- c(0, 0)
-  pts   <- matrix(pos, ncol = 2)
-  step  <- step0
-  for (i in seq_len(n_steps)) {
-    angle <- angle + angle_deg * pi / 180
-    pos   <- pos + step * c(cos(angle), sin(angle))
-    pts   <- rbind(pts, pos)
-    step  <- step + step_growth
-  }
-  st_linestring(pts)
+    angle <- 0
+    pos <- c(0, 0)
+    pts <- matrix(pos, ncol = 2)
+    step <- step0
+    for (i in seq_len(n_steps)) {
+        angle <- angle + angle_deg * pi / 180
+        pos <- pos + step * c(cos(angle), sin(angle))
+        pts <- rbind(pts, pos)
+        step <- step + step_growth
+    }
+    st_linestring(pts)
 }
 
 make_spiral <- function(n_steps = 48, angle_deg = 24, step0 = 0.35,
-                         step_growth = 0.09, width = 0.35) {
-  st_buffer(make_turtle_path(n_steps, angle_deg, step0, step_growth),
-            dist = width, endCapStyle = "FLAT", joinStyle = "MITRE", mitreLimit = 3)
+                        step_growth = 0.09, width = 0.35) {
+    st_buffer(make_turtle_path(n_steps, angle_deg, step0, step_growth),
+        dist = width, endCapStyle = "FLAT", joinStyle = "MITRE", mitreLimit = 3
+    )
 }
 
 make_blob_hole <- function(n = 14, seed = 1, roughness = 0.55, hole_frac = 0.3) {
-  set.seed(seed)
-  angles <- sort(runif(n, 0, 2 * pi))
-  radii  <- 1 + roughness * (runif(n) - 0.5) * 2
-  outer  <- cbind(radii * cos(angles), radii * sin(angles))
-  outer  <- rbind(outer, outer[1, ])
+    set.seed(seed)
+    angles <- sort(runif(n, 0, 2 * pi))
+    radii <- 1 + roughness * (runif(n) - 0.5) * 2
+    outer <- cbind(radii * cos(angles), radii * sin(angles))
+    outer <- rbind(outer, outer[1, ])
 
-  # the hole is the SAME irregular outline scaled down by sqrt(hole_frac)
-  # (so hole area / outer area ~= hole_frac) and traced in reverse, so sf
-  # treats it as an interior ring rather than a second shell. Scaling every
-  # radius by the same constant keeps the hole strictly inside the outer
-  # boundary at every angle, so the result is always a valid polygon.
-  hole <- outer[nrow(outer):1, ] * sqrt(hole_frac)
+    # the hole is the SAME irregular outline scaled down by sqrt(hole_frac)
+    # (so hole area / outer area ~= hole_frac) and traced in reverse, so sf
+    # treats it as an interior ring rather than a second shell. Scaling every
+    # radius by the same constant keeps the hole strictly inside the outer
+    # boundary at every angle, so the result is always a valid polygon.
+    hole <- outer[nrow(outer):1, ] * sqrt(hole_frac)
 
-  st_polygon(list(outer, hole))
+    st_polygon(list(outer, hole))
 }
 
-star      <- make_star(6, r_outer = 1, r_inner = 0.4)
-spiral    <- make_spiral()
+star <- make_star(6, r_outer = 1, r_inner = 0.4)
+spiral <- make_spiral()
 blob_hole <- make_blob_hole()
 
 basic_shapes <- list(star = star, spiral = spiral, "blob with hole" = blob_hole)
@@ -96,19 +99,19 @@ basic_shapes <- list(star = star, spiral = spiral, "blob with hole" = blob_hole)
 # onto a common bounding box (center it, scale to unit span) before faceting
 normalize_geom <- function(geom, center, scale) (geom - center) * scale
 shapes_norm <- lapply(names(basic_shapes), function(nm) {
-  g      <- st_sfc(basic_shapes[[nm]])
-  bb     <- st_bbox(g)
-  center <- unname(c((bb["xmin"] + bb["xmax"]) / 2, (bb["ymin"] + bb["ymax"]) / 2))
-  span   <- max(bb["xmax"] - bb["xmin"], bb["ymax"] - bb["ymin"])
-  st_sf(shape = nm, geometry = normalize_geom(g, center, 1 / span))
+    g <- st_sfc(basic_shapes[[nm]])
+    bb <- st_bbox(g)
+    center <- unname(c((bb["xmin"] + bb["xmax"]) / 2, (bb["ymin"] + bb["ymax"]) / 2))
+    span <- max(bb["xmax"] - bb["xmin"], bb["ymax"] - bb["ymin"])
+    st_sf(shape = nm, geometry = normalize_geom(g, center, 1 / span))
 })
 shapes_sf <- do.call(rbind, shapes_norm)
 
 ggplot(shapes_sf) +
-  geom_sf(fill = "steelblue", alpha = 0.6, color = "grey20") +
-  facet_wrap(~ shape) +
-  theme_void(base_size = 11) +
-  theme(strip.text = element_text(face = "bold"))
+    geom_sf(fill = "steelblue", alpha = 0.6, color = "grey20") +
+    facet_wrap(~shape) +
+    theme_void(base_size = 11) +
+    theme(strip.text = element_text(face = "bold"))
 ```
 
 
@@ -118,23 +121,23 @@ Each index has its own function `*_index()` that takes, sf or sfc objects as inp
 
 ```{r shape-thumb-helper, echo=FALSE}
 # a small base64-embedded PNG of a shape's own outline, embedded directly
-# in the table below and reused later as a column header
+# in the table below and reused later as a column header or in a separate column later on.
 shape_thumb <- function(geom, size_px = 60, col = "grey75") {
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/><br>', uri, size_px, size_px)
+    f <- tempfile(fileext = ".png")
+    grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+    par(mar = c(0.5, 0.5, 0.5, 0.5))
+    plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
+    grDevices::dev.off()
+    uri <- knitr::image_uri(f)
+    unlink(f)
+    sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/><br>', uri, size_px, size_px)
 }
 # index_fn, if supplied, appends that index's own actual value on this
 # exact shape to the label, so the table shows the claim, not just the
 # picture
 thumb_cell <- function(geom, label, index_fn = NULL, col = "grey75", size_px = 60, ...) {
-  lbl <- if (is.null(index_fn)) label else sprintf("%s (%.2f)", label, index_fn(geom, ...)$index)
-  paste0(shape_thumb(geom, size_px = size_px, col = col), lbl)
+    lbl <- if (is.null(index_fn)) label else sprintf("%s (%.2f)", label, index_fn(geom, ...)$index)
+    paste0(shape_thumb(geom, size_px = size_px, col = col), lbl)
 }
 
 # a weighted counterpart: colours each triangle of a FINE mesh by its own
@@ -145,27 +148,27 @@ thumb_cell <- function(geom, label, index_fn = NULL, col = "grey75", size_px = 6
 # supplied, is called on that SAME fine mesh/weight - the number shown is
 # exactly what the picture depicts, not a separate, coarser calculation
 weighted_thumb <- function(geom, weight_fn, label, index_fn = NULL, size_px = 60,
-                            palette = "YlOrRd", max_depth = 4, ...) {
-  tri <- subdivide_mesh(geom, max_depth = max_depth)
-  ctr <- st_coordinates(st_centroid(st_union(st_sfc(geom))))
-  tc  <- st_coordinates(st_centroid(tri))
-  w   <- weight_fn(tc, ctr)
-  w_scaled <- (w - min(w)) / (max(w) - min(w) + 1e-9)
-  cols <- hcl.colors(20, palette, rev = TRUE)[pmax(1, ceiling(w_scaled * 20))]
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  plot(st_geometry(tri), col = cols, border = NA)
-  plot(st_geometry(st_sfc(geom)), border = "grey20", lwd = 0.6, add = TRUE)
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  lbl <- label
-  if (!is.null(index_fn)) {
-    prep <- list(poly = st_geometry(st_sfc(geom)), tri = tri)
-    lbl <- sprintf("%s (%.3f)", label, index_fn(geom, prep = prep, weight = w, ...)$index)
-  }
-  paste0(sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/><br>', uri, size_px, size_px), lbl)
+                           palette = "YlOrRd", max_depth = 4, ...) {
+    tri <- subdivide_mesh(geom, max_depth = max_depth)
+    ctr <- st_coordinates(st_centroid(st_union(st_sfc(geom))))
+    tc <- st_coordinates(st_centroid(tri))
+    w <- weight_fn(tc, ctr)
+    w_scaled <- (w - min(w)) / (max(w) - min(w) + 1e-9)
+    cols <- hcl.colors(20, palette, rev = TRUE)[pmax(1, ceiling(w_scaled * 20))]
+    f <- tempfile(fileext = ".png")
+    grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+    par(mar = c(0.5, 0.5, 0.5, 0.5))
+    plot(st_geometry(tri), col = cols, border = NA)
+    plot(st_geometry(st_sfc(geom)), border = "grey20", lwd = 0.6, add = TRUE)
+    grDevices::dev.off()
+    uri <- knitr::image_uri(f)
+    unlink(f)
+    lbl <- label
+    if (!is.null(index_fn)) {
+        prep <- list(poly = st_geometry(st_sfc(geom)), tri = tri)
+        lbl <- sprintf("%s (%.3f)", label, index_fn(geom, prep = prep, weight = w, ...)$index)
+    }
+    paste0(sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/><br>', uri, size_px, size_px), lbl)
 }
 # a centre-heavy field (also symmetry-preserving, since it's a function of
 # radius alone) - satisfies every weighted example below except convexity's.
@@ -173,13 +176,13 @@ weighted_thumb <- function(geom, weight_fn, label, index_fn = NULL, size_px = 60
 # handful of index functions divide by weight-derived quantities internally
 # and a hard zero at the shape's own edge can hit that
 radial_field <- function(tc, ctr, power = 2) {
-  d <- sqrt((tc[, 1] - ctr[1])^2 + (tc[, 2] - ctr[2])^2)
-  (1 - d / max(d))^power + 0.01
+    d <- sqrt((tc[, 1] - ctr[1])^2 + (tc[, 2] - ctr[2])^2)
+    (1 - d / max(d))^power + 0.01
 }
 
 edge_field <- function(tc, ctr, power = 2) {
-  d <- sqrt((tc[, 1] - ctr[1])^2 + (tc[, 2] - ctr[2])^2)
-  (d / max(d))^power + 0.01
+    d <- sqrt((tc[, 1] - ctr[1])^2 + (tc[, 2] - ctr[2])^2)
+    (d / max(d))^power + 0.01
 }
 
 # convexity_index()'s own weighted form tolerates ANY weighting, not just a
@@ -197,23 +200,29 @@ linear_field <- function(tc, ctr) (tc[, 1] - min(tc[, 1])) / (max(tc[, 1]) - min
 # 3-fold symmetry" finding), which is why the pinwheel, not the dumbbell,
 # illustrates that row instead.
 dumbbell_field <- function(tc, ctr, power = 2) {
-  d1 <- sqrt((tc[, 1] - 0)^2 + (tc[, 2] - 0)^2)
-  d2 <- sqrt((tc[, 1] - 0)^2 + (tc[, 2] - 5)^2)
-  d_near <- pmin(d1, d2)
-  (1 - d_near / max(d_near))^power + 0.01
+    d1 <- sqrt((tc[, 1] - 0)^2 + (tc[, 2] - 0)^2)
+    d2 <- sqrt((tc[, 1] - 0)^2 + (tc[, 2] - 5)^2)
+    d_near <- pmin(d1, d2)
+    (1 - d_near / max(d_near))^power + 0.01
 }
 ```
 
 
 ```{r index-table, echo=FALSE}
-make_square <- function(half = 1) st_polygon(list(rbind(
-  c(-half, -half), c(half, -half), c(half, half), c(-half, half), c(-half, -half))))
-make_rectangle <- function(w, h) st_polygon(list(rbind(
-  c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
+make_square <- function(half = 1) {
+    st_polygon(list(rbind(
+        c(-half, -half), c(half, -half), c(half, half), c(-half, half), c(-half, -half)
+    )))
+}
+make_rectangle <- function(w, h) {
+    st_polygon(list(rbind(
+        c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0)
+    )))
+}
 make_regular_ngon <- function(n, r = 1) {
-  angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
-  coords <- cbind(r * cos(angles), r * sin(angles))
-  st_polygon(list(rbind(coords, coords[1, ])))
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    coords <- cbind(r * cos(angles), r * sin(angles))
+    st_polygon(list(rbind(coords, coords[1, ])))
 }
 # a 1% radial jitter, not a true st_buffer() circle - a perfectly regular
 # circle's boundary points sit simultaneously near-cocircular by
@@ -228,41 +237,44 @@ make_regular_ngon <- function(n, r = 1) {
 # ever a genuine tie - verified stable under further perturbation down to
 # 1e-9, unlike the true circle it replaces.
 make_disk <- function(r = 1, n = 96, jitter = 0.01, seed = 1) {
-  set.seed(seed)
-  angles <- seq(0, 2 * pi, length.out = n + 1)[1:n]
-  radii  <- r * (1 + jitter * (runif(n) - 0.5))
-  coords <- cbind(radii * cos(angles), radii * sin(angles))
-  st_polygon(list(rbind(coords, coords[1, ])))
+    set.seed(seed)
+    angles <- seq(0, 2 * pi, length.out = n + 1)[1:n]
+    radii <- r * (1 + jitter * (runif(n) - 0.5))
+    coords <- cbind(radii * cos(angles), radii * sin(angles))
+    st_polygon(list(rbind(coords, coords[1, ])))
 }
 make_star <- function(n_points, r_outer, r_inner) {
-  n <- n_points * 2
-  angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- radii * cos(angles); y <- radii * sin(angles)
-  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- radii * cos(angles)
+    y <- radii * sin(angles)
+    st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
 }
 make_pinwheel <- function(n_arms, arm_len = 5, arm_width = 0.7, hub_r = 0.3) {
-  angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
-  hub  <- st_buffer(st_sfc(st_point(c(0, 0))), dist = hub_r, nQuadSegs = 20)[[1]]
-  arms <- lapply(angles, function(a) {
-    rot  <- matrix(c(cos(a), sin(a), -sin(a), cos(a)), 2, 2)
-    rect <- st_polygon(list(rbind(c(0, -arm_width / 2), c(arm_len, -arm_width / 2),
-                                   c(arm_len, arm_width / 2), c(0, arm_width / 2), c(0, -arm_width / 2))))
-    rect * rot
-  })
-  Reduce(function(a, b) st_union(st_sfc(a))[[1]] |> st_union(st_sfc(b)[[1]]), arms, hub)
+    angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
+    hub <- st_buffer(st_sfc(st_point(c(0, 0))), dist = hub_r, nQuadSegs = 20)[[1]]
+    arms <- lapply(angles, function(a) {
+        rot <- matrix(c(cos(a), sin(a), -sin(a), cos(a)), 2, 2)
+        rect <- st_polygon(list(rbind(
+            c(0, -arm_width / 2), c(arm_len, -arm_width / 2),
+            c(arm_len, arm_width / 2), c(0, arm_width / 2), c(0, -arm_width / 2)
+        )))
+        rect * rot
+    })
+    Reduce(function(a, b) st_union(st_sfc(a))[[1]] |> st_union(st_sfc(b)[[1]]), arms, hub)
 }
 make_dumbbell <- function(r, cy = 5) {
-  top <- st_buffer(st_sfc(st_point(c(0, cy))), dist = r, nQuadSegs = 40)[[1]]
-  bot <- st_buffer(st_sfc(st_point(c(0, 0))), dist = r, nQuadSegs = 40)[[1]]
-  bar <- st_polygon(list(rbind(c(-0.15, 0), c(0.15, 0), c(0.15, cy), c(-0.15, cy), c(-0.15, 0))))
-  st_union(st_sfc(top, bot, bar))[[1]]
+    top <- st_buffer(st_sfc(st_point(c(0, cy))), dist = r, nQuadSegs = 40)[[1]]
+    bot <- st_buffer(st_sfc(st_point(c(0, 0))), dist = r, nQuadSegs = 40)[[1]]
+    bar <- st_polygon(list(rbind(c(-0.15, 0), c(0.15, 0), c(0.15, cy), c(-0.15, cy), c(-0.15, 0))))
+    st_union(st_sfc(top, bot, bar))[[1]]
 }
 make_flower <- function(n_petals = 6, r_out = 1, r_in = 0.55, n_pts = 240) {
-  ang <- seq(0, 2 * pi, length.out = n_pts + 1)[1:n_pts]
-  r <- r_in + (r_out - r_in) * (0.5 + 0.5 * cos(n_petals * ang))
-  coords <- cbind(r * cos(ang), r * sin(ang))
-  st_polygon(list(rbind(coords, coords[1, ])))
+    ang <- seq(0, 2 * pi, length.out = n_pts + 1)[1:n_pts]
+    r <- r_in + (r_out - r_in) * (0.5 + 0.5 * cos(n_petals * ang))
+    coords <- cbind(r * cos(ang), r * sin(ang))
+    st_polygon(list(rbind(coords, coords[1, ])))
 }
 # width_length_ratio_index()'s own three-way blind spot, all still == 1:
 # a hole (make_square_with_hole(), same as vignette j), needle-thin spikes
@@ -271,85 +283,97 @@ make_flower <- function(n_petals = 6, r_out = 1, r_in = 0.55, n_pts = 240) {
 # shapes elsewhere in this package happen to have a square envelope, since
 # they're built to demonstrate a DIFFERENT pathology, dispersal, instead)
 make_square_with_hole <- function(outer_half = 1, hole_frac = 0.5) {
-  outer <- rbind(c(-outer_half, -outer_half), c(outer_half, -outer_half),
-                 c(outer_half, outer_half), c(-outer_half, outer_half), c(-outer_half, -outer_half))
-  hh <- outer_half * sqrt(hole_frac)
-  hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
-  st_polygon(list(outer, hole))
+    outer <- rbind(
+        c(-outer_half, -outer_half), c(outer_half, -outer_half),
+        c(outer_half, outer_half), c(-outer_half, outer_half), c(-outer_half, -outer_half)
+    )
+    hh <- outer_half * sqrt(hole_frac)
+    hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
+    st_polygon(list(outer, hole))
 }
-mk_corner_sq <- function(x0, y0, s) st_polygon(list(rbind(
-  c(x0, y0), c(x0 + s, y0), c(x0 + s, y0 + s), c(x0, y0 + s), c(x0, y0))))
-make_scattered_corners <- function() st_union(st_sfc(
-  mk_corner_sq(0, 0, 1.3), mk_corner_sq(2.7, 0, 1.3),
-  mk_corner_sq(2.6, 2.6, 1.4), mk_corner_sq(0, 3.4, 0.6)))
+mk_corner_sq <- function(x0, y0, s) {
+    st_polygon(list(rbind(
+        c(x0, y0), c(x0 + s, y0), c(x0 + s, y0 + s), c(x0, y0 + s), c(x0, y0)
+    )))
+}
+make_scattered_corners <- function() {
+    st_union(st_sfc(
+        mk_corner_sq(0, 0, 1.3), mk_corner_sq(2.7, 0, 1.3),
+        mk_corner_sq(2.6, 2.6, 1.4), mk_corner_sq(0, 3.4, 0.6)
+    ))
+}
 
-ex_rect     <- make_rectangle(2, 1)
-ex_octagon  <- make_regular_ngon(8)
-ex_hexagon  <- make_regular_ngon(6)
-ex_square   <- make_square()
-ex_disk     <- make_disk()
+ex_rect <- make_rectangle(2, 1)
+ex_octagon <- make_regular_ngon(8)
+ex_hexagon <- make_regular_ngon(6)
+ex_square <- make_square()
+ex_disk <- make_disk()
 ex_pinwheel <- make_pinwheel(4)
 ex_dumbbell <- make_dumbbell(1)
-ex_flower    <- make_flower()
+ex_flower <- make_flower()
 ex_star_mild <- make_star(6, 1, 0.65)
-ex_hole      <- make_square_with_hole()
-ex_spike     <- make_star(8, 1, 0.02)
-ex_parts     <- make_scattered_corners()
+ex_hole <- make_square_with_hole()
+ex_spike <- make_star(8, 1, 0.02)
+ex_parts <- make_scattered_corners()
 
 warn_col <- "#e2725b"
 
 idx_table <- data.frame(
-  fn = c("convexity_index()", "moment_of_inertia_index()", "moment_isotropy_index()",
-         "directional_balance_index()", "span_index()", "radial_concentration_index()",
-         "depth_index()", "hull_ratio_index()", "polsby_popper_index()",
-         "width_length_ratio_index()", "reock_index()", "detour_index()", "exchange_index()"),
-  description = c(
-    "Fraction of a connecting line between two mass-weighted random points that falls outside the shape",
-    "Actual polar moment of inertia about the mass centroid vs. the same total mass optimally (radially) arranged",
-    "Ratio of the mass distribution's own principal moments (elongation only, ignoring overall compactness)",
-    "First-harmonic bearing bias of the mass distribution about its own centroid",
-    "Mean distance between two mass-weighted random points vs. the same mass optimally arranged",
-    "Mean distance from a mass-weighted random point to the shape's own geometric median, vs. optimal",
-    "Mean distance from a mass-weighted random point to the boundary, vs. optimal",
-    "polygon area / convex hull area", "4*pi*area / perimeter^2",
-    "minimum bounding rectangle: shorter side / longer side", "area / minimum bounding circle area",
-    "equal-area-circle perimeter / convex hull perimeter",
-    "shape's own area shared with an equal-area circle at its centroid"
-  ),
-  ex_weighted = c(
-    weighted_thumb(ex_rect, linear_field, "rectangle, left-to-right gradient", index_fn = convexity_index, n_quad = 1),
-    weighted_thumb(ex_hexagon, radial_field, "hexagon, centre-weighted", index_fn = moment_of_inertia_index),
-    weighted_thumb(ex_pinwheel, radial_field, "pinwheel, centre-weighted", index_fn = moment_isotropy_index),
-    weighted_thumb(ex_disk, edge_field, "disk, edge-weigthed", index_fn = directional_balance_index),
-    weighted_thumb(ex_square, radial_field, "square, centre-weighted", index_fn = span_index, n_quad = 1),
-    weighted_thumb(ex_flower, radial_field, "flower, centre-weighted", index_fn = radial_concentration_index),
-    weighted_thumb(ex_disk, radial_field, "disk, centre-weighted", index_fn = depth_index),
-    "No weighted form", "No weighted form", "No weighted form",
-    "No weighted form", "No weighted form", "No weighted form"
-  ),
-  ex_unweighted = c(
-    thumb_cell(ex_rect, "rectangle", index_fn = convexity_index),
-    thumb_cell(ex_hexagon, "hexagon", index_fn = moment_of_inertia_index),
-    thumb_cell(ex_pinwheel, "pinwheel", index_fn = moment_isotropy_index),
-    thumb_cell(ex_dumbbell, "dumbbell", index_fn = directional_balance_index),
-    thumb_cell(ex_star_mild, "star", index_fn = span_index),
-    thumb_cell(ex_octagon, "octagon", index_fn = radial_concentration_index),
-    thumb_cell(ex_disk, "disk", index_fn = depth_index),
-    thumb_cell(ex_square, "square", index_fn = hull_ratio_index),
-    thumb_cell(ex_disk, "disk", index_fn = polsby_popper_index),
-    paste(
-      thumb_cell(ex_hole, "hole punched through it", index_fn = width_length_ratio_index, col = warn_col, size_px = 48),
-      thumb_cell(ex_spike, "needle-thin spikes", index_fn = width_length_ratio_index, col = warn_col, size_px = 48),
-      thumb_cell(ex_parts, "3 disconnected pieces", index_fn = width_length_ratio_index, col = warn_col, size_px = 48),
-      sep = "<br>"
+    fn = c(
+        "convexity_index()", "moment_of_inertia_index()", "moment_isotropy_index()",
+        "directional_balance_index()", "span_index()", "radial_concentration_index()",
+        "depth_index()", "hull_ratio_index()", "polsby_popper_index()",
+        "width_length_ratio_index()", "reock_index()", "detour_index()", "exchange_index()"
     ),
-    thumb_cell(ex_disk, "disk", index_fn = reock_index),
-    thumb_cell(ex_octagon, "octagon", index_fn = detour_index),
-    thumb_cell(ex_star_mild, "star", index_fn = exchange_index)
-  )
+    description = c(
+        "Fraction of a connecting line between two mass-weighted random points that falls outside the shape",
+        "Actual polar moment of inertia about the mass centroid vs. the same total mass optimally (radially) arranged",
+        "Ratio of the mass distribution's own principal moments (elongation only, ignoring overall compactness)",
+        "First-harmonic bearing bias of the mass distribution about its own centroid",
+        "Mean distance between two mass-weighted random points vs. the same mass optimally arranged",
+        "Mean distance from a mass-weighted random point to the shape's own geometric median, vs. optimal",
+        "Mean distance from a mass-weighted random point to the boundary, vs. optimal",
+        "polygon area / convex hull area", "4*pi*area / perimeter^2",
+        "minimum bounding rectangle: shorter side / longer side", "area / minimum bounding circle area",
+        "equal-area-circle perimeter / convex hull perimeter",
+        "shape's own area shared with an equal-area circle at its centroid"
+    ),
+    ex_weighted = c(
+        weighted_thumb(ex_rect, linear_field, "rectangle, left-to-right gradient", index_fn = convexity_index, n_quad = 1),
+        weighted_thumb(ex_hexagon, radial_field, "hexagon, centre-weighted", index_fn = moment_of_inertia_index),
+        weighted_thumb(ex_pinwheel, radial_field, "pinwheel, centre-weighted", index_fn = moment_isotropy_index),
+        weighted_thumb(ex_disk, edge_field, "disk, edge-weigthed", index_fn = directional_balance_index),
+        weighted_thumb(ex_square, radial_field, "square, centre-weighted", index_fn = span_index, n_quad = 1),
+        weighted_thumb(ex_flower, radial_field, "flower, centre-weighted", index_fn = radial_concentration_index),
+        weighted_thumb(ex_disk, radial_field, "disk, centre-weighted", index_fn = depth_index),
+        "No weighted form", "No weighted form", "No weighted form",
+        "No weighted form", "No weighted form", "No weighted form"
+    ),
+    ex_unweighted = c(
+        thumb_cell(ex_rect, "rectangle", index_fn = convexity_index),
+        thumb_cell(ex_hexagon, "hexagon", index_fn = moment_of_inertia_index),
+        thumb_cell(ex_pinwheel, "pinwheel", index_fn = moment_isotropy_index),
+        thumb_cell(ex_dumbbell, "dumbbell", index_fn = directional_balance_index),
+        thumb_cell(ex_star_mild, "star", index_fn = span_index),
+        thumb_cell(ex_octagon, "octagon", index_fn = radial_concentration_index),
+        thumb_cell(ex_disk, "disk", index_fn = depth_index),
+        thumb_cell(ex_square, "square", index_fn = hull_ratio_index),
+        thumb_cell(ex_disk, "disk", index_fn = polsby_popper_index),
+        paste(
+            thumb_cell(ex_hole, "hole punched through it", index_fn = width_length_ratio_index, col = warn_col, size_px = 48),
+            thumb_cell(ex_spike, "needle-thin spikes", index_fn = width_length_ratio_index, col = warn_col, size_px = 48),
+            thumb_cell(ex_parts, "3 disconnected pieces", index_fn = width_length_ratio_index, col = warn_col, size_px = 48),
+            sep = "<br>"
+        ),
+        thumb_cell(ex_disk, "disk", index_fn = reock_index),
+        thumb_cell(ex_octagon, "octagon", index_fn = detour_index),
+        thumb_cell(ex_star_mild, "star", index_fn = exchange_index)
+    )
 )
-knitr::kable(format = "html", idx_table, escape = FALSE,
-             col.names = c("Function", "Description", "Ex: weighted ~ 1", "Ex: unweighted ~ 1"))
+knitr::kable(
+    format = "html", idx_table, escape = FALSE,
+    col.names = c("Function", "Description", "Ex: weighted ~ 1", "Ex: unweighted ~ 1")
+)
 ```
 
 The three thumbnails on `width_length_ratio_index`'s own row aren't a
@@ -446,44 +470,44 @@ library(knitr)
 # Non-deterministic parameters helper
 rand_opts <- list(deterministic = FALSE, n_lines = 3000, seed = 1)
 
-# Helper function to compute metrics for a single shape 
+# Helper function to compute metrics for a single shape
 compute_shape_metrics <- function(nm, g) {
-  ci_det   <- convexity_index(g, deterministic = TRUE)$index
-  ci_rand  <- do.call(convexity_index, c(list(g), rand_opts))$index
-  
-  span_det  <- span_index(g, deterministic = TRUE)$index
-  span_rand <- do.call(span_index, c(list(g), rand_opts))$index
-  
-  rci_det  <- radial_concentration_index(g, deterministic = TRUE)$index
-  rci_rand <- do.call(radial_concentration_index, c(list(g), rand_opts))$index
-  
-  db_det   <- directional_balance_index(g, deterministic = TRUE)$index
-  db_rand  <- do.call(directional_balance_index, c(list(g), rand_opts))$index
-  
-  depth_det  <- depth_index(g, deterministic = TRUE)$index
-  depth_rand <- do.call(depth_index, c(list(g), rand_opts))$index
+    ci_det <- convexity_index(g, deterministic = TRUE)$index
+    ci_rand <- do.call(convexity_index, c(list(g), rand_opts))$index
 
-  tibble::tibble(
-    shape               = nm,
-    ci_deterministic    = ci_det,
-    ci_random_line      = ci_rand,
-    span_deterministic  = span_det,
-    span_random_pair    = span_rand,
-    rci_deterministic   = rci_det,
-    rci_random_point    = rci_rand,
-    db_deterministic    = db_det,
-    db_random_point     = db_rand,
-    depth_deterministic = depth_det,
-    depth_random_point  = depth_rand,
-    moi                 = moment_of_inertia_index(g)$index,
-    moment_isotropy     = moment_isotropy_index(g)$index,
-    hull_ratio          = hull_ratio_index(g)$index
-  )
+    span_det <- span_index(g, deterministic = TRUE)$index
+    span_rand <- do.call(span_index, c(list(g), rand_opts))$index
+
+    rci_det <- radial_concentration_index(g, deterministic = TRUE)$index
+    rci_rand <- do.call(radial_concentration_index, c(list(g), rand_opts))$index
+
+    db_det <- directional_balance_index(g, deterministic = TRUE)$index
+    db_rand <- do.call(directional_balance_index, c(list(g), rand_opts))$index
+
+    depth_det <- depth_index(g, deterministic = TRUE)$index
+    depth_rand <- do.call(depth_index, c(list(g), rand_opts))$index
+
+    tibble::tibble(
+        shape               = nm,
+        ci_deterministic    = ci_det,
+        ci_random_line      = ci_rand,
+        span_deterministic  = span_det,
+        span_random_pair    = span_rand,
+        rci_deterministic   = rci_det,
+        rci_random_point    = rci_rand,
+        db_deterministic    = db_det,
+        db_random_point     = db_rand,
+        depth_deterministic = depth_det,
+        depth_random_point  = depth_rand,
+        moi                 = moment_of_inertia_index(g)$index,
+        moment_isotropy     = moment_isotropy_index(g)$index,
+        hull_ratio          = hull_ratio_index(g)$index
+    )
 }
 
 # 1. Loop over shape names to avoid type confusion with `basic_shapes[[nm]]`
 det_compare <- map_dfr(names(basic_shapes), function(nm) {
-  compute_shape_metrics(nm, basic_shapes[[nm]])
+    compute_shape_metrics(nm, basic_shapes[[nm]])
 })
 
 # 2. Extract matrix cleanly
@@ -492,17 +516,17 @@ rownames(det_mat) <- det_compare$shape
 
 # 3. Create thumbnail headers safely
 headers <- map_chr(names(basic_shapes), function(nm) {
-  paste0(shape_thumb(basic_shapes[[nm]]), nm)
+    paste0(shape_thumb(basic_shapes[[nm]]), nm)
 })
 
 # 4. Render Table
 kable(
-  t(det_mat),
-  format = "html", 
-  digits = 2, 
-  row.names = TRUE,
-  col.names = headers, 
-  escape = FALSE
+    t(det_mat),
+    format = "html",
+    digits = 2,
+    row.names = TRUE,
+    col.names = headers,
+    escape = FALSE
 )
 ```
 
@@ -528,22 +552,23 @@ plus a separated barrier-island strip) - show the range:
 
 ```{r nc-byrow}
 nc <- st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE) %>%
-  st_transform(32119)   # NC state plane (meters) - nc.shp ships in NAD27 lon/lat
+    st_transform(32119) # NC state plane (meters) - nc.shp ships in NAD27 lon/lat
 
-pair     <- nc[nc$NAME %in% c("Wake", "Dare"), ]
+pair <- nc[nc$NAME %in% c("Wake", "Dare"), ]
 pair_res <- shape_indices_sf(pair)
+pair_res <- pair_res %>%
+    rowwise() %>%
+    mutate(shape = shape_thumb(st_geometry(geometry))) %>%
+    ungroup()
 
 pair_res %>%
-  st_drop_geometry() %>%
-  select(NAME, convexity_index, moment_of_inertia_index, span_index, hull_ratio_index) %>%
-  knitr::kable(format = "html", digits = 3, row.names = FALSE)
-```
-
-```{r nc-byrow-plot, fig.width=7, fig.height=4}
-ggplot(pair_res) +
-  geom_sf(aes(fill = convexity_index), color = "grey20") +
-  scale_fill_viridis_c(limits = c(0, 1)) +
-  labs(fill = "CI")
+    st_drop_geometry() %>%
+    select(County = NAME, shape, convexity_index, moment_of_inertia_index, span_index, hull_ratio_index) %>%
+    knitr::kable(
+        format = "html", digits = 2, row.names = FALSE,
+        escape = FALSE,
+        align = "clcccc"
+    )
 ```
 
 `shape_indices_sf()` also supports `byrow = FALSE`, treating a whole
@@ -581,20 +606,24 @@ library(furrr)
 
 future::plan(future::sequential)
 t_seq_rows <- system.time(
-  res_seq <- shape_indices_sf(nc, deterministic_max_tri = 60, n_lines = 6000, seed = 1,
-                               parallel_rows = FALSE)
+    res_seq <- shape_indices_sf(nc,
+        deterministic_max_tri = 60, n_lines = 6000, seed = 1,
+        parallel_rows = FALSE
+    )
 )
 
 future::plan(future::multisession, workers = 4)
 t_par_rows <- system.time(
-  res_par_rows <- shape_indices_sf(nc, deterministic_max_tri = 60, n_lines = 6000, seed = 1,
-                                    parallel_rows = TRUE)
+    res_par_rows <- shape_indices_sf(nc,
+        deterministic_max_tri = 60, n_lines = 6000, seed = 1,
+        parallel_rows = TRUE
+    )
 )
 future::plan(future::sequential)
 
 timing <- data.frame(
-  mode    = c("parallel_rows = FALSE", "parallel_rows = TRUE (4 workers)"),
-  elapsed = c(t_seq_rows[["elapsed"]], t_par_rows[["elapsed"]])
+    mode    = c("parallel_rows = FALSE", "parallel_rows = TRUE (4 workers)"),
+    elapsed = c(t_seq_rows[["elapsed"]], t_par_rows[["elapsed"]])
 )
 timing$speedup <- timing$elapsed[1] / timing$elapsed
 knitr::kable(format = "html", timing, digits = 2, row.names = FALSE)

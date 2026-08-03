@@ -75,9 +75,9 @@
 ## multi-part polygon, the circle is centred at the OVERALL centroid,
 ## which for well-separated parts sits in the empty gap between them - once
 ## the circle's radius is smaller than the distance to the nearest part,
-## the intersection is exactly zero, not just low. Verified empirically:
-## two unit squares a couple of units apart already score under 0.05, and
-## the index hits exactly 0 once they're far enough apart - Angel et al.
+## the intersection is exactly zero, not just low: two unit squares a
+## couple of units apart already score under 0.05, and the index hits
+## exactly 0 once they're far enough apart - Angel et al.
 ## themselves note the same failure mode for real districts split by water
 ## ("does not account for separation by bodies of water"). Included
 ## despite this, matching width_length_ratio_index()'s own precedent of shipping
@@ -102,11 +102,16 @@
 #' they're (near-)collinear.
 #' @noRd
 .circle_from_3 <- function(p1, p2, p3) {
-    ax <- p1[1]; ay <- p1[2]; bx <- p2[1]; by <- p2[2]; cx <- p3[1]; cy <- p3[2]
+    ax <- p1[1]
+    ay <- p1[2]
+    bx <- p2[1]
+    by <- p2[2]
+    cx <- p3[1]
+    cy <- p3[2]
     d <- 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by))
     if (abs(d) < 1e-9) {
         cands <- list(.circle_from_2(p1, p2), .circle_from_2(p2, p3), .circle_from_2(p1, p3))
-        return(cands[[which.max(vapply(cands, `[[`, numeric(1), "r"))]])
+        return(cands[[which.max(purrr::map_dbl(cands, `[[`, "r"))]])
     }
     ux <- ((ax^2 + ay^2) * (by - cy) + (bx^2 + by^2) * (cy - ay) + (cx^2 + cy^2) * (ay - by)) / d
     uy <- ((ax^2 + ay^2) * (cx - bx) + (bx^2 + by^2) * (ax - cx) + (cx^2 + cy^2) * (bx - ax)) / d
@@ -128,7 +133,9 @@
 #' @noRd
 .min_enclosing_circle <- function(pts) {
     n <- nrow(pts)
-    if (n == 1) return(list(center = pts[1, ], r = 0))
+    if (n == 1) {
+        return(list(center = pts[1, ], r = 0))
+    }
 
     circle <- .circle_from_2(pts[1, ], pts[2, ])
     for (i in seq_len(n)) {
@@ -202,9 +209,9 @@ polsby_popper_index <- function(poly) {
 #' to a spurious 1 depending purely on which way it happened to be drawn
 #' relative to the coordinate axes - orientation is not a property of the
 #' shape itself, so an index built on it shouldn't depend on it either.
-#' Verified directly: a fixed 2:1 rectangle rotated from 0 to 90 degrees
-#' now returns the same 0.5 throughout, rather than swinging up to 1.0
-#' at 45 degrees the way the axis-aligned version did.
+#' A fixed 2:1 rectangle rotated from 0 to 90 degrees now returns the
+#' same 0.5 throughout, rather than swinging up to 1.0 at 45 degrees the
+#' way the axis-aligned version did.
 #'
 #' KNOWN LIMITATION: this looks only at the bounding rectangle, so it's
 #' blind to both holes and multi-part dispersal in ways
@@ -231,9 +238,9 @@ width_length_ratio_index <- function(poly) {
     xy <- st_coordinates(mbr)[, 1:2, drop = FALSE]
     side1 <- sqrt(sum((xy[2, ] - xy[1, ])^2))
     side2 <- sqrt(sum((xy[3, ] - xy[2, ])^2))
-    width  <- min(side1, side2)
+    width <- min(side1, side2)
     length <- max(side1, side2)
-    index  <- if (length > 0) width / length else NA_real_
+    index <- if (length > 0) width / length else NA_real_
     list(index = index, length = length, width = width)
 }
 
@@ -254,8 +261,8 @@ reock_index <- function(poly) {
     poly <- .make_valid_warn(poly)
     area <- sum(as.numeric(st_area(poly)))
     hull <- st_convex_hull(st_union(poly))
-    pts  <- unique(st_coordinates(hull)[, 1:2, drop = FALSE])
-    mec  <- .min_enclosing_circle(pts)
+    pts <- unique(st_coordinates(hull)[, 1:2, drop = FALSE])
+    mec <- .min_enclosing_circle(pts)
     mbc_area <- pi * mec$r^2
     index <- if (mbc_area > 0) area / mbc_area else NA_real_
     mbc <- st_buffer(st_sfc(st_point(mec$center), crs = st_crs(poly)), dist = mec$r, nQuadSegs = 90)
@@ -322,10 +329,10 @@ exchange_index <- function(poly) {
     poly <- .make_valid_warn(poly)
     poly_u <- st_union(poly)
     area <- sum(as.numeric(st_area(poly)))
-    cen  <- st_centroid(poly_u)
-    r    <- sqrt(area / pi)
+    cen <- st_centroid(poly_u)
+    r <- sqrt(area / pi)
     circle <- st_buffer(cen, dist = r, nQuadSegs = 90)
-    inter  <- suppressWarnings(st_intersection(poly_u, circle))
+    inter <- suppressWarnings(st_intersection(poly_u, circle))
     inter_area <- if (length(inter) == 0) 0 else sum(as.numeric(st_area(inter)))
     index <- if (area > 0) inter_area / area else NA_real_
     list(index = index, area = area, circle_area = as.numeric(st_area(circle)), circle = circle)
@@ -346,8 +353,8 @@ exchange_index <- function(poly) {
 #' @export
 hull_ratio_index_sf <- function(x) {
     geoms <- st_geometry(x)
-    res <- lapply(seq_along(geoms), function(i) hull_ratio_index(geoms[i]))
-    x$hull_ratio_index <- vapply(res, function(r) r$index, numeric(1))
+    res <- purrr::map(seq_along(geoms), \(i) hull_ratio_index(geoms[i]))
+    x$hull_ratio_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }
 
@@ -362,8 +369,8 @@ hull_ratio_index_sf <- function(x) {
 #' @export
 polsby_popper_index_sf <- function(x) {
     geoms <- st_geometry(x)
-    res <- lapply(seq_along(geoms), function(i) polsby_popper_index(geoms[i]))
-    x$polsby_popper_index <- vapply(res, function(r) r$index, numeric(1))
+    res <- purrr::map(seq_along(geoms), \(i) polsby_popper_index(geoms[i]))
+    x$polsby_popper_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }
 
@@ -378,8 +385,8 @@ polsby_popper_index_sf <- function(x) {
 #' @export
 width_length_ratio_index_sf <- function(x) {
     geoms <- st_geometry(x)
-    res <- lapply(seq_along(geoms), function(i) width_length_ratio_index(geoms[i]))
-    x$width_length_ratio_index <- vapply(res, function(r) r$index, numeric(1))
+    res <- purrr::map(seq_along(geoms), \(i) width_length_ratio_index(geoms[i]))
+    x$width_length_ratio_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }
 
@@ -394,8 +401,8 @@ width_length_ratio_index_sf <- function(x) {
 #' @export
 reock_index_sf <- function(x) {
     geoms <- st_geometry(x)
-    res <- lapply(seq_along(geoms), function(i) reock_index(geoms[i]))
-    x$reock_index <- vapply(res, function(r) r$index, numeric(1))
+    res <- purrr::map(seq_along(geoms), \(i) reock_index(geoms[i]))
+    x$reock_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }
 
@@ -410,8 +417,8 @@ reock_index_sf <- function(x) {
 #' @export
 detour_index_sf <- function(x) {
     geoms <- st_geometry(x)
-    res <- lapply(seq_along(geoms), function(i) detour_index(geoms[i]))
-    x$detour_index <- vapply(res, function(r) r$index, numeric(1))
+    res <- purrr::map(seq_along(geoms), \(i) detour_index(geoms[i]))
+    x$detour_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }
 
@@ -426,7 +433,7 @@ detour_index_sf <- function(x) {
 #' @export
 exchange_index_sf <- function(x) {
     geoms <- st_geometry(x)
-    res <- lapply(seq_along(geoms), function(i) exchange_index(geoms[i]))
-    x$exchange_index <- vapply(res, function(r) r$index, numeric(1))
+    res <- purrr::map(seq_along(geoms), \(i) exchange_index(geoms[i]))
+    x$exchange_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }

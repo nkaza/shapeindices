@@ -23,8 +23,10 @@ table {
 </style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
-                       fig.align = "center", cache = TRUE)
+knitr::opts_chunk$set(
+    echo = FALSE, warning = FALSE, message = FALSE,
+    fig.align = "center", cache = TRUE
+)
 ```
 
 ```{r load, cache=FALSE, echo=TRUE}
@@ -36,33 +38,35 @@ library(dplyr)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"),
-        legend.position = "bottom")
+    theme(
+        strip.text = element_text(size = 9, face = "bold"),
+        legend.position = "bottom"
+    )
 ```
 
 ```{r shapes, echo=TRUE}
 #| code-fold: true
-square <- st_polygon(list(rbind(c(0,0), c(10,0), c(10,10), c(0,10), c(0,0))))
+square <- st_polygon(list(rbind(c(0, 0), c(10, 0), c(10, 10), c(0, 10), c(0, 0))))
 
-make_rect <- function(w, h) st_polygon(list(rbind(c(0,0), c(w,0), c(w,h), c(0,h), c(0,0))))
-aspect_seq  <- c(1, 2, 4, 10, 20)
-rectangles  <- lapply(aspect_seq, function(a) make_rect(sqrt(100 * a), sqrt(100 / a)))
+make_rect <- function(w, h) st_polygon(list(rbind(c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
+aspect_seq <- c(1, 2, 4, 10, 20)
+rectangles <- lapply(aspect_seq, function(a) make_rect(sqrt(100 * a), sqrt(100 / a)))
 names(rectangles) <- sprintf("aspect %gx", aspect_seq)
 
 make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
-  n <- n_points * 2
-  angles <- seq(pi/2, pi/2 + 2*pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- center[1] + radii * cos(angles)
-  y <- center[2] + radii * sin(angles)
-  coords <- rbind(cbind(x, y), c(x[1], y[1]))
-  st_polygon(list(coords))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- center[1] + radii * cos(angles)
+    y <- center[2] + radii * sin(angles)
+    coords <- rbind(cbind(x, y), c(x[1], y[1]))
+    st_polygon(list(coords))
 }
 ratio_seq <- c(0.9, 0.7, 0.5, 0.3, 0.15)
-stars_r   <- lapply(ratio_seq, function(r) make_star(6, 5, 5 * r))
+stars_r <- lapply(ratio_seq, function(r) make_star(6, 5, 5 * r))
 names(stars_r) <- sprintf("notch ratio %.2f", ratio_seq)
 
-disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]  # area matches square
+disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]] # area matches square
 
 # a ring of n_arms radial wedges spanning [r_in, r_out], with a FIXED total
 # angular width split evenly among them, so n_arms only changes how finely
@@ -71,15 +75,15 @@ disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]  
 # vignette("f-understanding-radial-concentration-index") to demonstrate
 # those two indices' shared exact invariance to this kind of rearrangement
 make_spokes <- function(r_in, r_out, n_arms, total_angle_frac = 0.5) {
-  angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
-  half_w <- total_angle_frac * pi / n_arms
-  polys <- lapply(angles, function(a0) {
-    th <- seq(a0 - half_w, a0 + half_w, length.out = max(6, 40 %/% n_arms))
-    outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
-    inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
-    st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
-  })
-  Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
+    angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
+    half_w <- total_angle_frac * pi / n_arms
+    polys <- lapply(angles, function(a0) {
+        th <- seq(a0 - half_w, a0 + half_w, length.out = max(6, 40 %/% n_arms))
+        outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
+        inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
+        st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
+    })
+    Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
 }
 arm_counts <- c(2, 4, 8, 16)
 spoke_shapes <- lapply(arm_counts, function(n) make_spokes(3, 5, n))
@@ -106,14 +110,14 @@ Span index's plain-distance construction is close to, but not quite, a named ind
 # package dependency (it's already pulled in transitively via knitr, which
 # every vignette in this package already Suggests)
 shape_thumb <- function(geom, size_px = 40, col = "grey75") {
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
+    f <- tempfile(fileext = ".png")
+    grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+    par(mar = c(0.5, 0.5, 0.5, 0.5))
+    plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
+    grDevices::dev.off()
+    uri <- knitr::image_uri(f)
+    unlink(f)
+    sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
 }
 ```
 
@@ -136,11 +140,14 @@ Span index is the *average length of the segment between two random interior poi
 ```{r what-it-sees, fig.width=11, fig.height=4.5}
 set.seed(1)
 random_segments <- function(geom, n = 45) {
-  pts <- st_coordinates(st_sample(st_sfc(geom), size = 2 * n, type = "random", exact = TRUE))
-  pts <- pts[seq_len(2 * n), , drop = FALSE]
-  a <- pts[1:n, , drop = FALSE]; b <- pts[(n + 1):(2 * n), , drop = FALSE]
-  data.frame(x = a[, 1], y = a[, 2], xend = b[, 1], yend = b[, 2],
-             len = sqrt((a[, 1] - b[, 1])^2 + (a[, 2] - b[, 2])^2))
+    pts <- st_coordinates(st_sample(st_sfc(geom), size = 2 * n, type = "random", exact = TRUE))
+    pts <- pts[seq_len(2 * n), , drop = FALSE]
+    a <- pts[1:n, , drop = FALSE]
+    b <- pts[(n + 1):(2 * n), , drop = FALSE]
+    data.frame(
+        x = a[, 1], y = a[, 2], xend = b[, 1], yend = b[, 2],
+        len = sqrt((a[, 1] - b[, 1])^2 + (a[, 2] - b[, 2])^2)
+    )
 }
 
 # geom_sf() can't do free per-facet scales, so normalise each shape onto a
@@ -150,48 +157,53 @@ random_segments <- function(geom, n = 45) {
 # 10x-aspect rectangle spanning 30+ units, and the origin-centred star)
 # would squash the compact shapes down to slivers and leave them off-centre
 local_frame <- function(geom) {
-  bb <- st_bbox(st_sfc(geom))
-  list(center = c((bb["xmin"] + bb["xmax"]) / 2, (bb["ymin"] + bb["ymax"]) / 2),
-       scale  = 1 / max(bb["xmax"] - bb["xmin"], bb["ymax"] - bb["ymin"]))
+    bb <- st_bbox(st_sfc(geom))
+    list(
+        center = c((bb["xmin"] + bb["xmax"]) / 2, (bb["ymin"] + bb["ymax"]) / 2),
+        scale = 1 / max(bb["xmax"] - bb["xmin"], bb["ymax"] - bb["ymin"])
+    )
 }
 normalize_geom <- function(geom, fr) (geom - fr$center) * fr$scale
-normalize_xy    <- function(x, y, fr) list(x = (x - fr$center[1]) * fr$scale, y = (y - fr$center[2]) * fr$scale)
+normalize_xy <- function(x, y, fr) list(x = (x - fr$center[1]) * fr$scale, y = (y - fr$center[2]) * fr$scale)
 
 demo <- list(compact = square, elongated = rectangles[["aspect 10x"]], notched = make_star(6, 5, 1.5))
 panel_of <- function(nm) sprintf("%s  (span index %.2f)", nm, span_index(demo[[nm]])$index)
 
 segment_df <- do.call(rbind, lapply(names(demo), function(nm) {
-  fr <- local_frame(demo[[nm]])
-  d  <- random_segments(demo[[nm]])
-  a  <- normalize_xy(d$x, d$y, fr); b <- normalize_xy(d$xend, d$yend, fr)
-  # segment length keeps its TRUE (pre-normalisation) value for the colour
-  # scale, so the elongated rectangle's segments still read as genuinely
-  # longer, not rescaled away to fit the same panel as everything else
-  data.frame(x = a$x, y = a$y, xend = b$x, yend = b$y, len = d$len, panel = panel_of(nm))
+    fr <- local_frame(demo[[nm]])
+    d <- random_segments(demo[[nm]])
+    a <- normalize_xy(d$x, d$y, fr)
+    b <- normalize_xy(d$xend, d$yend, fr)
+    # segment length keeps its TRUE (pre-normalisation) value for the colour
+    # scale, so the elongated rectangle's segments still read as genuinely
+    # longer, not rescaled away to fit the same panel as everything else
+    data.frame(x = a$x, y = a$y, xend = b$x, yend = b$y, len = d$len, panel = panel_of(nm))
 }))
 poly_df <- do.call(rbind, lapply(names(demo), function(nm) {
-  fr <- local_frame(demo[[nm]])
-  data.frame(panel = panel_of(nm), geom = st_as_text(normalize_geom(st_sfc(demo[[nm]]), fr)))
+    fr <- local_frame(demo[[nm]])
+    data.frame(panel = panel_of(nm), geom = st_as_text(normalize_geom(st_sfc(demo[[nm]]), fr)))
 }))
 poly_sf <- st_as_sf(poly_df, wkt = "geom")
 ref_df <- do.call(rbind, lapply(names(demo), function(nm) {
-  g  <- demo[[nm]]
-  fr <- local_frame(g)
-  cen   <- st_centroid(st_sfc(g))
-  r_ref <- sqrt(as.numeric(st_area(st_sfc(g))) / pi)
-  data.frame(panel = panel_of(nm),
-             geom = st_as_text(normalize_geom(st_buffer(cen, dist = r_ref, nQuadSegs = 60), fr)))
+    g <- demo[[nm]]
+    fr <- local_frame(g)
+    cen <- st_centroid(st_sfc(g))
+    r_ref <- sqrt(as.numeric(st_area(st_sfc(g))) / pi)
+    data.frame(
+        panel = panel_of(nm),
+        geom = st_as_text(normalize_geom(st_buffer(cen, dist = r_ref, nQuadSegs = 60), fr))
+    )
 }))
 ref_sf <- st_as_sf(ref_df, wkt = "geom")
 
 ggplot() +
-  geom_sf(data = poly_sf, fill = "grey90", color = "grey40") +
-  geom_segment(data = segment_df, aes(x, y, xend = xend, yend = yend, color = len), linewidth = 0.4) +
-  geom_sf(data = ref_sf, fill = NA, color = "firebrick", linewidth = 0.8, linetype = "dashed") +
-  scale_color_gradient(low = "steelblue", high = "firebrick", name = "segment length") +
-  facet_wrap(~ panel) +
-  coord_sf() +
-  theme_gallery
+    geom_sf(data = poly_sf, fill = "grey90", color = "grey40") +
+    geom_segment(data = segment_df, aes(x, y, xend = xend, yend = yend, color = len), linewidth = 0.4) +
+    geom_sf(data = ref_sf, fill = NA, color = "firebrick", linewidth = 0.8, linetype = "dashed") +
+    scale_color_gradient(low = "steelblue", high = "firebrick", name = "segment length") +
+    facet_wrap(~panel) +
+    coord_sf() +
+    theme_gallery
 ```
 
 Each panel's own equal-area disk reference (dashed) shows the same story a different way: the square nearly fills its own reference circle, the elongated rectangle spills far outside it, and the notched star sits in between - visually the same ranking the segment colours already suggest.
@@ -236,11 +248,11 @@ $$g(r_1, r_2) = \frac{1}{2\pi}\int_0^{2\pi} \sqrt{r_1^2 + r_2^2 - 2 r_1 r_2 \cos
 where $E$ is the complete elliptic integral of the second kind. Two sanity checks confirm it: $r_1=r_2=r$ gives $k=1$, $E(1)=1$, $g = 4r/\pi$ - the classical mean chord length between two random points on one circle. $r_2=0$ gives $k=0$, $E(0)=\pi/2$, $g=r_1$ - the (obviously correct) distance from the centre to any point on a circle of radius $r_1$.
 
 ```{r ellip-check}
-k_vals <- c(0, 0.3, 0.5, 0.7, 1/sqrt(2), 0.9, 0.999, 1)
+k_vals <- c(0, 0.3, 0.5, 0.7, 1 / sqrt(2), 0.9, 0.999, 1)
 check <- vapply(k_vals, function(k) {
-  ref <- integrate(function(phi) sqrt(1 - k^2 * sin(phi)^2), 0, pi/2)$value
-  got <- shapeindices:::.ellip_E(k)
-  abs(ref - got)
+    ref <- integrate(function(phi) sqrt(1 - k^2 * sin(phi)^2), 0, pi / 2)$value
+    got <- shapeindices:::.ellip_E(k)
+    abs(ref - got)
 }, numeric(1))
 ```
 
@@ -251,10 +263,13 @@ This reduces the weighted reference to a 2D numerical integral - Gauss-Legendre 
 A $3\times3$ grid of unit cells, weighted so the centre cell is heaviest and weight falls off toward the corners, shows the sorted-ring construction concretely - the same grid used in `vignette("a-basic-usage")`'s hole-punching example, reused here for its weight profile rather than to punch a hole.
 
 ```{r annulus-example, fig.width=9, fig.height=4.5}
-cell <- function(cx, cy) st_polygon(list(rbind(
-  c(cx-0.5, cy-0.5), c(cx+0.5, cy-0.5), c(cx+0.5, cy+0.5), c(cx-0.5, cy+0.5), c(cx-0.5, cy-0.5))))
+cell <- function(cx, cy) {
+    st_polygon(list(rbind(
+        c(cx - 0.5, cy - 0.5), c(cx + 0.5, cy - 0.5), c(cx + 0.5, cy + 0.5), c(cx - 0.5, cy + 0.5), c(cx - 0.5, cy - 0.5)
+    )))
+}
 ctr <- expand.grid(x = -1:1, y = -1:1)
-w9  <- 10 - 3 * sqrt(ctr$x^2 + ctr$y^2)   # heaviest at centre, lightest at corners
+w9 <- 10 - 3 * sqrt(ctr$x^2 + ctr$y^2) # heaviest at centre, lightest at corners
 grid9 <- st_sf(pop = w9, geometry = st_sfc(mapply(cell, ctr$x, ctr$y, SIMPLIFY = FALSE), crs = 3857))
 poly9 <- st_union(st_geometry(grid9))
 prep9 <- prepare_polygon(poly9)
@@ -265,13 +280,17 @@ prep9 <- prepare_polygon(poly9)
 # shape_indices_sf(byrow = FALSE) itself (which, given real per-row
 # weights like this, builds its mesh so no triangle can straddle a cell
 # boundary in the first place, making this overlay step unnecessary)
-ov <- st_intersection(st_sf(geometry = st_geometry(prep9$tri), tri_id = seq_len(nrow(prep9$tri))),
-                       grid9)
+ov <- st_intersection(
+    st_sf(geometry = st_geometry(prep9$tri), tri_id = seq_len(nrow(prep9$tri))),
+    grid9
+)
 ov$a <- as.numeric(st_area(st_geometry(ov)))
 tri_w <- sapply(seq_len(nrow(prep9$tri)), function(i) {
-  rows <- ov[ov$tri_id == i, ]
-  if (nrow(rows) == 0) return(0)
-  sum(rows$pop * rows$a) / sum(rows$a)
+    rows <- ov[ov$tri_id == i, ]
+    if (nrow(rows) == 0) {
+        return(0)
+    }
+    sum(rows$pop * rows$a) / sum(rows$a)
 })
 
 res9 <- span_index(poly9, prep = prep9, weight = tri_w)
@@ -291,26 +310,28 @@ r_hi <- sqrt(cumsum(tiers$area) / pi)
 r_lo <- c(0, r_hi[-length(r_hi)])
 cen9 <- st_centroid(poly9)
 rings <- lapply(seq_along(r_hi), function(i) {
-  outer_c <- st_buffer(cen9, r_hi[i], nQuadSegs = 60)
-  if (r_lo[i] == 0) return(outer_c)
-  st_difference(outer_c, st_buffer(cen9, r_lo[i], nQuadSegs = 60))
+    outer_c <- st_buffer(cen9, r_hi[i], nQuadSegs = 60)
+    if (r_lo[i] == 0) {
+        return(outer_c)
+    }
+    st_difference(outer_c, st_buffer(cen9, r_lo[i], nQuadSegs = 60))
 })
 ring_sf <- st_sf(density = tiers$pop, geometry = st_sfc(lapply(rings, function(g) st_geometry(g)[[1]]), crs = st_crs(poly9)))
 
 panel_a <- sprintf("Actual: weight by cell (span_index = %.3f)", res9$index)
 panel_b <- sprintf("Reference: %d concentric rings", nrow(tiers))
 combined <- rbind(
-  st_sf(panel = panel_a, value = grid9$pop, geometry = st_geometry(grid9)),
-  st_sf(panel = panel_b, value = ring_sf$density, geometry = st_geometry(ring_sf))
+    st_sf(panel = panel_a, value = grid9$pop, geometry = st_geometry(grid9)),
+    st_sf(panel = panel_b, value = ring_sf$density, geometry = st_geometry(ring_sf))
 )
 combined$panel <- factor(combined$panel, levels = c(panel_a, panel_b))
 
 ggplot(combined) +
-  geom_sf(aes(fill = value), color = "white") +
-  scale_fill_gradient(low = "grey95", high = "firebrick") +
-  facet_wrap(~ panel) +
-  labs(fill = "weight/density") +
-  theme_gallery
+    geom_sf(aes(fill = value), color = "white") +
+    scale_fill_gradient(low = "grey95", high = "firebrick") +
+    facet_wrap(~panel) +
+    labs(fill = "weight/density") +
+    theme_gallery
 ```
 
 Nine cells collapse to `r nrow(tiers)` rings because only `r nrow(tiers)` distinct weight values exist among them (the centre cell, the 4 edge-adjacent cells, and the 4 corner cells each share a weight) - a sorted-ring reference always has *at most* as many rings as the mesh has distinct density levels, never more. The actual grid already has its heaviest cell at the centre, so its span index is close to (though not exactly) 1 - the residual gap is the grid's square, blocky footprint versus the reference's smooth circular rings, not a difference in *where* the mass sits. The real computation behind `res9` still triangulates and works ring-by-triangle as derived above (`r nrow(prep9$tri)` CDT triangles here, capped at 100 in general) - only this illustration's own reference panel is simplified down to the grid's `r nrow(tiers)` genuinely distinct density tiers, since a triangle-by-triangle breakdown would just be reproducing the incidental mesh resolution rather than the actual weighted-parcel structure the derivation above is about.
@@ -323,34 +344,44 @@ The actual $D(\rho)$ is computed the same way `convexity_index()` computes its o
 
 ```{r self-term-convergence, echo=TRUE}
 subdivide <- function(v) {
-  m_ab <- (v[1,]+v[2,])/2; m_bc <- (v[2,]+v[3,])/2; m_ca <- (v[3,]+v[1,])/2
-  list(rbind(v[1,],m_ab,m_ca), rbind(v[2,],m_bc,m_ab), rbind(v[3,],m_ca,m_bc), rbind(m_ab,m_bc,m_ca))
+    m_ab <- (v[1, ] + v[2, ]) / 2
+    m_bc <- (v[2, ] + v[3, ]) / 2
+    m_ca <- (v[3, ] + v[1, ]) / 2
+    list(rbind(v[1, ], m_ab, m_ca), rbind(v[2, ], m_bc, m_ab), rbind(v[3, ], m_ca, m_bc), rbind(m_ab, m_bc, m_ca))
 }
 centroid_self_D <- function(v, k) {
-  tris <- list(v)
-  for (i in seq_len(k)) tris <- unlist(lapply(tris, subdivide), recursive = FALSE)
-  cen <- t(vapply(tris, colMeans, numeric(2)))
-  mean(as.matrix(dist(cen)))
+    tris <- list(v)
+    for (i in seq_len(k)) tris <- unlist(lapply(tris, subdivide), recursive = FALSE)
+    cen <- t(vapply(tris, colMeans, numeric(2)))
+    mean(as.matrix(dist(cen)))
 }
-v <- rbind(c(0,0), c(4,0), c(0,3))   # an arbitrary right triangle, legs 4 and 3
+v <- rbind(c(0, 0), c(4, 0), c(0, 3)) # an arbitrary right triangle, legs 4 and 3
 set.seed(1)
 n_mc <- 300000
-r1 <- runif(n_mc); r2 <- runif(n_mc); flip <- (r1+r2) > 1
-r1[flip] <- 1-r1[flip]; r2[flip] <- 1-r2[flip]
-P1 <- cbind(v[1,1]+r1*(v[2,1]-v[1,1])+r2*(v[3,1]-v[1,1]), v[1,2]+r1*(v[2,2]-v[1,2])+r2*(v[3,2]-v[1,2]))
-r1 <- runif(n_mc); r2 <- runif(n_mc); flip <- (r1+r2) > 1
-r1[flip] <- 1-r1[flip]; r2[flip] <- 1-r2[flip]
-P2 <- cbind(v[1,1]+r1*(v[2,1]-v[1,1])+r2*(v[3,1]-v[1,1]), v[1,2]+r1*(v[2,2]-v[1,2])+r2*(v[3,2]-v[1,2]))
-D_true <- mean(sqrt(rowSums((P1-P2)^2)))
+r1 <- runif(n_mc)
+r2 <- runif(n_mc)
+flip <- (r1 + r2) > 1
+r1[flip] <- 1 - r1[flip]
+r2[flip] <- 1 - r2[flip]
+P1 <- cbind(v[1, 1] + r1 * (v[2, 1] - v[1, 1]) + r2 * (v[3, 1] - v[1, 1]), v[1, 2] + r1 * (v[2, 2] - v[1, 2]) + r2 * (v[3, 2] - v[1, 2]))
+r1 <- runif(n_mc)
+r2 <- runif(n_mc)
+flip <- (r1 + r2) > 1
+r1[flip] <- 1 - r1[flip]
+r2[flip] <- 1 - r2[flip]
+P2 <- cbind(v[1, 1] + r1 * (v[2, 1] - v[1, 1]) + r2 * (v[3, 1] - v[1, 1]), v[1, 2] + r1 * (v[2, 2] - v[1, 2]) + r2 * (v[3, 2] - v[1, 2]))
+D_true <- mean(sqrt(rowSums((P1 - P2)^2)))
 
 convergence <- data.frame(
-  depth = 0:6,
-  n_centroids = 4^(0:6),
-  D = vapply(0:6, function(k) centroid_self_D(v, k), numeric(1))
+    depth = 0:6,
+    n_centroids = 4^(0:6),
+    D = vapply(0:6, function(k) centroid_self_D(v, k), numeric(1))
 )
 convergence$rel_error_pct <- 100 * (convergence$D - D_true) / D_true
-knitr::kable(format = "html", convergence, digits = c(0, 0, 4, 3),
-             col.names = c("subdivision depth", "centroids", "D estimate", "rel. error (%)"))
+knitr::kable(
+    format = "html", convergence, digits = c(0, 0, 4, 3),
+    col.names = c("subdivision depth", "centroids", "D estimate", "rel. error (%)")
+)
 ```
 
 `span_index()` caps depth at 4 (256 centroids), but doesn't spend it on every triangle - the depth is area-adaptive, the same idea `radial_concentration_index()` uses for its own point cloud (see `vignette("f-understanding-radial-concentration-index")`), anchored so the mesh's own largest triangle still gets the full 256 centroids and smaller ones get proportionally fewer. Adaptivity matters more here than for `radial_concentration_index()`: the self-term needs the *full pairwise distance matrix* among one triangle's own centroids, an $O((4^{\text{depth}})^2)$ cost per triangle rather than $O(4^{\text{depth}})$, so quartering a small triangle's depth cuts its share of this cost sixteenfold, not just fourfold. On real Census-block-derived meshes with hundreds of triangles and large size variation, this cuts total self-term point count by 40-60x with the resulting index changing by well under 0.1% - invisible at the 3 decimal places indices are typically read to. One subtlety weighting introduces: depth adapts to each triangle's own *contribution* to the self-term sum ($w_i^2\sqrt{\text{area}_i}$, since a triangle's self-distance scales with its own linear size), not to raw area alone - a physically tiny triangle carrying almost all the weight still gets real depth, rather than having its self-distance collapse to exactly 0 the way pure area-based adaptation would give it. This is the same principle behind the reference's ratio-bounded rings above: weight can make triangle size a misleading proxy for how much a triangle actually matters to the sum.
@@ -363,16 +394,18 @@ knitr::kable(format = "html", convergence, digits = c(0, 0, 4, 3),
 
 ```{r basic-shapes-table}
 rows <- list(
-  list(name = "square", geom = square),
-  list(name = "disk (reference shape itself)", geom = disk)
+    list(name = "square", geom = square),
+    list(name = "disk (reference shape itself)", geom = disk)
 )
-for (nm in names(rectangles)) rows[[length(rows)+1]] <- list(name = paste("rectangle", nm), geom = rectangles[[nm]])
-for (nm in names(stars_r))    rows[[length(rows)+1]] <- list(name = paste("star", nm), geom = stars_r[[nm]])
+for (nm in names(rectangles)) rows[[length(rows) + 1]] <- list(name = paste("rectangle", nm), geom = rectangles[[nm]])
+for (nm in names(stars_r)) rows[[length(rows) + 1]] <- list(name = paste("star", nm), geom = stars_r[[nm]])
 
 basic_tbl <- do.call(rbind, lapply(rows, function(r) {
-  res <- span_index(r$geom)
-  data.frame(shape = shape_thumb(r$geom), name = r$name,
-             span_index = res$index, D = res$D, D_ref = res$D_ref)
+    res <- span_index(r$geom)
+    data.frame(
+        shape = shape_thumb(r$geom), name = r$name,
+        span_index = res$index, D = res$D, D_ref = res$D_ref
+    )
 }))
 knitr::kable(format = "html", basic_tbl, digits = 3, row.names = FALSE, escape = FALSE)
 ```
@@ -384,12 +417,14 @@ The disk itself scores just above 1 rather than exactly 1 - the small, expected 
 ```{r deterministic-vs-mc}
 shapes_for_mc <- list(square = square, `star (deep notch)` = stars_r[[5]])
 mc_tbl <- do.call(rbind, lapply(names(shapes_for_mc), function(nm) {
-  g <- shapes_for_mc[[nm]]
-  det <- span_index(g)
-  mc  <- suppressWarnings(span_index(g, deterministic = FALSE, n_lines = 20000, seed = 1))
-  data.frame(shape = shape_thumb(g), name = nm,
-             D_deterministic = det$D, D_monte_carlo = mc$D,
-             index_deterministic = det$index, index_monte_carlo = mc$index)
+    g <- shapes_for_mc[[nm]]
+    det <- span_index(g)
+    mc <- suppressWarnings(span_index(g, deterministic = FALSE, n_lines = 20000, seed = 1))
+    data.frame(
+        shape = shape_thumb(g), name = nm,
+        D_deterministic = det$D, D_monte_carlo = mc$D,
+        index_deterministic = det$index, index_monte_carlo = mc$index
+    )
 }))
 knitr::kable(format = "html", mc_tbl, digits = 4, row.names = FALSE, escape = FALSE)
 ```
@@ -402,12 +437,16 @@ The two methods agree to within about 1%, as expected for 20000 random point pai
 
 ```{r blind-spot, echo=TRUE}
 tbl_spokes <- do.call(rbind, lapply(names(spoke_shapes), function(nm) {
-  poly <- st_sfc(spoke_shapes[[nm]])
-  data.frame(shape = shape_thumb(spoke_shapes[[nm]]), name = nm,
-             span = span_index(poly)$index,
-             moment_of_inertia = moment_of_inertia_index(poly)$index,
-             convexity = suppressWarnings(convexity_index(poly, deterministic = FALSE,
-                                                            n_lines = 5000, seed = 1)$index))
+    poly <- st_sfc(spoke_shapes[[nm]])
+    data.frame(
+        shape = shape_thumb(spoke_shapes[[nm]]), name = nm,
+        span = span_index(poly)$index,
+        moment_of_inertia = moment_of_inertia_index(poly)$index,
+        convexity = suppressWarnings(convexity_index(poly,
+            deterministic = FALSE,
+            n_lines = 5000, seed = 1
+        )$index)
+    )
 }))
 knitr::kable(format = "html", tbl_spokes, digits = 4, row.names = FALSE, escape = FALSE)
 ```
@@ -427,42 +466,46 @@ It does move - but only a little. Going from 2 broad wedges to 16 thin ones (the
 # free (it's just an ordinary geom_polygon() layer, no image/raster
 # dependency needed)
 glyph_polygon <- function(geom, cx, cy, size) {
-  co  <- st_coordinates(st_sfc(geom))[, 1:2]
-  rng <- max(diff(range(co[, 1])), diff(range(co[, 2])))
-  data.frame(x = (co[, 1] - mean(range(co[, 1]))) / rng * size + cx,
-             y = (co[, 2] - mean(range(co[, 2]))) / rng * size + cy)
+    co <- st_coordinates(st_sfc(geom))[, 1:2]
+    rng <- max(diff(range(co[, 1])), diff(range(co[, 2])))
+    data.frame(
+        x = (co[, 1] - mean(range(co[, 1]))) / rng * size + cx,
+        y = (co[, 2] - mean(range(co[, 2]))) / rng * size + cy
+    )
 }
 ```
 
 ```{r other-indices-comparison, fig.width=13, fig.height=4.5}
 comparison_indices <- list(
-  moment_of_inertia_index = moment_of_inertia_index,
-  radial_concentration_index = radial_concentration_index,
-  convexity_index = function(g) suppressWarnings(convexity_index(g, deterministic = FALSE, n_lines = 5000, seed = 1))
+    moment_of_inertia_index = moment_of_inertia_index,
+    radial_concentration_index = radial_concentration_index,
+    convexity_index = function(g) suppressWarnings(convexity_index(g, deterministic = FALSE, n_lines = 5000, seed = 1))
 )
 cmp_summary <- do.call(rbind, lapply(rows, function(r) {
-  data.frame(name = r$name, span = span_index(r$geom)$index,
-             moment_of_inertia_index = moment_of_inertia_index(r$geom)$index,
-             radial_concentration_index = radial_concentration_index(r$geom)$index,
-             convexity_index = comparison_indices$convexity_index(r$geom)$index)
+    data.frame(
+        name = r$name, span = span_index(r$geom)$index,
+        moment_of_inertia_index = moment_of_inertia_index(r$geom)$index,
+        radial_concentration_index = radial_concentration_index(r$geom)$index,
+        convexity_index = comparison_indices$convexity_index(r$geom)$index
+    )
 }))
 glyph_df <- do.call(rbind, lapply(rows, function(r) {
-  y <- span_index(r$geom)$index
-  do.call(rbind, lapply(names(comparison_indices), function(idx_name) {
-    x <- comparison_indices[[idx_name]](r$geom)$index
-    g <- glyph_polygon(r$geom, x, y, size = 0.045)
-    g$panel <- idx_name
-    g$id <- paste(r$name, idx_name)
-    g
-  }))
+    y <- span_index(r$geom)$index
+    do.call(rbind, lapply(names(comparison_indices), function(idx_name) {
+        x <- comparison_indices[[idx_name]](r$geom)$index
+        g <- glyph_polygon(r$geom, x, y, size = 0.045)
+        g$panel <- idx_name
+        g$id <- paste(r$name, idx_name)
+        g
+    }))
 }))
 
 ggplot(glyph_df) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey60") +
-  geom_polygon(aes(x, y, group = id), fill = "steelblue", color = "grey20", linewidth = 0.3) +
-  facet_wrap(~ panel) +
-  coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
-  labs(x = NULL, y = "span_index")
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey60") +
+    geom_polygon(aes(x, y, group = id), fill = "steelblue", color = "grey20", linewidth = 0.3) +
+    facet_wrap(~panel) +
+    coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
+    labs(x = NULL, y = "span_index")
 ```
 
 The `convexity_index()` panel, leftmost, looks different in kind, not just degree: every rectangle and the square sit in a single vertical line at convexity 1, however elongated, since a straight line between two points of a convex shape never has to leave it - only the stars move off that line, both indices falling together as notches deepen, because part of span index's own drop there is detecting the same re-entrancy convexity index measures directly.

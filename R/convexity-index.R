@@ -43,10 +43,9 @@
 ## to triangle size can still slip between those fixed sample points even
 ## with plenty of triangles. deterministic = FALSE with a large `n_lines`
 ## converges to the true value; deterministic = TRUE at the default n_quad
-## does not, in general - verified empirically: refining the quadrature
-## (n_quad 1 -> 3 -> a much finer manual grid) moves the deterministic
-## value monotonically toward the Monte Carlo one, not the other way
-## round.
+## does not, in general - refining the quadrature (n_quad 1 -> 3 -> a much
+## finer manual grid) moves the deterministic value monotonically toward
+## the Monte Carlo one, not the other way round.
 
 ## -- the convexity index itself --------------------------------------
 ##
@@ -87,12 +86,12 @@
         return(list(index = NA_real_, triangles = pieces, edges = NULL))
     }
     if (n == 1) {
-        return(list(index = 1, triangles = pieces, edges = NULL))  # vacuously convex
+        return(list(index = 1, triangles = pieces, edges = NULL)) # vacuously convex
     }
     # cost tracks n_pairs * n_quad^2, not n_pairs alone - a large mesh can
     # OOM the vectorised line-clipping method, which then falls back
     # (gracefully, sequentially) to a per-line GEOS loop
-    n_pairs          <- choose(n, 2)
+    n_pairs <- choose(n, 2)
     n_candidate_lines <- n_pairs * n_quad^2
     if (n_candidate_lines > 20000) {
         warning(
@@ -106,35 +105,37 @@
         )
     }
 
-    crs    <- st_crs(poly)
+    crs <- st_crs(poly)
     poly_u <- st_union(poly)
     # weight already normalised to sum to 1 by the caller; NULL keeps
     # physical (unnormalised) area
     piece_weight <- if (is.null(weight)) pieces$area else weight
-    q            <- n_quad
+    q <- n_quad
 
     qmat <- if (q == 1) {
         st_coordinates(st_centroid(st_geometry(pieces)))[, 1:2, drop = FALSE]
     } else {
-        do.call(rbind, lapply(st_geometry(pieces), function(g) {
+        do.call(rbind, purrr::map(st_geometry(pieces), \(g) {
             tri_quad_points(st_coordinates(g)[1:3, 1:2, drop = FALSE])
         }))
     }
 
-    res   <- .eval_mesh_pairs(qmat, q, n, poly_u, crs)
+    res <- .eval_mesh_pairs(qmat, q, n, poly_u, crs)
     edges <- res$edges
-    g_ij  <- res$g_ij
+    g_ij <- res$g_ij
 
     # product weighting (not sum) - see file header for why
     w <- piece_weight[edges[, 1]] * piece_weight[edges[, 2]]
-    diag_term <- sum(piece_weight^2) / 2   # same-piece term - see file header
-    index <- 1 - sum(w * g_ij) / (sum(w) + diag_term)   # 1 = fully convex
+    diag_term <- sum(piece_weight^2) / 2 # same-piece term - see file header
+    index <- 1 - sum(w * g_ij) / (sum(w) + diag_term) # 1 = fully convex
 
     edges_df <- setNames(as.data.frame(edges), c("from", "to"))
     # diagnostic geometry always at centroid level, regardless of n_quad
-    cen      <- st_centroid(st_geometry(pieces))
-    plot_seg <- mapply(function(i, j) st_linestring(rbind(cen[[i]], cen[[j]])),
-                        edges_df$from, edges_df$to, SIMPLIFY = FALSE)
+    cen <- st_centroid(st_geometry(pieces))
+    plot_seg <- purrr::map2(
+        edges_df$from, edges_df$to,
+        \(i, j) st_linestring(rbind(cen[[i]], cen[[j]]))
+    )
     plot_seg <- st_sfc(plot_seg, crs = crs)
     edges_sf <- st_sf(edges_df, frac_outside = g_ij, weight = w, geometry = plot_seg)
 
@@ -142,7 +143,7 @@
         plot(poly, col = "grey90", border = "grey40")
         plot(st_geometry(pieces), add = TRUE, border = "grey75")
         ok <- g_ij == 0
-        if (any(ok))  plot(st_geometry(edges_sf)[ok], add = TRUE, col = "steelblue")
+        if (any(ok)) plot(st_geometry(edges_sf)[ok], add = TRUE, col = "steelblue")
         if (any(!ok)) plot(st_geometry(edges_sf)[!ok], add = TRUE, col = "red", lwd = 2)
         plot(cen, add = TRUE, pch = 20, cex = 0.6)
     }
@@ -172,24 +173,32 @@
     n_tri <- nrow(tri)
     # 6 x n_tri: Ax,Ay,Bx,By,Cx,Cy per triangle, built once so sampling is
     # fully vectorised
-    corner_mat <- vapply(st_geometry(tri), function(g) {
+    corner_mat <- vapply(st_geometry(tri), \(g) {
         v <- st_coordinates(g)[1:3, 1:2, drop = FALSE]
         c(v[1, 1], v[1, 2], v[2, 1], v[2, 2], v[3, 1], v[3, 2])
     }, numeric(6))
 
     tri_idx <- sample.int(n_tri, size = n, replace = TRUE, prob = weight)
-    sel     <- corner_mat[, tri_idx, drop = FALSE]
+    sel <- corner_mat[, tri_idx, drop = FALSE]
 
     # uniform point within a triangle via barycentric coords, folding
     # points outside the (r1+r2 <= 1) triangle back in
-    r1 <- runif(n); r2 <- runif(n)
-    flip     <- (r1 + r2) > 1
+    r1 <- runif(n)
+    r2 <- runif(n)
+    flip <- (r1 + r2) > 1
     r1[flip] <- 1 - r1[flip]
     r2[flip] <- 1 - r2[flip]
 
-    Ax <- sel[1, ]; Ay <- sel[2, ]; Bx <- sel[3, ]; By <- sel[4, ]; Cx <- sel[5, ]; Cy <- sel[6, ]
-    cbind(x = Ax + r1 * (Bx - Ax) + r2 * (Cx - Ax),
-          y = Ay + r1 * (By - Ay) + r2 * (Cy - Ay))
+    Ax <- sel[1, ]
+    Ay <- sel[2, ]
+    Bx <- sel[3, ]
+    By <- sel[4, ]
+    Cx <- sel[5, ]
+    Cy <- sel[6, ]
+    cbind(
+        x = Ax + r1 * (Bx - Ax) + r2 * (Cx - Ax),
+        y = Ay + r1 * (By - Ay) + r2 * (Cy - Ay)
+    )
 }
 
 #' The random-line index (RLI) - internal engine for convexity_index()'s
@@ -212,13 +221,15 @@
 .random_line_index <- function(poly, n_lines, prep, seed, plot, weight = NULL, points = NULL) {
     if (is.null(prep)) prep <- prepare_polygon(poly)
     poly_geom <- prep$poly
-    tri       <- prep$tri
-    n_tri     <- if (is.null(tri)) 0 else nrow(tri)
+    tri <- prep$tri
+    n_tri <- if (is.null(tri)) 0 else nrow(tri)
 
     if (!is.null(weight)) {
         if (n_tri == 0) {
-            stop("`weight` needs a triangle mesh to sample from, but this polygon ",
-                 "triangulated to no triangles.")
+            stop(
+                "`weight` needs a triangle mesh to sample from, but this polygon ",
+                "triangulated to no triangles."
+            )
         }
         if (length(weight) != n_tri) {
             stop("`weight` must have one entry per triangle (", n_tri, "), got ", length(weight), ".")
@@ -233,17 +244,20 @@
         n_pairs_deterministic <- choose(n_tri, 2)
         if (n_lines >= n_pairs_deterministic / 2) {
             warning(sprintf(
-                paste("n_lines (%d) is not substantially lower than the %d triangle-pairs",
-                      "that deterministic = TRUE (%d triangles) would",
-                      "evaluate for this same polygon; deterministic = FALSE is meant as a",
-                      "cheaper approximation for meshes too large to enumerate exhaustively -",
-                      "consider deterministic = TRUE instead, or a smaller n_lines."),
-                n_lines, n_pairs_deterministic, n_tri))
+                paste(
+                    "n_lines (%d) is not substantially lower than the %d triangle-pairs",
+                    "that deterministic = TRUE (%d triangles) would",
+                    "evaluate for this same polygon; deterministic = FALSE is meant as a",
+                    "cheaper approximation for meshes too large to enumerate exhaustively -",
+                    "consider deterministic = TRUE instead, or a smaller n_lines."
+                ),
+                n_lines, n_pairs_deterministic, n_tri
+            ))
         }
     }
 
     poly_u <- st_union(poly_geom)
-    crs    <- st_crs(poly_geom)
+    crs <- st_crs(poly_geom)
 
     needed <- 2 * n_lines
 
@@ -269,7 +283,7 @@
             warning("Could not sample enough interior points; index is not defined.")
             return(list(index = NA_real_, triangles = tri, edges = NULL))
         }
-        pts    <- pts[seq_len(needed)]
+        pts <- pts[seq_len(needed)]
         coords <- st_coordinates(pts)[, 1:2, drop = FALSE]
     }
 
@@ -286,23 +300,23 @@
         seg <- sfheaders::sfc_linestring(seg_df, x = "x", y = "y", linestring_id = "id")
         st_crs(seg) <- crs
     } else {
-        seg <- mapply(function(i) st_linestring(rbind(x1[i, ], x2[i, ])), seq_len(n_lines), SIMPLIFY = FALSE)
+        seg <- purrr::map(seq_len(n_lines), \(i) st_linestring(rbind(x1[i, ], x2[i, ])))
         seg <- st_sfc(seg, crs = crs)
     }
 
     len_total <- as.numeric(st_length(seg))
-    inside  <- lengths(suppressWarnings(st_covered_by(seg, poly_u))) > 0
+    inside <- lengths(suppressWarnings(st_covered_by(seg, poly_u))) > 0
     idx_out <- which(!inside & len_total > 0)
 
     frac_outside <- .compute_frac_outside(x1, x2, idx_out, seg, len_total, poly_u, crs)
 
-    index    <- 1 - mean(frac_outside)
+    index <- 1 - mean(frac_outside)
     edges_sf <- st_sf(line_id = seq_len(n_lines), frac_outside = frac_outside, geometry = seg)
 
     if (plot) {
         plot(poly_geom, col = "grey90", border = "grey40")
         ok <- frac_outside == 0
-        if (any(ok))  plot(st_geometry(edges_sf)[ok], add = TRUE, col = "steelblue")
+        if (any(ok)) plot(st_geometry(edges_sf)[ok], add = TRUE, col = "steelblue")
         if (any(!ok)) plot(st_geometry(edges_sf)[!ok], add = TRUE, col = "red", lwd = 2)
     }
 
@@ -372,31 +386,39 @@
 #' convexity_index(wake, prep = prep, weight = prep$tri$area)$index
 #' @export
 convexity_index <- function(poly, deterministic = TRUE, n_quad = 3, n_lines = 3000, seed = NULL,
-                             plot = FALSE, prep = NULL, weight = NULL, points = NULL,
-                             simplify_tolerance = NULL) {
+                            plot = FALSE, prep = NULL, weight = NULL, points = NULL,
+                            simplify_tolerance = NULL) {
     n_quad_given <- !missing(n_quad)
     if (!is.null(weight)) weight <- .normalize_weight(weight)
     if (is.null(prep)) prep <- prepare_polygon(poly, simplify_tolerance = simplify_tolerance)
 
     if (!deterministic) {
         if (n_quad_given) {
-            stop("`n_quad` selects the quadrature refinement used by deterministic = TRUE; ",
-                 "it has no meaning for deterministic = FALSE (the random-line index), which ",
-                 "samples fresh random points rather than quadrature points on a fixed ",
-                 "mesh. Drop the `n_quad` argument, or set deterministic = TRUE to use it.")
+            stop(
+                "`n_quad` selects the quadrature refinement used by deterministic = TRUE; ",
+                "it has no meaning for deterministic = FALSE (the random-line index), which ",
+                "samples fresh random points rather than quadrature points on a fixed ",
+                "mesh. Drop the `n_quad` argument, or set deterministic = TRUE to use it."
+            )
         }
-        return(.random_line_index(poly, n_lines = n_lines, prep = prep, seed = seed,
-                                   plot = plot, weight = weight, points = points))
+        return(.random_line_index(poly,
+            n_lines = n_lines, prep = prep, seed = seed,
+            plot = plot, weight = weight, points = points
+        ))
     }
     if (!is.null(points)) {
-        stop("`points` (a pre-drawn sample) has no meaning for deterministic = TRUE, which ",
-             "computes over the full quadrature grid, not a random sample. Drop `points`, ",
-             "or set deterministic = FALSE to use it.")
+        stop(
+            "`points` (a pre-drawn sample) has no meaning for deterministic = TRUE, which ",
+            "computes over the full quadrature grid, not a random sample. Drop `points`, ",
+            "or set deterministic = FALSE to use it."
+        )
     }
 
     if (!n_quad %in% c(1, 3)) {
-        stop("n_quad must be 1 (centroid only) or 3 (Hammer-Stroud rule); other ",
-             "quadrature orders aren't implemented.")
+        stop(
+            "n_quad must be 1 (centroid only) or 3 (Hammer-Stroud rule); other ",
+            "quadrature orders aren't implemented."
+        )
     }
     poly_geom <- prep$poly
 
@@ -423,9 +445,9 @@ convexity_index <- function(poly, deterministic = TRUE, n_quad = 3, n_lines = 30
 #' @export
 convexity_index_sf <- function(x, ...) {
     geoms <- st_geometry(x)
-    # geoms[i], not lapply(geoms, .) directly - the latter strips to a bare
-    # sfg with no CRS of its own
-    res <- lapply(seq_along(geoms), function(i) convexity_index(geoms[i], ...))
-    x$convexity_index <- vapply(res, function(r) r$index, numeric(1))
+    # geoms[i], not purrr::map(geoms, .) directly - the latter strips to a
+    # bare sfg with no CRS of its own
+    res <- purrr::map(seq_along(geoms), \(i) convexity_index(geoms[i], ...))
+    x$convexity_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }

@@ -90,33 +90,37 @@
 moment_isotropy_index <- function(poly, prep = NULL, weight = NULL, simplify_tolerance = NULL) {
     if (is.null(prep)) prep <- prepare_polygon(poly, simplify_tolerance = simplify_tolerance)
     poly <- prep$poly
-    tri  <- prep$tri
+    tri <- prep$tri
     n <- if (is.null(tri)) 0 else nrow(tri)
     if (n == 0) {
         warning("Triangulation produced no triangles; index is not defined.")
-        return(list(index = NA_real_, lambda_min = NA_real_, lambda_max = NA_real_,
-                    Ixx = NA_real_, Iyy = NA_real_, Ixy = NA_real_,
-                    area = NA_real_, total_weight = NA_real_,
-                    centroid = NULL, triangles = tri))
+        return(list(
+            index = NA_real_, lambda_min = NA_real_, lambda_max = NA_real_,
+            Ixx = NA_real_, Iyy = NA_real_, Ixy = NA_real_,
+            area = NA_real_, total_weight = NA_real_,
+            centroid = NULL, triangles = tri
+        ))
     }
     if (!is.null(weight) && length(weight) != n) {
         stop("`weight` must have one entry per triangle (", n, "), got ", length(weight), ".")
     }
 
-    tri_area  <- tri$area
+    tri_area <- tri$area
     raw_total <- if (is.null(weight)) NULL else sum(weight)
-    w         <- if (is.null(weight)) tri_area else .normalize_weight(weight)
-    rho       <- w / tri_area
+    w <- if (is.null(weight)) tri_area else .normalize_weight(weight)
+    rho <- w / tri_area
 
     core <- .moment_of_inertia_core(st_geometry(tri), tri_area, rho, poly)
-    eig  <- .principal_moments(core$Ixx, core$Iyy, core$Ixy)
+    eig <- .principal_moments(core$Ixx, core$Iyy, core$Ixy)
 
-    list(index = eig$lambda_min / eig$lambda_max,
-         lambda_min = eig$lambda_min, lambda_max = eig$lambda_max,
-         Ixx = core$Ixx, Iyy = core$Iyy, Ixy = core$Ixy,
-         area = core$area,
-         total_weight = if (is.null(raw_total)) core$total_weight else raw_total,
-         centroid = core$centroid, triangles = tri)
+    list(
+        index = eig$lambda_min / eig$lambda_max,
+        lambda_min = eig$lambda_min, lambda_max = eig$lambda_max,
+        Ixx = core$Ixx, Iyy = core$Iyy, Ixy = core$Ixy,
+        area = core$area,
+        total_weight = if (is.null(raw_total)) core$total_weight else raw_total,
+        centroid = core$centroid, triangles = tri
+    )
 }
 
 #' Principal moments (eigenvalues) of the 2x2 mass inertia tensor
@@ -131,7 +135,7 @@ moment_isotropy_index <- function(poly, prep = NULL, weight = NULL, simplify_tol
 #' @return list(lambda_min, lambda_max)
 #' @noRd
 .principal_moments <- function(Ixx, Iyy, Ixy) {
-    mean_i    <- (Ixx + Iyy) / 2
+    mean_i <- (Ixx + Iyy) / 2
     diff_term <- sqrt(((Ixx - Iyy) / 2)^2 + Ixy^2)
     list(lambda_min = max(mean_i - diff_term, 0), lambda_max = mean_i + diff_term)
 }
@@ -147,7 +151,7 @@ moment_isotropy_index <- function(poly, prep = NULL, weight = NULL, simplify_tol
 #' @export
 moment_isotropy_index_sf <- function(x, ...) {
     geoms <- st_geometry(x)
-    res <- lapply(seq_along(geoms), function(i) moment_isotropy_index(geoms[i], ...))
-    x$moment_isotropy_index <- vapply(res, function(r) r$index, numeric(1))
+    res <- purrr::map(seq_along(geoms), \(i) moment_isotropy_index(geoms[i], ...))
+    x$moment_isotropy_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }

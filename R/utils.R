@@ -12,9 +12,13 @@
 .normalize_weight <- function(weight) {
     if (!is.numeric(weight)) {
         extra <- if (is.factor(weight)) {
-            paste(" Factors silently coerce to their integer level codes, not their labels -",
-                  "convert explicitly first, e.g. as.numeric(as.character(weight)).")
-        } else ""
+            paste(
+                " Factors silently coerce to their integer level codes, not their labels -",
+                "convert explicitly first, e.g. as.numeric(as.character(weight))."
+            )
+        } else {
+            ""
+        }
         stop("weight must be numeric, got ", class(weight)[1], ".", extra)
     }
     if (anyNA(weight)) {
@@ -26,9 +30,11 @@
     # checked before the sum: e.g. c(-5, 10) sums positive but has no valid
     # interpretation as a weight
     if (any(weight < 0)) {
-        stop("weight must be non-negative (a negative weight has no meaningful ",
-             "interpretation as an area/importance weight, even if the total ",
-             "still sums to something positive).")
+        stop(
+            "weight must be non-negative (a negative weight has no meaningful ",
+            "interpretation as an area/importance weight, even if the total ",
+            "still sums to something positive)."
+        )
     }
     s <- sum(weight)
     if (s <= 0) {
@@ -46,29 +52,37 @@
 .ensure_projected <- function(x) {
     geom <- st_geometry(x)
     if (length(geom) == 0 || anyNA(st_bbox(geom)) || all(st_is_empty(geom))) {
-        stop("Geometry is empty or has NA/degenerate coordinates (bounding box: ",
-             paste(signif(st_bbox(geom), 6), collapse = ", "),
-             "); nothing meaningful to compute.")
+        stop(
+            "Geometry is empty or has NA/degenerate coordinates (bounding box: ",
+            paste(signif(st_bbox(geom), 6), collapse = ", "),
+            "); nothing meaningful to compute."
+        )
     }
     crs <- st_crs(geom)
     if (is.na(crs)) {
-        warning("Geometry has no CRS set; proceeding as if it's already planar. ",
-                "If these are actually longitude/latitude coordinates, set the ",
-                "CRS first (st_set_crs()) so this can auto-project correctly - ",
-                "otherwise every length/area/convexity computation below will ",
-                "be wrong.")
+        warning(
+            "Geometry has no CRS set; proceeding as if it's already planar. ",
+            "If these are actually longitude/latitude coordinates, set the ",
+            "CRS first (st_set_crs()) so this can auto-project correctly - ",
+            "otherwise every length/area/convexity computation below will ",
+            "be wrong."
+        )
         return(x)
     }
     if (!isTRUE(st_is_longlat(crs))) {
-        return(x)   # already planar
+        return(x) # already planar
     }
-    ctr <- suppressWarnings(st_coordinates(st_centroid(st_union(geom))))[1, 1:2]
-    local_crs <- sprintf("+proj=laea +lat_0=%.10f +lon_0=%.10f +datum=WGS84 +units=m +no_defs",
-                          ctr[2], ctr[1])
-    message("Input is in geographic (lon/lat) coordinates; auto-projecting to a local ",
-            "azimuthal-equal-area CRS centred on the data (lat_0 = ", round(ctr[2], 4),
-            ", lon_0 = ", round(ctr[1], 4), ") before computing - pass already-projected ",
-            "data instead if you need a specific CRS.")
+    ctr <- suppressWarnings(geom |> st_union() |> st_centroid() |> st_coordinates())[1, 1:2]
+    local_crs <- sprintf(
+        "+proj=laea +lat_0=%.10f +lon_0=%.10f +datum=WGS84 +units=m +no_defs",
+        ctr[2], ctr[1]
+    )
+    message(
+        "Input is in geographic (lon/lat) coordinates; auto-projecting to a local ",
+        "azimuthal-equal-area CRS centred on the data (lat_0 = ", round(ctr[2], 4),
+        ", lon_0 = ", round(ctr[1], 4), ") before computing - pass already-projected ",
+        "data instead if you need a specific CRS."
+    )
     st_transform(x, crs = local_crs)
 }
 
@@ -86,11 +100,17 @@
 #' @return invisible NULL
 #' @noRd
 .warn_if_nonmetric_tolerance <- function(geom, simplify_tolerance) {
-    if (is.null(simplify_tolerance)) return(invisible(NULL))
+    if (is.null(simplify_tolerance)) {
+        return(invisible(NULL))
+    }
     crs <- st_crs(geom)
-    if (is.na(crs)) return(invisible(NULL))   # .ensure_projected() already warned about this
+    if (is.na(crs)) {
+        return(invisible(NULL))
+    } # .ensure_projected() already warned about this
     unit <- crs$units_gdal
-    if (is.null(unit) || tolower(unit) %in% c("metre", "meter")) return(invisible(NULL))
+    if (is.null(unit) || tolower(unit) %in% c("metre", "meter")) {
+        return(invisible(NULL))
+    }
     warning(
         "simplify_tolerance is interpreted in this geometry's own CRS unit, which is \"",
         unit, "\", not metres - a value of ", simplify_tolerance, " means ", simplify_tolerance,
@@ -115,7 +135,7 @@
 #' @return numeric(2), c(x, y)
 #' @noRd
 .mass_centroid <- function(tri_geom, mass) {
-    tri_centroids <- vapply(tri_geom, function(t) {
+    tri_centroids <- vapply(tri_geom, \(t) {
         colMeans(st_coordinates(t)[1:3, 1:2, drop = FALSE])
     }, numeric(2))
     c(sum(mass * tri_centroids[1, ]), sum(mass * tri_centroids[2, ])) / sum(mass)
@@ -152,33 +172,47 @@
 #' @noRd
 .available_memory_mb <- function() {
     fallback_mb <- 2048
-    tryCatch({
-        sys <- Sys.info()[["sysname"]]
-        if (identical(sys, "Linux") && file.exists("/proc/meminfo")) {
-            meminfo <- readLines("/proc/meminfo", n = 5L, warn = FALSE)
-            avail <- grep("^MemAvailable:", meminfo, value = TRUE)
-            kb <- if (length(avail) == 1) {
-                as.numeric(regmatches(avail, regexpr("[0-9]+", avail)))
-            } else NA_real_
-            if (is.finite(kb) && kb > 0) return(kb / 1024)
-            fallback_mb
-        } else if (identical(sys, "Darwin")) {
-            vmstat <- system("vm_stat", intern = TRUE, ignore.stderr = TRUE)
-            page_line <- grep("page size of", vmstat, value = TRUE)
-            page_bytes <- if (length(page_line) == 1) {
-                as.numeric(regmatches(page_line, regexpr("[0-9]+", page_line)))
-            } else NA_real_
-            if (!is.finite(page_bytes) || page_bytes <= 0) page_bytes <- 4096
-            free_line <- grep("^Pages free:", vmstat, value = TRUE)
-            pages <- if (length(free_line) == 1) {
-                as.numeric(regmatches(free_line, regexpr("[0-9]+", free_line)))
-            } else NA_real_
-            if (is.finite(pages) && pages > 0) return(pages * page_bytes / 1024^2)
-            fallback_mb
-        } else {
-            fallback_mb
-        }
-    }, error = function(e) fallback_mb, warning = function(w) fallback_mb)
+    tryCatch(
+        {
+            sys <- Sys.info()[["sysname"]]
+            if (identical(sys, "Linux") && file.exists("/proc/meminfo")) {
+                meminfo <- readLines("/proc/meminfo", n = 5L, warn = FALSE)
+                avail <- grep("^MemAvailable:", meminfo, value = TRUE)
+                kb <- if (length(avail) == 1) {
+                    as.numeric(regmatches(avail, regexpr("[0-9]+", avail)))
+                } else {
+                    NA_real_
+                }
+                if (is.finite(kb) && kb > 0) {
+                    return(kb / 1024)
+                }
+                fallback_mb
+            } else if (identical(sys, "Darwin")) {
+                vmstat <- system("vm_stat", intern = TRUE, ignore.stderr = TRUE)
+                page_line <- grep("page size of", vmstat, value = TRUE)
+                page_bytes <- if (length(page_line) == 1) {
+                    as.numeric(regmatches(page_line, regexpr("[0-9]+", page_line)))
+                } else {
+                    NA_real_
+                }
+                if (!is.finite(page_bytes) || page_bytes <= 0) page_bytes <- 4096
+                free_line <- grep("^Pages free:", vmstat, value = TRUE)
+                pages <- if (length(free_line) == 1) {
+                    as.numeric(regmatches(free_line, regexpr("[0-9]+", free_line)))
+                } else {
+                    NA_real_
+                }
+                if (is.finite(pages) && pages > 0) {
+                    return(pages * page_bytes / 1024^2)
+                }
+                fallback_mb
+            } else {
+                fallback_mb
+            }
+        },
+        error = function(e) fallback_mb,
+        warning = function(w) fallback_mb
+    )
 }
 
 #' How many candidate lines to test against all `E` boundary edges in one
@@ -198,7 +232,9 @@
 #' @return integer >= 1
 #' @noRd
 .choose_line_chunk_size <- function(E, bytes_per_pair = 200, mem_fraction = 0.2) {
-    if (E <= 0) return(1L)
+    if (E <= 0) {
+        return(1L)
+    }
     budget_bytes <- .available_memory_mb() * 1024^2 * mem_fraction
     max(1L, as.integer(floor(budget_bytes / (E * bytes_per_pair))))
 }
@@ -211,15 +247,17 @@
 #' @noRd
 .make_valid_warn <- function(poly) {
     invalid <- !st_is_valid(poly)
-    invalid[is.na(invalid)] <- TRUE   # NA from st_is_valid() treated as invalid
+    invalid[is.na(invalid)] <- TRUE # NA from st_is_valid() treated as invalid
     if (any(invalid)) {
         n <- sum(invalid)
         warning(
             if (length(poly) == 1) {
                 "Geometry is not a valid, simple polygon (e.g. a self-intersecting ring). "
             } else {
-                sprintf("%d of %d geometries are not valid, simple polygons (e.g. a self-intersecting ring). ",
-                        n, length(poly))
+                sprintf(
+                    "%d of %d geometries are not valid, simple polygons (e.g. a self-intersecting ring). ",
+                    n, length(poly)
+                )
             },
             "Repairing with sf::st_make_valid() before computing - this can change the ",
             "shape itself (a self-intersecting ring can split into separate polygons ",

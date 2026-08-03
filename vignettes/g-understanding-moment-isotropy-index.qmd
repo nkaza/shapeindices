@@ -23,8 +23,10 @@ table {
 </style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
-                       fig.align = "center", cache = TRUE)
+knitr::opts_chunk$set(
+    echo = FALSE, warning = FALSE, message = FALSE,
+    fig.align = "center", cache = TRUE
+)
 ```
 
 ```{r load, cache=FALSE, echo=TRUE}
@@ -35,31 +37,32 @@ library(ggplot2)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"))
+    theme(strip.text = element_text(size = 9, face = "bold"))
 ```
 
 ```{r shapes, echo=TRUE}
 #| code-fold: true
-square <- st_polygon(list(rbind(c(0,0), c(10,0), c(10,10), c(0,10), c(0,0))))
-make_rect <- function(w, h) st_polygon(list(rbind(c(0,0), c(w,0), c(w,h), c(0,h), c(0,0))))
+square <- st_polygon(list(rbind(c(0, 0), c(10, 0), c(10, 10), c(0, 10), c(0, 0))))
+make_rect <- function(w, h) st_polygon(list(rbind(c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
 aspect_seq <- c(1, 2, 4, 10, 20)
 rectangles <- lapply(aspect_seq, function(a) make_rect(sqrt(100 * a), sqrt(100 / a)))
 names(rectangles) <- sprintf("aspect %gx", aspect_seq)
 
 make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
-  n <- n_points * 2
-  angles <- seq(pi/2, pi/2 + 2*pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- center[1] + radii * cos(angles); y <- center[2] + radii * sin(angles)
-  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- center[1] + radii * cos(angles)
+    y <- center[2] + radii * sin(angles)
+    st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
 }
 ratio_seq <- c(0.9, 0.7, 0.5, 0.3, 0.15)
 stars_r <- lapply(ratio_seq, function(r) make_star(6, 5, 5 * r))
 names(stars_r) <- sprintf("notch ratio %.2f", ratio_seq)
 
 make_regular_ngon <- function(n, r = 1, center = c(0, 0)) {
-  ang <- seq(0, 2*pi, length.out = n + 1)[1:n]
-  st_polygon(list(rbind(cbind(center[1] + r*cos(ang), center[2] + r*sin(ang)), center + c(r, 0))))
+    ang <- seq(0, 2 * pi, length.out = n + 1)[1:n]
+    st_polygon(list(rbind(cbind(center[1] + r * cos(ang), center[2] + r * sin(ang)), center + c(r, 0))))
 }
 hexagon <- make_regular_ngon(6, 5)
 
@@ -71,14 +74,14 @@ disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]
 # what makes the effect below visually undeniable rather than a curiosity
 # about squares and hexagons
 make_pinwheel <- function(n_arms, arm_len = 10, arm_width = 1, hub_r = 0.5) {
-  angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
-  hub <- st_buffer(st_sfc(st_point(c(0, 0))), hub_r, nQuadSegs = 30)[[1]]
-  arms <- lapply(angles, function(a) {
-    tip  <- c(arm_len * cos(a), arm_len * sin(a))
-    perp <- c(-sin(a), cos(a)) * arm_width / 2
-    st_polygon(list(rbind(perp, tip + perp, tip - perp, -perp, perp)))
-  })
-  Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], c(list(hub), arms))
+    angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
+    hub <- st_buffer(st_sfc(st_point(c(0, 0))), hub_r, nQuadSegs = 30)[[1]]
+    arms <- lapply(angles, function(a) {
+        tip <- c(arm_len * cos(a), arm_len * sin(a))
+        perp <- c(-sin(a), cos(a)) * arm_width / 2
+        st_polygon(list(rbind(perp, tip + perp, tip - perp, -perp, perp)))
+    })
+    Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], c(list(hub), arms))
 }
 pinwheels <- lapply(2:6, make_pinwheel)
 names(pinwheels) <- sprintf("%d arms", 2:6)
@@ -102,30 +105,30 @@ The ratio of an inertia tensor's smaller to larger eigenvalue, exactly this inde
 # package dependency (it's already pulled in transitively via knitr, which
 # every vignette in this package already Suggests)
 shape_thumb <- function(geom, size_px = 40, col = "grey75") {
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
+    f <- tempfile(fileext = ".png")
+    grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+    par(mar = c(0.5, 0.5, 0.5, 0.5))
+    plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
+    grDevices::dev.off()
+    uri <- knitr::image_uri(f)
+    unlink(f)
+    sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
 }
 
 # same idea, but shaded by a triangle mesh's own per-triangle weight instead
 # of a flat fill - for tables comparing weight DISTRIBUTIONS on one fixed
 # shape rather than comparing different shapes
 weight_thumb <- function(tri, w, size_px = 40) {
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  pal  <- grDevices::colorRampPalette(c("grey95", "firebrick"))(100)
-  cols <- pal[as.integer(cut(w, 100, labels = FALSE))]
-  plot(st_geometry(tri), col = cols, border = NA)
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
+    f <- tempfile(fileext = ".png")
+    grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+    par(mar = c(0.5, 0.5, 0.5, 0.5))
+    pal <- grDevices::colorRampPalette(c("grey95", "firebrick"))(100)
+    cols <- pal[as.integer(cut(w, 100, labels = FALSE))]
+    plot(st_geometry(tri), col = cols, border = NA)
+    grDevices::dev.off()
+    uri <- knitr::image_uri(f)
+    unlink(f)
+    sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
 }
 ```
 
@@ -153,40 +156,54 @@ $M$ has an exact geometric picture - the **equivalent ellipse**, the unique elli
 # side in one equal-aspect panel (facets can't combine free scales with
 # coord_equal)
 ellipse_of <- function(g, dx, k = sqrt(3), n = 120) {
-  r <- moment_of_inertia_index(st_sfc(g))
-  G <- st_coordinates(r$centroid)[1, 1:2]
-  C <- matrix(c(r$Iyy, r$Ixy, r$Ixy, r$Ixx), 2, 2) / r$area  # (x,y) covariance
-  e <- eigen(C, symmetric = TRUE)
-  axes <- e$vectors %*% diag(k * sqrt(e$values))             # columns = principal semi-axes
-  shift <- function(m) cbind(m[, 1] - G[1] + dx, m[, 2] - G[2])
-  tt   <- seq(0, 2 * pi, length.out = n)
-  ell  <- shift(t(G + axes %*% rbind(cos(tt), sin(tt))))
-  ring <- shift(st_coordinates(st_sfc(g))[, 1:2])
-  seg  <- data.frame(x = dx, y = 0,
-                     xend = dx + c(axes[1, 1], axes[1, 2]),
-                     yend = c(axes[2, 1], axes[2, 2]))
-  lab  <- sprintf("isotropy %.3f", moment_isotropy_index(st_sfc(g))$index)
-  list(ell = data.frame(x = ell[, 1], y = ell[, 2]),
-       ring = data.frame(x = ring[, 1], y = ring[, 2]),
-       axes = seg, label = data.frame(x = dx, y = 8.5, lab = lab))
+    r <- moment_of_inertia_index(st_sfc(g))
+    G <- st_coordinates(r$centroid)[1, 1:2]
+    C <- matrix(c(r$Iyy, r$Ixy, r$Ixy, r$Ixx), 2, 2) / r$area # (x,y) covariance
+    e <- eigen(C, symmetric = TRUE)
+    axes <- e$vectors %*% diag(k * sqrt(e$values)) # columns = principal semi-axes
+    shift <- function(m) cbind(m[, 1] - G[1] + dx, m[, 2] - G[2])
+    tt <- seq(0, 2 * pi, length.out = n)
+    ell <- shift(t(G + axes %*% rbind(cos(tt), sin(tt))))
+    ring <- shift(st_coordinates(st_sfc(g))[, 1:2])
+    seg <- data.frame(
+        x = dx, y = 0,
+        xend = dx + c(axes[1, 1], axes[1, 2]),
+        yend = c(axes[2, 1], axes[2, 2])
+    )
+    lab <- sprintf("isotropy %.3f", moment_isotropy_index(st_sfc(g))$index)
+    list(
+        ell = data.frame(x = ell[, 1], y = ell[, 2]),
+        ring = data.frame(x = ring[, 1], y = ring[, 2]),
+        axes = seg, label = data.frame(x = dx, y = 8.5, lab = lab)
+    )
 }
-demo   <- list(square = square, rect = rectangles[["aspect 4x"]])
-offs   <- c(0, 26)
+demo <- list(square = square, rect = rectangles[["aspect 4x"]])
+offs <- c(0, 26)
 panels <- Map(ellipse_of, demo, offs)
-grab <- function(k) do.call(rbind, lapply(names(panels), function(nm) {
-  d <- panels[[nm]][[k]]; d$shape <- nm; d
-}))
+grab <- function(k) {
+    do.call(rbind, lapply(names(panels), function(nm) {
+        d <- panels[[nm]][[k]]
+        d$shape <- nm
+        d
+    }))
+}
 
 ggplot() +
-  geom_polygon(data = grab("ring"), aes(x, y, group = shape),
-               fill = "grey90", color = "grey40") +
-  geom_path(data = grab("ell"), aes(x, y, group = shape),
-            color = "firebrick", linewidth = 0.9) +
-  geom_segment(data = grab("axes"), aes(x, y, xend = xend, yend = yend),
-               color = "firebrick", linewidth = 0.5, linetype = "dashed") +
-  geom_text(data = grab("label"), aes(x, y, label = lab), size = 3.5) +
-  coord_equal() +
-  theme_gallery
+    geom_polygon(
+        data = grab("ring"), aes(x, y, group = shape),
+        fill = "grey90", color = "grey40"
+    ) +
+    geom_path(
+        data = grab("ell"), aes(x, y, group = shape),
+        color = "firebrick", linewidth = 0.9
+    ) +
+    geom_segment(
+        data = grab("axes"), aes(x, y, xend = xend, yend = yend),
+        color = "firebrick", linewidth = 0.5, linetype = "dashed"
+    ) +
+    geom_text(data = grab("label"), aes(x, y, label = lab), size = 3.5) +
+    coord_equal() +
+    theme_gallery
 ```
 
 The square's equivalent ellipse is a circle (both principal moments equal, isotropy 1); the rectangle's is stretched to the same 4:1 ratio as the shape, so its minor-to-major axis ratio squared - $(1/4)^2 = 0.0625$ - is the index. Nothing about this needs the shape to *be* an ellipse; the equivalent ellipse only has to share its two second moments.
@@ -196,7 +213,7 @@ The square's equivalent ellipse is a circle (both principal moments equal, isotr
 $M$ is provably positive semi-definite for *any* mass distribution, by construction rather than by any shape-specific argument: it's an integral of rank-1 PSD outer products, $M = \int_P \rho(s) \begin{pmatrix} y - G_y \\ x - G_x\end{pmatrix}\begin{pmatrix} y - G_y & x - G_x\end{pmatrix} ds$, where $s = (x, y)$. A sum (or integral) of PSD matrices is PSD, so $\lambda_{\min} \ge 0$ always, and $\lambda_{\max} > 0$ for any polygon with positive area - $\lambda_{\min} = 0$ only in the degenerate limit where every point of positive mass lies on a single line, never a genuine 2D polygon. That's the entire proof: no bathtub principle, no rearrangement inequality, no reference shape to derive - just a fact about the algebraic form of $M$ itself.
 
 ```{r rotation-invariance, echo=TRUE}
-rect10 <- make_rect(sqrt(2000), sqrt(20))  # a 10x-aspect rectangle
+rect10 <- make_rect(sqrt(2000), sqrt(20)) # a 10x-aspect rectangle
 res_unrotated <- moment_isotropy_index(st_sfc(rect10))
 
 theta <- 0.37
@@ -205,13 +222,17 @@ rect10_rotated <- st_polygon(list(st_coordinates(rect10)[, 1:2] %*% t(rot)))
 res_rotated <- moment_isotropy_index(st_sfc(rect10_rotated))
 
 data.frame(
-  quantity  = c("Ixx", "Iyy", "Ixy", "index"),
-  unrotated = c(res_unrotated$Ixx, res_unrotated$Iyy, res_unrotated$Ixy, res_unrotated$index),
-  rotated   = c(res_rotated$Ixx, res_rotated$Iyy, res_rotated$Ixy, res_rotated$index)
-) |> knitr::kable(format = "html", digits = c(0, 4, 4, 4), row.names = FALSE, escape = FALSE,
-                   col.names = c("quantity",
-                                 paste0(shape_thumb(rect10), "<br>unrotated"),
-                                 paste0(shape_thumb(rect10_rotated), "<br>rotated 0.37 rad")))
+    quantity  = c("Ixx", "Iyy", "Ixy", "index"),
+    unrotated = c(res_unrotated$Ixx, res_unrotated$Iyy, res_unrotated$Ixy, res_unrotated$index),
+    rotated   = c(res_rotated$Ixx, res_rotated$Iyy, res_rotated$Ixy, res_rotated$index)
+) |> knitr::kable(
+    format = "html", digits = c(0, 4, 4, 4), row.names = FALSE, escape = FALSE,
+    col.names = c(
+        "quantity",
+        paste0(shape_thumb(rect10), "<br>unrotated"),
+        paste0(shape_thumb(rect10_rotated), "<br>rotated 0.37 rad")
+    )
+)
 ```
 
 $I_{xx}$, $I_{yy}$, and $I_{xy}$ all change under rotation - none of the three is rotation-invariant on its own. But $M$'s *eigenvalues*, and so the index built from them, don't - the difference between the two `index` values above is `r sprintf("%.2e", abs(res_unrotated$index - res_rotated$index))`, floating-point noise rather than any real movement. That's expected: $\lambda_{\min}$/$\lambda_{\max}$ are properties of the tensor itself, not of whatever coordinate axes happened to be used to write it down.
@@ -220,11 +241,13 @@ $I_{xx}$, $I_{yy}$, and $I_{xy}$ all change under rotation - none of the three i
 
 ```{r isotropic-shapes, echo=TRUE}
 data.frame(
-  shape = c(shape_thumb(disk), shape_thumb(square), shape_thumb(hexagon)),
-  name = c("disk", "square", "regular hexagon"),
-  isotropy = c(moment_isotropy_index(st_sfc(disk))$index,
-               moment_isotropy_index(st_sfc(square))$index,
-               moment_isotropy_index(st_sfc(hexagon))$index)
+    shape = c(shape_thumb(disk), shape_thumb(square), shape_thumb(hexagon)),
+    name = c("disk", "square", "regular hexagon"),
+    isotropy = c(
+        moment_isotropy_index(st_sfc(disk))$index,
+        moment_isotropy_index(st_sfc(square))$index,
+        moment_isotropy_index(st_sfc(hexagon))$index
+    )
 ) |> knitr::kable(format = "html", digits = 8, row.names = FALSE, escape = FALSE)
 ```
 
@@ -238,28 +261,33 @@ There isn't a `deterministic` argument, a quadrature parameter, or a Monte Carlo
 # a fan triangulation from every vertex of a convex, irregular heptagon -
 # seven genuinely different triangulations of the exact same region
 ang <- c(10, 50, 100, 160, 210, 270, 320) * pi / 180
-r   <- c(5, 4.2, 5.5, 4.8, 5.1, 4.5, 5.3)
-v   <- cbind(r * cos(ang), r * sin(ang))
+r <- c(5, 4.2, 5.5, 4.8, 5.1, 4.5, 5.3)
+v <- cbind(r * cos(ang), r * sin(ang))
 heptagon <- st_polygon(list(rbind(v, v[1, ])))
 n <- nrow(v)
 
 fan_from <- function(apex) {
-  ord  <- ((apex + 0:(n - 2)) %% n) + 1   # the other n-1 vertices, in cyclic order
-  tris <- lapply(seq_len(n - 2), function(k) {
-    st_polygon(list(rbind(v[apex, ], v[ord[k], ], v[ord[k + 1], ], v[apex, ])))
-  })
-  st_sf(area = vapply(tris, function(t) as.numeric(st_area(st_sfc(t))), numeric(1)),
-        geometry = st_sfc(tris))
+    ord <- ((apex + 0:(n - 2)) %% n) + 1 # the other n-1 vertices, in cyclic order
+    tris <- lapply(seq_len(n - 2), function(k) {
+        st_polygon(list(rbind(v[apex, ], v[ord[k], ], v[ord[k + 1], ], v[apex, ])))
+    })
+    st_sf(
+        area = vapply(tris, function(t) as.numeric(st_area(st_sfc(t))), numeric(1)),
+        geometry = st_sfc(tris)
+    )
 }
 
 idx_cdt <- moment_isotropy_index(st_sfc(heptagon),
-                                  prep = list(poly = heptagon, tri = cdt_triangles(st_sfc(heptagon))))$index
+    prep = list(poly = heptagon, tri = cdt_triangles(st_sfc(heptagon)))
+)$index
 idx_fan <- vapply(1:n, function(apex) {
-  moment_isotropy_index(st_sfc(heptagon), prep = list(poly = heptagon, tri = fan_from(apex)))$index
+    moment_isotropy_index(st_sfc(heptagon), prep = list(poly = heptagon, tri = fan_from(apex)))$index
 }, numeric(1))
 
-data.frame(triangulation = c("CDT", paste("fan from vertex", 1:n)),
-           index = c(idx_cdt, idx_fan)) |> knitr::kable(format = "html", digits = 10, row.names = FALSE)
+data.frame(
+    triangulation = c("CDT", paste("fan from vertex", 1:n)),
+    index = c(idx_cdt, idx_fan)
+) |> knitr::kable(format = "html", digits = 10, row.names = FALSE)
 ```
 
 All eight triangulations - the package's own CDT plus a fan from every one of the heptagon's seven vertices - agree to floating-point noise (max difference `r sprintf("%.1e", max(abs(idx_fan - idx_cdt)))`). The same holds on non-convex polygons via a diagonal flip of an existing CDT mesh (not shown here); it isn't specific to convex shapes. This is a genuinely different situation from `convexity_index()`/`span_index()`, both of which *do* depend on mesh resolution (finer quadrature or subdivision moves their value, even if only slightly) because they estimate an integral with no closed form. Moment isotropy has nothing to estimate.
@@ -271,12 +299,14 @@ All eight triangulations - the package's own CDT plus a fan from every one of th
 ```{r basic-table}
 rows <- c(list(square = square, hexagon = hexagon, disk = disk), rectangles, stars_r)
 tbl <- do.call(rbind, lapply(names(rows), function(nm) {
-  poly <- st_sfc(rows[[nm]])
-  data.frame(shape = shape_thumb(rows[[nm]]),
-             name = nm,
-             isotropy = moment_isotropy_index(poly)$index,
-             moment_of_inertia = moment_of_inertia_index(poly)$index,
-             convexity = convexity_index(poly)$index)
+    poly <- st_sfc(rows[[nm]])
+    data.frame(
+        shape = shape_thumb(rows[[nm]]),
+        name = nm,
+        isotropy = moment_isotropy_index(poly)$index,
+        moment_of_inertia = moment_of_inertia_index(poly)$index,
+        convexity = convexity_index(poly)$index
+    )
 }))
 knitr::kable(format = "html", tbl, digits = 3, row.names = FALSE, escape = FALSE)
 ```
@@ -292,9 +322,11 @@ Weighting is exactly as cheap here as for `moment_of_inertia_index()`, and for t
 ```{r weighted-disk, echo=TRUE, fig.width=8, fig.height=4}
 prep <- prepare_polygon(st_sfc(disk))
 tri <- prep$tri
-ang <- atan2(st_coordinates(st_centroid(st_geometry(tri)))[, 2],
-             st_coordinates(st_centroid(st_geometry(tri)))[, 1])
-w_ew <- 1 + 3 * cos(ang)^2   # weight concentrated along the east-west axis
+ang <- atan2(
+    st_coordinates(st_centroid(st_geometry(tri)))[, 2],
+    st_coordinates(st_centroid(st_geometry(tri)))[, 1]
+)
+w_ew <- 1 + 3 * cos(ang)^2 # weight concentrated along the east-west axis
 
 plain <- moment_isotropy_index(st_sfc(disk), prep = prep)
 weighted <- moment_isotropy_index(st_sfc(disk), prep = prep, weight = w_ew)
@@ -303,9 +335,9 @@ weighted <- moment_isotropy_index(st_sfc(disk), prep = prep, weight = w_ew)
 # distribution (shaded by density) rather than a fixed outline - what
 # varies row to row is where the mass sits, not the boundary
 data.frame(
-  weighting = c(weight_thumb(tri, rep(1, nrow(tri))), weight_thumb(tri, w_ew)),
-  name = c("uniform (area)", "concentrated east-west"),
-  isotropy = c(plain$index, weighted$index)
+    weighting = c(weight_thumb(tri, rep(1, nrow(tri))), weight_thumb(tri, w_ew)),
+    name = c("uniform (area)", "concentrated east-west"),
+    isotropy = c(plain$index, weighted$index)
 ) |> knitr::kable(format = "html", digits = 3, row.names = FALSE, escape = FALSE)
 ```
 
@@ -315,19 +347,25 @@ The disk's own boundary never changes - only how its mass is distributed within 
 
 ```{r pinwheel-table}
 pinwheel_tbl <- do.call(rbind, lapply(names(pinwheels), function(nm) {
-  poly <- st_sfc(pinwheels[[nm]])
-  data.frame(shape = shape_thumb(pinwheels[[nm]]),
-             name = nm,
-             moment_isotropy = moment_isotropy_index(poly)$index,
-             directional_balance = directional_balance_index(poly)$index,
-             convexity = convexity_index(poly)$index)
+    poly <- st_sfc(pinwheels[[nm]])
+    data.frame(
+        shape = shape_thumb(pinwheels[[nm]]),
+        name = nm,
+        moment_isotropy = moment_isotropy_index(poly)$index,
+        directional_balance = directional_balance_index(poly)$index,
+        convexity = convexity_index(poly)$index
+    )
 }))
-pinwheel_tbl <- rbind(pinwheel_tbl,
-                       data.frame(shape = shape_thumb(disk),
-                                  name = "disk (reference)",
-                                  moment_isotropy = moment_isotropy_index(st_sfc(disk))$index,
-                                  directional_balance = directional_balance_index(st_sfc(disk))$index,
-                                  convexity = convexity_index(st_sfc(disk))$index))
+pinwheel_tbl <- rbind(
+    pinwheel_tbl,
+    data.frame(
+        shape = shape_thumb(disk),
+        name = "disk (reference)",
+        moment_isotropy = moment_isotropy_index(st_sfc(disk))$index,
+        directional_balance = directional_balance_index(st_sfc(disk))$index,
+        convexity = convexity_index(st_sfc(disk))$index
+    )
+)
 knitr::kable(format = "html", pinwheel_tbl, digits = 4, row.names = FALSE, escape = FALSE)
 ```
 

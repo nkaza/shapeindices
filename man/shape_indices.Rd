@@ -9,6 +9,7 @@ shape_indices(
   which = "all",
   deterministic_max_tri = NULL,
   simplify_tolerance = NULL,
+  already_projected = FALSE,
   ...
 )
 }
@@ -53,6 +54,9 @@ six classic metrics, which have no mesh to switch at all.}
 \item{simplify_tolerance}{passed to \code{prepare_polygon()} - see its own
 doc. Has no effect when \code{which} requests only the six classic
 metrics, since no mesh is built for those to begin with.}
+
+\item{already_projected}{passed to \code{prepare_polygon()} - see its own
+doc for the (real, but caller-verified-only) risk of setting this.}
 
 \item{...}{passed to convexity_index(), span_index(),
 radial_concentration_index(), directional_balance_index(), and

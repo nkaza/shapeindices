@@ -54,18 +54,23 @@
     k <- pmin(pmax(k, 0), 1)
     out <- numeric(length(k))
     near1 <- k > 1 - 1e-9
-    out[near1] <- 1   # E(1) = 1 exactly; AGM below is 0/Inf indeterminate there
+    out[near1] <- 1 # E(1) = 1 exactly; AGM below is 0/Inf indeterminate there
     idx <- which(!near1)
-    if (length(idx) == 0) return(out)
+    if (length(idx) == 0) {
+        return(out)
+    }
 
-    a <- rep(1, length(idx)); b <- sqrt(1 - k[idx]^2); c <- k[idx]
+    a <- rep(1, length(idx))
+    b <- sqrt(1 - k[idx]^2)
+    c <- k[idx]
     sum_term <- 0.5 * c^2
     pow2 <- 0.5
     for (i in seq_len(30)) {
         a_new <- (a + b) / 2
         b_new <- sqrt(a * b)
         c <- (a - b) / 2
-        a <- a_new; b <- b_new
+        a <- a_new
+        b <- b_new
         pow2 <- pow2 * 2
         sum_term <- sum_term + pow2 * c^2
         if (max(c) < 1e-16) break
@@ -91,7 +96,9 @@
 #' @return list(x, w)
 #' @noRd
 .gauss_legendre <- function(m) {
-    if (m == 1) return(list(x = 0, w = 2))
+    if (m == 1) {
+        return(list(x = 0, w = 2))
+    }
     k <- seq_len(m - 1)
     beta <- k / sqrt(4 * k^2 - 1)
     J <- matrix(0, m, m)
@@ -111,10 +118,10 @@
 #' @noRd
 .radial_nodes <- function(r_lo, r_hi, gl) {
     half <- (r_hi - r_lo) / 2
-    mid  <- (r_hi + r_lo) / 2
-    r    <- half * gl$x + mid
+    mid <- (r_hi + r_lo) / 2
+    r <- half * gl$x + mid
     dens <- 2 * r / (r_hi^2 - r_lo^2)
-    p    <- gl$w * half * dens
+    p <- gl$w * half * dens
     list(r = r, p = p / sum(p))
 }
 
@@ -130,9 +137,10 @@
 ## There's no closed form for a general (scalene) triangle, so instead:
 ## recursively split the triangle via medial subdivision (connect edge
 ## midpoints -> 4 similar sub-triangles, each 1/4 the area) and take the
-## mean pairwise distance among the sub-triangle centroids. Verified by
-## Monte Carlo to converge geometrically (~4x smaller error per level);
-## depth 4 (256 centroids) gets well under 1% relative error.
+## mean pairwise distance among the sub-triangle centroids. This
+## converges geometrically against a Monte Carlo reference (~4x smaller
+## error per level); depth 4 (256 centroids) gets well under 1% relative
+## error.
 ##
 ## DEPTH IS AREA-ADAPTIVE, NOT FIXED, same idea and same
 ## .adaptive_tri_depth() helper (utils.R) as
@@ -154,8 +162,10 @@
     m_ab <- (v[1, ] + v[2, ]) / 2
     m_bc <- (v[2, ] + v[3, ]) / 2
     m_ca <- (v[3, ] + v[1, ]) / 2
-    list(rbind(v[1, ], m_ab, m_ca), rbind(v[2, ], m_bc, m_ab),
-         rbind(v[3, ], m_ca, m_bc), rbind(m_ab, m_bc, m_ca))
+    list(
+        rbind(v[1, ], m_ab, m_ca), rbind(v[2, ], m_bc, m_ab),
+        rbind(v[3, ], m_ca, m_bc), rbind(m_ab, m_bc, m_ca)
+    )
 }
 
 #' Mean distance between 2 random points within one triangle, approximated
@@ -167,7 +177,11 @@
 #' @noRd
 .tri_self_mean_distance <- function(v, depth = 4) {
     tris <- list(v)
-    for (i in seq_len(depth)) tris <- unlist(lapply(tris, .subdivide_tri), recursive = FALSE)
+    for (i in seq_len(depth)) {
+        tris <- tris |>
+            purrr::map(.subdivide_tri) |>
+            purrr::list_flatten()
+    }
     cen <- t(vapply(tris, colMeans, numeric(2)))
     mean(as.matrix(dist(cen)))
 }
@@ -198,8 +212,8 @@
 #' already means tens of millions of matrix cells; tens of thousands of
 #' triangles is billions, an out-of-memory crash regardless of
 #' `deterministic`, since this reference is computed unconditionally
-#' whenever `weight` is supplied (verified: one ring per triangle crashes
-#' past 18GB on a 2169-triangle real-world mesh, computing nothing else).
+#' whenever `weight` is supplied (one ring per triangle crashes past 18GB
+#' on a 2169-triangle real-world mesh, computing nothing else).
 #'
 #' WHY RATIO-BOUNDED, NOT RANK/AREA/WEIGHT BINNING: a binning rule that
 #' groups a FIXED number of triangles per ring (by rank, by area, or by
@@ -207,10 +221,10 @@
 #' adversarial input - a triangle whose density is wildly higher than its
 #' immediate neighbours' gets merged in with them anyway once its
 #' area/weight/rank share is exhausted, diluting its concentrated mass
-#' across a ring far wider than it should occupy and inflating D_ref
-#' (verified: a single 1e6x-weighted triangle inflated D_ref enough to
-#' push index above 1, under both area-based and pure rank-based
-#' binning). Since input is already density-sorted, the fix bounds what's
+#' across a ring far wider than it should occupy and inflating D_ref (a
+#' single 1e6x-weighted triangle inflates D_ref enough to push index
+#' above 1, under both area-based and pure rank-based binning). Since
+#' input is already density-sorted, the fix bounds what's
 #' ALLOWED into one ring directly: walk the sorted triangles and close
 #' the current ring - starting a new one - whenever EITHER its own top
 #' density is more than `max_ratio` times the next triangle's, OR it's
@@ -238,12 +252,12 @@
 #' @return D_ref
 #' @noRd
 .annulus_reference_D <- function(tri_area, weight, gl_order = 8, max_rings = 100, max_ratio = 4) {
-    W    <- .normalize_weight(weight)
-    rho  <- W / tri_area
-    ord  <- order(rho, decreasing = TRUE)
+    W <- .normalize_weight(weight)
+    rho <- W / tri_area
+    ord <- order(rho, decreasing = TRUE)
     tri_area <- tri_area[ord]
-    W        <- W[ord]
-    rho      <- rho[ord]
+    W <- W[ord]
+    rho <- rho[ord]
     n <- length(tri_area)
 
     if (n > max_rings) {
@@ -261,14 +275,14 @@
         # > 1L guards the total ring count at max_rings exactly - the
         # last ring always absorbs whatever's left, however it compares
         # in density, since there's no budget left to split it further.
-        bin_id    <- integer(n)
-        cur_bin   <- 1L
+        bin_id <- integer(n)
+        cur_bin <- 1L
         bin_start <- 1L
-        top_rho   <- rho[1]
+        top_rho <- rho[1]
         remaining_rings <- max_rings
         for (i in 2:n) {
             remaining_tri <- n - bin_start + 1L
-            target_size   <- ceiling(remaining_tri / remaining_rings)
+            target_size <- ceiling(remaining_tri / remaining_rings)
             if (remaining_rings > 1L &&
                 (top_rho / rho[i] > max_ratio || (i - bin_start) >= target_size)) {
                 cur_bin <- cur_bin + 1L
@@ -279,16 +293,18 @@
             bin_id[i] <- cur_bin
         }
         tri_area <- as.numeric(tapply(tri_area, bin_id, sum))
-        W        <- as.numeric(tapply(W, bin_id, sum))
+        W <- as.numeric(tapply(W, bin_id, sum))
     }
 
     r_hi <- sqrt(cumsum(tri_area) / pi)
     r_lo <- c(0, r_hi[-length(r_hi)])
 
-    gl    <- .gauss_legendre(gl_order)
-    nodes <- Map(.radial_nodes, r_lo, r_hi, MoreArgs = list(gl = gl))
-    r_all <- unlist(lapply(nodes, `[[`, "r"))
-    p_all <- unlist(Map(function(nd, w_i) nd$p * w_i, nodes, W))
+    gl <- .gauss_legendre(gl_order)
+    nodes <- purrr::map2(r_lo, r_hi, .radial_nodes, gl = gl)
+    r_all <- nodes |>
+        purrr::map("r") |>
+        purrr::list_c()
+    p_all <- purrr::map2(nodes, W, \(nd, w_i) nd$p * w_i) |> purrr::list_c()
 
     sum(outer(p_all, p_all) * outer(r_all, r_all, .mean_chord))
 }
@@ -309,8 +325,10 @@
     }
     if (n == 0) {
         warning("Triangulation produced no triangles; index is not defined.")
-        return(list(index = NA_real_, D = NA_real_, D_ref = NA_real_, area = NA_real_,
-                    total_weight = NA_real_, triangles = tri))
+        return(list(
+            index = NA_real_, D = NA_real_, D_ref = NA_real_, area = NA_real_,
+            total_weight = NA_real_, triangles = tri
+        ))
     }
 
     q <- n_quad
@@ -324,19 +342,19 @@
         )
     }
 
-    area      <- sum(tri$area)
+    area <- sum(tri$area)
     raw_total <- if (is.null(weight)) NULL else sum(weight)
-    w         <- if (is.null(weight)) tri$area else .normalize_weight(weight)
+    w <- if (is.null(weight)) tri$area else .normalize_weight(weight)
 
     qmat <- if (q == 1) {
         st_coordinates(st_centroid(st_geometry(tri)))[, 1:2, drop = FALSE]
     } else {
-        do.call(rbind, lapply(st_geometry(tri), function(g) {
+        do.call(rbind, purrr::map(st_geometry(tri), \(g) {
             tri_quad_points(st_coordinates(g)[1:3, 1:2, drop = FALSE])
         }))
     }
-    pt_w  <- rep(w / q, each = q)
-    same  <- outer(rep(seq_len(n), each = q), rep(seq_len(n), each = q), "==")
+    pt_w <- rep(w / q, each = q)
+    same <- outer(rep(seq_len(n), each = q), rep(seq_len(n), each = q), "==")
     cross_sum <- sum((outer(pt_w, pt_w) * as.matrix(dist(qmat)))[!same])
 
     # depth adapts to each triangle's own CONTRIBUTION to self_sum
@@ -348,18 +366,20 @@
     # adversarial failure mode .annulus_reference_D() above had to guard
     # against for the same reason (see its own comments)
     depth_i <- .adaptive_tri_depth(w^2 * sqrt(tri$area), max_depth = 4L)
-    self_sum <- sum(vapply(seq_len(n), function(i) {
+    self_sum <- sum(purrr::map_dbl(seq_len(n), \(i) {
         v <- st_coordinates(st_geometry(tri)[i])[1:3, 1:2, drop = FALSE]
         w[i]^2 * .tri_self_mean_distance(v, depth = depth_i[i])
-    }, numeric(1)))
+    }))
 
     D <- (cross_sum + self_sum) / sum(w)^2
 
     D_ref <- if (is.null(weight)) .disk_reference_D(area) else .annulus_reference_D(tri$area, weight)
     index <- D_ref / D
 
-    list(index = index, D = D, D_ref = D_ref, area = area,
-         total_weight = if (is.null(raw_total)) area else raw_total, triangles = tri)
+    list(
+        index = index, D = D, D_ref = D_ref, area = area,
+        total_weight = if (is.null(raw_total)) area else raw_total, triangles = tri
+    )
 }
 
 ## Stochastic (deterministic = FALSE): draws `n_lines` independent point pairs and
@@ -386,13 +406,15 @@
 .random_pair_span_index <- function(poly, n_lines, prep, seed, weight = NULL, points = NULL) {
     if (is.null(prep)) prep <- prepare_polygon(poly)
     poly_geom <- prep$poly
-    tri       <- prep$tri
-    n_tri     <- if (is.null(tri)) 0 else nrow(tri)
+    tri <- prep$tri
+    n_tri <- if (is.null(tri)) 0 else nrow(tri)
 
     if (!is.null(weight)) {
         if (n_tri == 0) {
-            stop("`weight` needs a triangle mesh to sample from, but this polygon ",
-                 "triangulated to no triangles.")
+            stop(
+                "`weight` needs a triangle mesh to sample from, but this polygon ",
+                "triangulated to no triangles."
+            )
         }
         if (length(weight) != n_tri) {
             stop("`weight` must have one entry per triangle (", n_tri, "), got ", length(weight), ".")
@@ -405,17 +427,20 @@
         n_pairs_deterministic <- choose(n_tri, 2)
         if (n_lines >= n_pairs_deterministic / 2) {
             warning(sprintf(
-                paste("n_lines (%d) is not substantially lower than the %d triangle-pairs",
-                      "that deterministic = TRUE (%d triangles) would evaluate for this same",
-                      "polygon; deterministic = FALSE is meant as a cheaper approximation for",
-                      "meshes too large to enumerate exhaustively - consider",
-                      "deterministic = TRUE instead, or a smaller n_lines."),
-                n_lines, n_pairs_deterministic, n_tri))
+                paste(
+                    "n_lines (%d) is not substantially lower than the %d triangle-pairs",
+                    "that deterministic = TRUE (%d triangles) would evaluate for this same",
+                    "polygon; deterministic = FALSE is meant as a cheaper approximation for",
+                    "meshes too large to enumerate exhaustively - consider",
+                    "deterministic = TRUE instead, or a smaller n_lines."
+                ),
+                n_lines, n_pairs_deterministic, n_tri
+            ))
         }
     }
 
     poly_u <- st_union(poly_geom)
-    area   <- sum(tri$area)
+    area <- sum(tri$area)
     needed <- 2 * n_lines
 
     if (!is.null(points)) {
@@ -436,23 +461,27 @@
         }
         if (length(pts) < needed) {
             warning("Could not sample enough interior points; index is not defined.")
-            return(list(index = NA_real_, D = NA_real_, D_ref = NA_real_, area = area,
-                        total_weight = area, triangles = tri))
+            return(list(
+                index = NA_real_, D = NA_real_, D_ref = NA_real_, area = area,
+                total_weight = area, triangles = tri
+            ))
         }
-        pts    <- pts[seq_len(needed)]
+        pts <- pts[seq_len(needed)]
         coords <- st_coordinates(pts)[, 1:2, drop = FALSE]
     }
 
     x1 <- coords[seq(1, needed, 2), , drop = FALSE]
     x2 <- coords[seq(2, needed, 2), , drop = FALSE]
-    D  <- mean(sqrt((x1[, 1] - x2[, 1])^2 + (x1[, 2] - x2[, 2])^2))
+    D <- mean(sqrt((x1[, 1] - x2[, 1])^2 + (x1[, 2] - x2[, 2])^2))
 
     raw_total <- if (is.null(weight)) NULL else sum(weight)
     D_ref <- if (is.null(weight)) .disk_reference_D(area) else .annulus_reference_D(tri$area, weight)
     index <- D_ref / D
 
-    list(index = index, D = D, D_ref = D_ref, area = area,
-         total_weight = if (is.null(raw_total)) area else raw_total, triangles = tri)
+    list(
+        index = index, D = D, D_ref = D_ref, area = area,
+        total_weight = if (is.null(raw_total)) area else raw_total, triangles = tri
+    )
 }
 
 #' Span index: mean pairwise interior distance vs. an equal-area circle
@@ -516,29 +545,37 @@
 #' span_index(wake, prep = prep, weight = prep$tri$area)$index
 #' @export
 span_index <- function(poly, deterministic = TRUE, n_quad = 3, n_lines = 3000, seed = NULL,
-                        prep = NULL, weight = NULL, points = NULL, simplify_tolerance = NULL) {
+                       prep = NULL, weight = NULL, points = NULL, simplify_tolerance = NULL) {
     n_quad_given <- !missing(n_quad)
     if (is.null(prep)) prep <- prepare_polygon(poly, simplify_tolerance = simplify_tolerance)
 
     if (!deterministic) {
         if (n_quad_given) {
-            stop("`n_quad` selects the quadrature refinement used by deterministic = TRUE; ",
-                 "it has no meaning for deterministic = FALSE, which samples fresh random ",
-                 "points rather than quadrature points on a fixed mesh. Drop the ",
-                 "`n_quad` argument, or set deterministic = TRUE to use it.")
+            stop(
+                "`n_quad` selects the quadrature refinement used by deterministic = TRUE; ",
+                "it has no meaning for deterministic = FALSE, which samples fresh random ",
+                "points rather than quadrature points on a fixed mesh. Drop the ",
+                "`n_quad` argument, or set deterministic = TRUE to use it."
+            )
         }
-        return(.random_pair_span_index(poly, n_lines = n_lines, prep = prep, seed = seed,
-                                        weight = weight, points = points))
+        return(.random_pair_span_index(poly,
+            n_lines = n_lines, prep = prep, seed = seed,
+            weight = weight, points = points
+        ))
     }
     if (!is.null(points)) {
-        stop("`points` (a pre-drawn sample) has no meaning for deterministic = TRUE, which ",
-             "computes over the full quadrature mesh, not a random sample. Drop `points`, ",
-             "or set deterministic = FALSE to use it.")
+        stop(
+            "`points` (a pre-drawn sample) has no meaning for deterministic = TRUE, which ",
+            "computes over the full quadrature mesh, not a random sample. Drop `points`, ",
+            "or set deterministic = FALSE to use it."
+        )
     }
 
     if (!n_quad %in% c(1, 3)) {
-        stop("n_quad must be 1 (centroid only) or 3 (Hammer-Stroud rule); other ",
-             "quadrature orders aren't implemented.")
+        stop(
+            "n_quad must be 1 (centroid only) or 3 (Hammer-Stroud rule); other ",
+            "quadrature orders aren't implemented."
+        )
     }
 
     .mesh_span_index(prep$tri, n_quad = n_quad, weight = weight)
@@ -557,7 +594,7 @@ span_index <- function(poly, deterministic = TRUE, n_quad = 3, n_lines = 3000, s
 #' @export
 span_index_sf <- function(x, ...) {
     geoms <- st_geometry(x)
-    res <- lapply(seq_along(geoms), function(i) span_index(geoms[i], ...))
-    x$span_index <- vapply(res, function(r) r$index, numeric(1))
+    res <- purrr::map(seq_along(geoms), \(i) span_index(geoms[i], ...))
+    x$span_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }

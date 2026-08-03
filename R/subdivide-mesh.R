@@ -32,25 +32,29 @@
 #'   area, geometry), or NULL if the polygon triangulates to no pieces
 #' @examples
 #' nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
-#' tri  <- cdt_triangles(nc[nc$NAME == "Dare", ])
+#' tri <- cdt_triangles(nc[nc$NAME == "Dare", ])
 #' fine <- subdivide_mesh(nc[nc$NAME == "Dare", ])
-#' nrow(tri)    # coarse CDT triangles
-#' nrow(fine)   # more, smaller triangles
+#' nrow(tri) # coarse CDT triangles
+#' nrow(fine) # more, smaller triangles
 #' @export
 subdivide_mesh <- function(poly, prep = NULL, max_depth = 4, simplify_tolerance = NULL) {
     if (is.null(prep)) prep <- prepare_polygon(poly, simplify_tolerance = simplify_tolerance)
     tri <- prep$tri
     n_tri <- if (is.null(tri)) 0 else nrow(tri)
-    if (n_tri == 0) return(NULL)
+    if (n_tri == 0) {
+        return(NULL)
+    }
     crs <- st_crs(tri)
 
     if (max_depth == 0) {
-        return(st_sf(tri_id = seq_len(n_tri), area = tri$area,
-                      geometry = st_geometry(tri), crs = crs))
+        return(st_sf(
+            tri_id = seq_len(n_tri), area = tri$area,
+            geometry = st_geometry(tri), crs = crs
+        ))
     }
 
     tri_area <- tri$area
-    corner_mat <- vapply(st_geometry(tri), function(g) {
+    corner_mat <- vapply(st_geometry(tri), \(g) {
         v <- st_coordinates(g)[1:3, 1:2, drop = FALSE]
         c(v[1, ], v[2, ], v[3, ])
     }, numeric(6))
@@ -71,11 +75,17 @@ subdivide_mesh <- function(poly, prep = NULL, max_depth = 4, simplify_tolerance 
         C <- C_all[grp, , drop = FALSE]
         for (k in seq_len(d)) {
             sub <- .subdivide_tri_batch(A, B, C)
-            A <- sub$A; B <- sub$B; C <- sub$C
+            A <- sub$A
+            B <- sub$B
+            C <- sub$C
         }
-        A_list[[d + 1]] <- A; B_list[[d + 1]] <- B; C_list[[d + 1]] <- C
+        A_list[[d + 1]] <- A
+        B_list[[d + 1]] <- B
+        C_list[[d + 1]] <- C
     }
-    A <- do.call(rbind, A_list); B <- do.call(rbind, B_list); C <- do.call(rbind, C_list)
+    A <- do.call(rbind, A_list)
+    B <- do.call(rbind, B_list)
+    C <- do.call(rbind, C_list)
     n_sub <- nrow(A)
 
     if (requireNamespace("sfheaders", quietly = TRUE)) {
@@ -87,7 +97,7 @@ subdivide_mesh <- function(poly, prep = NULL, max_depth = 4, simplify_tolerance 
         geoms <- sfheaders::sfc_polygon(poly_df, x = "x", y = "y", polygon_id = "polygon_id")
         st_crs(geoms) <- crs
     } else {
-        geoms <- st_sfc(lapply(seq_len(n_sub), function(i) {
+        geoms <- st_sfc(purrr::map(seq_len(n_sub), \(i) {
             st_polygon(list(rbind(A[i, ], B[i, ], C[i, ], A[i, ])))
         }), crs = crs)
     }

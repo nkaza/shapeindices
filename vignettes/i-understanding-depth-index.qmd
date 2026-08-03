@@ -14,8 +14,10 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
-                       fig.align = "center", cache = TRUE)
+knitr::opts_chunk$set(
+    echo = FALSE, warning = FALSE, message = FALSE,
+    fig.align = "center", cache = TRUE
+)
 ```
 
 ```{r load, cache=FALSE, echo=TRUE}
@@ -26,7 +28,7 @@ library(ggplot2)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"))
+    theme(strip.text = element_text(size = 9, face = "bold"))
 ```
 
 ```{r glance-helper}
@@ -35,105 +37,120 @@ theme_gallery <- theme_void(base_size = 10) +
 # package dependency (it's already pulled in transitively via knitr, which
 # every vignette in this package already Suggests)
 shape_thumb <- function(geom, size_px = 40, col = "grey75") {
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
+    f <- tempfile(fileext = ".png")
+    grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+    par(mar = c(0.5, 0.5, 0.5, 0.5))
+    plot(st_geometry(st_sfc(geom)), col = col, border = "grey30")
+    grDevices::dev.off()
+    uri <- knitr::image_uri(f)
+    unlink(f)
+    sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
 }
 
 # same idea, but shaded by a triangle mesh's own per-triangle weight instead
 # of a flat fill - for tables comparing weight DISTRIBUTIONS on one fixed
 # shape rather than comparing different shapes
 weight_thumb <- function(tri, w, size_px = 40) {
-  f <- tempfile(fileext = ".png")
-  grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
-  par(mar = c(0.5, 0.5, 0.5, 0.5))
-  pal  <- grDevices::colorRampPalette(c("grey95", "firebrick"))(100)
-  cols <- pal[as.integer(cut(w, 100, labels = FALSE))]
-  plot(st_geometry(tri), col = cols, border = NA)
-  grDevices::dev.off()
-  uri <- knitr::image_uri(f)
-  unlink(f)
-  sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
+    f <- tempfile(fileext = ".png")
+    grDevices::png(f, width = size_px, height = size_px, bg = "transparent", res = 96)
+    par(mar = c(0.5, 0.5, 0.5, 0.5))
+    pal <- grDevices::colorRampPalette(c("grey95", "firebrick"))(100)
+    cols <- pal[as.integer(cut(w, 100, labels = FALSE))]
+    plot(st_geometry(tri), col = cols, border = NA)
+    grDevices::dev.off()
+    uri <- knitr::image_uri(f)
+    unlink(f)
+    sprintf('<img src="%s" width="%d" height="%d" style="vertical-align:middle"/>', uri, size_px, size_px)
 }
 
 # every grid-cell centre inside `poly`, each tagged with its own distance to
 # the polygon's boundary - the raw data behind the depth-field figure below
 depth_field_grid <- function(poly, cell, label) {
-  poly_sfc <- st_sfc(poly, crs = 3857)
-  bb <- st_bbox(poly_sfc)
-  xs <- seq(bb["xmin"] + cell / 2, bb["xmax"], by = cell)
-  ys <- seq(bb["ymin"] + cell / 2, bb["ymax"], by = cell)
-  g <- expand.grid(x = xs, y = ys)
-  pts <- st_as_sf(g, coords = c("x", "y"), crs = 3857, remove = FALSE)
-  inside <- lengths(st_intersects(pts, poly_sfc)) > 0
-  g <- g[inside, , drop = FALSE]
-  g$depth <- as.numeric(st_distance(pts[inside, ], st_boundary(poly_sfc)))
-  g$panel <- label
-  g
+    poly_sfc <- st_sfc(poly, crs = 3857)
+    bb <- st_bbox(poly_sfc)
+    xs <- seq(bb["xmin"] + cell / 2, bb["xmax"], by = cell)
+    ys <- seq(bb["ymin"] + cell / 2, bb["ymax"], by = cell)
+    g <- expand.grid(x = xs, y = ys)
+    pts <- st_as_sf(g, coords = c("x", "y"), crs = 3857, remove = FALSE)
+    inside <- lengths(st_intersects(pts, poly_sfc)) > 0
+    g <- g[inside, , drop = FALSE]
+    g$depth <- as.numeric(st_distance(pts[inside, ], st_boundary(poly_sfc)))
+    g$panel <- label
+    g
 }
 ```
 
 ```{r shapes, echo=TRUE}
 #| code-fold: true
-make_square <- function(half = 5) st_polygon(list(rbind(
-  c(-half, -half), c(half, -half), c(half, half), c(-half, half), c(-half, -half))))
-make_rectangle <- function(w, h) st_polygon(list(rbind(
-  c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
+make_square <- function(half = 5) {
+    st_polygon(list(rbind(
+        c(-half, -half), c(half, -half), c(half, half), c(-half, half), c(-half, -half)
+    )))
+}
+make_rectangle <- function(w, h) {
+    st_polygon(list(rbind(
+        c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0)
+    )))
+}
 make_disk <- function(r = 5, n = 60) st_buffer(st_sfc(st_point(c(0, 0))), dist = r, nQuadSegs = n)[[1]]
 make_star <- function(n_points, r_outer, r_inner) {
-  n <- n_points * 2
-  angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- radii * cos(angles); y <- radii * sin(angles)
-  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- radii * cos(angles)
+    y <- radii * sin(angles)
+    st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
 }
 make_square_with_hole <- function(outer_half = 5, hole_frac = 0.3) {
-  outer <- rbind(c(-outer_half, -outer_half), c(outer_half, -outer_half),
-                 c(outer_half, outer_half), c(-outer_half, outer_half), c(-outer_half, -outer_half))
-  hh <- outer_half * sqrt(hole_frac)
-  hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
-  st_polygon(list(outer, hole))
+    outer <- rbind(
+        c(-outer_half, -outer_half), c(outer_half, -outer_half),
+        c(outer_half, outer_half), c(-outer_half, outer_half), c(-outer_half, -outer_half)
+    )
+    hh <- outer_half * sqrt(hole_frac)
+    hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
+    st_polygon(list(outer, hole))
 }
 make_dumbbell_gap <- function(gap) {
-  sq1 <- st_polygon(list(rbind(c(0, 0), c(2, 0), c(2, 2), c(0, 2), c(0, 0))))
-  sq2 <- st_polygon(list(rbind(c(2 + gap, 0), c(4 + gap, 0), c(4 + gap, 2), c(2 + gap, 2), c(2 + gap, 0))))
-  st_union(st_sfc(sq1, sq2))
+    sq1 <- st_polygon(list(rbind(c(0, 0), c(2, 0), c(2, 2), c(0, 2), c(0, 0))))
+    sq2 <- st_polygon(list(rbind(c(2 + gap, 0), c(4 + gap, 0), c(4 + gap, 2), c(2 + gap, 2), c(2 + gap, 0))))
+    st_union(st_sfc(sq1, sq2))
 }
 # n equal-area squares of total area `total_area`, spaced `gap_mult` times
 # each square's own side apart - for separating "how many pieces" from
 # "how far apart are they" below
 make_n_squares <- function(n, total_area = 16, gap_mult = 3) {
-  side <- sqrt(total_area / n)
-  centers <- lapply(seq_len(n), function(i) c((i - 1) * side * (1 + gap_mult), 0))
-  sqs <- lapply(centers, function(c0) st_polygon(list(rbind(
-    c(c0[1] - side/2, c0[2] - side/2), c(c0[1] + side/2, c0[2] - side/2),
-    c(c0[1] + side/2, c0[2] + side/2), c(c0[1] - side/2, c0[2] + side/2),
-    c(c0[1] - side/2, c0[2] - side/2)))))
-  st_union(st_sfc(sqs))
+    side <- sqrt(total_area / n)
+    centers <- lapply(seq_len(n), function(i) c((i - 1) * side * (1 + gap_mult), 0))
+    sqs <- lapply(centers, function(c0) {
+        st_polygon(list(rbind(
+            c(c0[1] - side / 2, c0[2] - side / 2), c(c0[1] + side / 2, c0[2] - side / 2),
+            c(c0[1] + side / 2, c0[2] + side / 2), c(c0[1] - side / 2, c0[2] + side / 2),
+            c(c0[1] - side / 2, c0[2] - side / 2)
+        )))
+    })
+    st_union(st_sfc(sqs))
 }
 # rasterize a target polygon at a given cell size: keep every grid cell
 # whose centre falls inside it, then union the cells - a stand-in for
 # vectorizing a raster/classification mask, without needing a raster
 # package at all (same construction as vignette("j-understanding-classical-indices"))
 rasterize_polygon <- function(target, cell) {
-  target_sfc <- st_sfc(target)
-  bb <- st_bbox(target_sfc)
-  xs <- seq(bb["xmin"] + cell / 2, bb["xmax"], by = cell)
-  ys <- seq(bb["ymin"] + cell / 2, bb["ymax"], by = cell)
-  g <- expand.grid(x = xs, y = ys)
-  pts <- st_as_sf(g, coords = c("x", "y"))
-  keep <- lengths(st_intersects(pts, target_sfc)) > 0
-  g <- g[keep, , drop = FALSE]
-  half <- cell / 2
-  make_cell <- function(cx, cy) st_polygon(list(rbind(
-    c(cx - half, cy - half), c(cx + half, cy - half),
-    c(cx + half, cy + half), c(cx - half, cy + half), c(cx - half, cy - half))))
-  st_union(st_sfc(mapply(make_cell, g$x, g$y, SIMPLIFY = FALSE)))[[1]]
+    target_sfc <- st_sfc(target)
+    bb <- st_bbox(target_sfc)
+    xs <- seq(bb["xmin"] + cell / 2, bb["xmax"], by = cell)
+    ys <- seq(bb["ymin"] + cell / 2, bb["ymax"], by = cell)
+    g <- expand.grid(x = xs, y = ys)
+    pts <- st_as_sf(g, coords = c("x", "y"))
+    keep <- lengths(st_intersects(pts, target_sfc)) > 0
+    g <- g[keep, , drop = FALSE]
+    half <- cell / 2
+    make_cell <- function(cx, cy) {
+        st_polygon(list(rbind(
+            c(cx - half, cy - half), c(cx + half, cy - half),
+            c(cx + half, cy + half), c(cx - half, cy + half), c(cx - half, cy - half)
+        )))
+    }
+    st_union(st_sfc(mapply(make_cell, g$x, g$y, SIMPLIFY = FALSE)))[[1]]
 }
 ```
 
@@ -147,26 +164,26 @@ blob_area <- as.numeric(st_area(st_sfc(blob, crs = 3857)))
 twin_disk <- make_disk(sqrt(blob_area / pi), 60)
 
 field <- rbind(
-  depth_field_grid(blob, 0.1, "an ordinary shape"),
-  depth_field_grid(twin_disk, 0.1, "same-area circle (the reference)")
+    depth_field_grid(blob, 0.1, "an ordinary shape"),
+    depth_field_grid(twin_disk, 0.1, "same-area circle (the reference)")
 )
 field$panel <- factor(field$panel, levels = c("an ordinary shape", "same-area circle (the reference)"))
 
 outline <- function(poly, label) {
-  co <- st_coordinates(st_sfc(poly, crs = 3857))[, 1:2]
-  data.frame(x = co[, 1], y = co[, 2], panel = label)
+    co <- st_coordinates(st_sfc(poly, crs = 3857))[, 1:2]
+    data.frame(x = co[, 1], y = co[, 2], panel = label)
 }
 outlines <- rbind(outline(blob, "an ordinary shape"), outline(twin_disk, "same-area circle (the reference)"))
 outlines$panel <- factor(outlines$panel, levels = levels(field$panel))
 
 ggplot(field) +
-  geom_tile(aes(x, y, fill = depth), width = 0.1, height = 0.1) +
-  geom_path(data = outlines, aes(x, y), color = "grey10", linewidth = 0.4) +
-  scale_fill_viridis_c(name = "distance to\nnearest edge", option = "magma") +
-  coord_equal() +
-  facet_wrap(~ panel) +
-  theme_gallery +
-  theme(legend.position = "right")
+    geom_tile(aes(x, y, fill = depth), width = 0.1, height = 0.1) +
+    geom_path(data = outlines, aes(x, y), color = "grey10", linewidth = 0.4) +
+    scale_fill_viridis_c(name = "distance to\nnearest edge", option = "magma") +
+    coord_equal() +
+    facet_wrap(~panel) +
+    theme_gallery +
+    theme(legend.position = "right")
 ```
 
 The circle is brighter almost everywhere - more of its interior sits far from any edge - which is exactly the property `depth_index()` measures: the mean of this field, compared to the same mean on the equal-area circle.
@@ -241,21 +258,23 @@ A single point per triangle would be enough if $d(s)$ were linear across it - an
 
 ```{r bias-direction-demo, echo=TRUE}
 notchy <- st_sfc(make_star(6, 5.64, 0.6), crs = 3857)
-prep   <- prepare_polygon(notchy)
+prep <- prepare_polygon(notchy)
 
 # naive: one point (the bare centroid) per triangle, no subdivision at all
 bnd <- st_boundary(prep$poly)
-tc  <- st_coordinates(st_centroid(st_geometry(prep$tri)))[, 1:2]
+tc <- st_coordinates(st_centroid(st_geometry(prep$tri)))[, 1:2]
 d_naive <- as.numeric(st_distance(st_cast(st_sfc(st_multipoint(tc), crs = st_crs(prep$poly)), "POINT"), bnd))
 mean_naive <- sum(prep$tri$area * d_naive) / sum(prep$tri$area)
 
 res_adaptive <- depth_index(notchy, prep = prep)
-res_hires    <- depth_index(notchy, prep = prep, deterministic = FALSE, n_lines = 200000, seed = 1)
+res_hires <- depth_index(notchy, prep = prep, deterministic = FALSE, n_lines = 200000, seed = 1)
 
 data.frame(
-  method = c("naive (bare centroid per triangle)", "adaptive subdivision (the package default)",
-             "Monte Carlo, n = 200,000 (ground truth)"),
-  mean_depth = c(mean_naive, res_adaptive$mean_depth, res_hires$mean_depth)
+    method = c(
+        "naive (bare centroid per triangle)", "adaptive subdivision (the package default)",
+        "Monte Carlo, n = 200,000 (ground truth)"
+    ),
+    mean_depth = c(mean_naive, res_adaptive$mean_depth, res_hires$mean_depth)
 ) |> knitr::kable(format = "html", digits = 4)
 ```
 
@@ -275,9 +294,9 @@ Measured against a real 50,424-feature Urban Area boundary (a unioned polygon wi
 
 ```{r timing-table, echo=FALSE}
 data.frame(
-  `sample points` = c(1000, 5000, 20000),
-  `time (s)` = c(0.04, 0.13, 0.48),
-  check.names = FALSE
+    `sample points` = c(1000, 5000, 20000),
+    `time (s)` = c(0.04, 0.13, 0.48),
+    check.names = FALSE
 ) |> knitr::kable(format = "html")
 ```
 
@@ -289,8 +308,8 @@ A shape whose true index is exactly 1 (a disk) can still read slightly *above* 1
 
 ```{r overshoot-demo, echo=TRUE}
 disk <- st_sfc(make_disk(5, n = 60), crs = 3857)
-depth_index(disk)$index                                          # deterministic
-depth_index(disk, deterministic = FALSE, n_lines = 5000, seed = 1)$index  # Monte Carlo
+depth_index(disk)$index # deterministic
+depth_index(disk, deterministic = FALSE, n_lines = 5000, seed = 1)$index # Monte Carlo
 ```
 
 # Illustrations
@@ -299,20 +318,24 @@ depth_index(disk, deterministic = FALSE, n_lines = 5000, seed = 1)$index  # Mont
 
 ```{r canonical-table}
 canonical <- list(
-  square         = make_square(5),
-  disk           = make_disk(5.64),   # same area as the square
-  `rect 2:1`     = make_rectangle(14.14, 7.07),
-  `rect 10:1`    = make_rectangle(31.6, 3.16),
-  hexagon        = st_polygon(list(rbind(t(sapply(seq(0, 300, 60) * pi / 180,
-                     function(a) c(5.5 * cos(a), 5.5 * sin(a)))), c(5.5, 0)))),
-  `star (mild)`  = make_star(6, 5.64, 3.5),
-  `star (sharp)` = make_star(6, 5.64, 0.6)
+    square = make_square(5),
+    disk = make_disk(5.64), # same area as the square
+    `rect 2:1` = make_rectangle(14.14, 7.07),
+    `rect 10:1` = make_rectangle(31.6, 3.16),
+    hexagon = st_polygon(list(rbind(t(sapply(
+        seq(0, 300, 60) * pi / 180,
+        function(a) c(5.5 * cos(a), 5.5 * sin(a))
+    )), c(5.5, 0)))),
+    `star (mild)` = make_star(6, 5.64, 3.5),
+    `star (sharp)` = make_star(6, 5.64, 0.6)
 )
 tbl <- do.call(rbind, lapply(names(canonical), function(nm) {
-  g <- st_sfc(canonical[[nm]], crs = 3857)
-  r <- depth_index(g)
-  data.frame(shape = shape_thumb(canonical[[nm]]), name = nm,
-             depth_index = r$index, mean_depth = r$mean_depth, ref_depth = r$ref_depth)
+    g <- st_sfc(canonical[[nm]], crs = 3857)
+    r <- depth_index(g)
+    data.frame(
+        shape = shape_thumb(canonical[[nm]]), name = nm,
+        depth_index = r$index, mean_depth = r$mean_depth, ref_depth = r$ref_depth
+    )
 }))
 knitr::kable(format = "html", tbl, digits = 3, row.names = FALSE, escape = FALSE)
 ```
@@ -324,11 +347,13 @@ The disk reads just above 1, the expected finite-sampling residual described abo
 ```{r hole-table}
 hole_fracs <- c(0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7)
 tbl_hole <- do.call(rbind, lapply(hole_fracs, function(hf) {
-  g <- st_sfc(make_square_with_hole(5, hf), crs = 3857)
-  r <- depth_index(g)
-  data.frame(shape = shape_thumb(make_square_with_hole(5, hf)),
-             `hole %` = sprintf("%.0f%%", 100 * hf), depth_index = r$index,
-             check.names = FALSE)
+    g <- st_sfc(make_square_with_hole(5, hf), crs = 3857)
+    r <- depth_index(g)
+    data.frame(
+        shape = shape_thumb(make_square_with_hole(5, hf)),
+        `hole %` = sprintf("%.0f%%", 100 * hf), depth_index = r$index,
+        check.names = FALSE
+    )
 }))
 knitr::kable(format = "html", tbl_hole, digits = 3, row.names = FALSE, escape = FALSE)
 ```
@@ -341,18 +366,22 @@ A hole costs `depth_index()` far more than its area share: a 10% centred hole al
 star <- st_sfc(make_star(8, 5, 2), crs = 3857)
 prep <- prepare_polygon(star)
 cen <- st_coordinates(st_centroid(st_union(prep$poly)))[1, 1:2]
-tc  <- st_coordinates(st_centroid(st_geometry(prep$tri)))
-d   <- sqrt((tc[,1]-cen[1])^2 + (tc[,2]-cen[2])^2)
+tc <- st_coordinates(st_centroid(st_geometry(prep$tri)))
+d <- sqrt((tc[, 1] - cen[1])^2 + (tc[, 2] - cen[2])^2)
 
 w_center <- exp(-d / mean(d))
-w_edge   <- exp(d / mean(d))
+w_edge <- exp(d / mean(d))
 data.frame(
-  weighting = c(weight_thumb(prep$tri, rep(1, nrow(prep$tri))),
-                weight_thumb(prep$tri, w_center), weight_thumb(prep$tri, w_edge)),
-  name = c("uniform", "concentrated at centre", "concentrated at edge"),
-  index = c(depth_index(star, prep = prep)$index,
-            depth_index(star, prep = prep, weight = w_center)$index,
-            depth_index(star, prep = prep, weight = w_edge)$index)
+    weighting = c(
+        weight_thumb(prep$tri, rep(1, nrow(prep$tri))),
+        weight_thumb(prep$tri, w_center), weight_thumb(prep$tri, w_edge)
+    ),
+    name = c("uniform", "concentrated at centre", "concentrated at edge"),
+    index = c(
+        depth_index(star, prep = prep)$index,
+        depth_index(star, prep = prep, weight = w_center)$index,
+        depth_index(star, prep = prep, weight = w_edge)$index
+    )
 ) |> knitr::kable(format = "html", digits = 3, row.names = FALSE, escape = FALSE)
 ```
 
@@ -366,24 +395,25 @@ $d(s)$ is defined purely by an interior point's distance to the *nearest* bounda
 
 ```{r annulus-vs-rectangle}
 make_annulus <- function(r_outer, r_inner, n_seg = 90) {
-  outer <- st_buffer(st_sfc(st_point(c(0, 0))), dist = r_outer, nQuadSegs = n_seg)
-  inner <- st_buffer(st_sfc(st_point(c(0, 0))), dist = r_inner, nQuadSegs = n_seg)
-  st_difference(outer, inner)[[1]]
+    outer <- st_buffer(st_sfc(st_point(c(0, 0))), dist = r_outer, nQuadSegs = n_seg)
+    inner <- st_buffer(st_sfc(st_point(c(0, 0))), dist = r_inner, nQuadSegs = n_seg)
+    st_difference(outer, inner)[[1]]
 }
 width <- 1
-r_out <- 5; r_in <- r_out - width
-ann  <- st_sfc(make_annulus(r_out, r_in), crs = 3857)
+r_out <- 5
+r_in <- r_out - width
+ann <- st_sfc(make_annulus(r_out, r_in), crs = 3857)
 ann_area <- as.numeric(st_area(ann))
 rect <- st_sfc(make_rectangle(ann_area / width, width), crs = 3857)
 
-ann_res  <- depth_index(ann)
+ann_res <- depth_index(ann)
 rect_res <- depth_index(rect)
 
 data.frame(
-  shape = c(shape_thumb(ann[[1]]), shape_thumb(rect[[1]])),
-  name = c("annulus, width 1", "rectangle, width 1"),
-  area = c(ann_res$area, rect_res$area),
-  depth_index = c(ann_res$index, rect_res$index)
+    shape = c(shape_thumb(ann[[1]]), shape_thumb(rect[[1]])),
+    name = c("annulus, width 1", "rectangle, width 1"),
+    area = c(ann_res$area, rect_res$area),
+    depth_index = c(ann_res$index, rect_res$index)
 ) |> knitr::kable(format = "html", digits = 4, row.names = FALSE, escape = FALSE)
 ```
 
@@ -396,8 +426,8 @@ The multi-part gap sweep already familiar from this package's other vignettes gi
 ```{r gap-sweep}
 gaps <- c(0.5, 2, 5, 20)
 tbl_gap <- do.call(rbind, lapply(gaps, function(g) {
-  geom <- make_dumbbell_gap(g)
-  data.frame(shape = shape_thumb(geom[[1]]), gap = g, depth_index = depth_index(geom)$index)
+    geom <- make_dumbbell_gap(g)
+    data.frame(shape = shape_thumb(geom[[1]]), gap = g, depth_index = depth_index(geom)$index)
 }))
 knitr::kable(format = "html", tbl_gap, digits = 5, row.names = FALSE, escape = FALSE)
 ```
@@ -409,9 +439,11 @@ That is not the same as saying depth is blind to fragmentation altogether, thoug
 ```{r fragment-count-sweep}
 n_parts <- c(1, 2, 4, 8, 16)
 tbl_frag <- do.call(rbind, lapply(n_parts, function(n) {
-  geom <- make_n_squares(n)
-  data.frame(shape = shape_thumb(geom[[1]]), `n parts` = n, depth_index = depth_index(geom)$index,
-             check.names = FALSE)
+    geom <- make_n_squares(n)
+    data.frame(
+        shape = shape_thumb(geom[[1]]), `n parts` = n, depth_index = depth_index(geom)$index,
+        check.names = FALSE
+    )
 }))
 knitr::kable(format = "html", tbl_frag, digits = 3, row.names = FALSE, escape = FALSE)
 ```
@@ -426,12 +458,14 @@ The mechanism is the reference, not the separation: `ref_depth` is fixed by the 
 true_circle <- make_disk(8, 30)
 cells <- c(4, 1, 0.25)
 tbl_px <- do.call(rbind, c(
-  list(data.frame(resolution = "true (unpixelated)",
-                   depth_index = suppressWarnings(depth_index(st_sfc(true_circle))$index))),
-  lapply(cells, function(cell) {
-    g <- st_sfc(rasterize_polygon(true_circle, cell))
-    data.frame(resolution = sprintf("cell = %.2f", cell), depth_index = suppressWarnings(depth_index(g)$index))
-  })
+    list(data.frame(
+        resolution = "true (unpixelated)",
+        depth_index = suppressWarnings(depth_index(st_sfc(true_circle))$index)
+    )),
+    lapply(cells, function(cell) {
+        g <- st_sfc(rasterize_polygon(true_circle, cell))
+        data.frame(resolution = sprintf("cell = %.2f", cell), depth_index = suppressWarnings(depth_index(g)$index))
+    })
 ))
 knitr::kable(format = "html", tbl_px, digits = 3, row.names = FALSE)
 ```

@@ -66,22 +66,24 @@
 moment_of_inertia_index <- function(poly, prep = NULL, weight = NULL, simplify_tolerance = NULL) {
     if (is.null(prep)) prep <- prepare_polygon(poly, simplify_tolerance = simplify_tolerance)
     poly <- prep$poly
-    tri  <- prep$tri
+    tri <- prep$tri
     n <- if (is.null(tri)) 0 else nrow(tri)
     if (n == 0) {
         warning("Triangulation produced no triangles; index is not defined.")
-        return(list(index = NA_real_, J = NA_real_, Ixx = NA_real_, Iyy = NA_real_, Ixy = NA_real_,
-                    J_ref = NA_real_, area = NA_real_, total_weight = NA_real_,
-                    centroid = NULL, triangles = tri))
+        return(list(
+            index = NA_real_, J = NA_real_, Ixx = NA_real_, Iyy = NA_real_, Ixy = NA_real_,
+            J_ref = NA_real_, area = NA_real_, total_weight = NA_real_,
+            centroid = NULL, triangles = tri
+        ))
     }
     if (!is.null(weight) && length(weight) != n) {
         stop("`weight` must have one entry per triangle (", n, "), got ", length(weight), ".")
     }
 
-    tri_area  <- tri$area
+    tri_area <- tri$area
     raw_total <- if (is.null(weight)) NULL else sum(weight)
-    w         <- if (is.null(weight)) tri_area else .normalize_weight(weight)
-    rho       <- w / tri_area   # density: 1 everywhere iff weight = NULL
+    w <- if (is.null(weight)) tri_area else .normalize_weight(weight)
+    rho <- w / tri_area # density: 1 everywhere iff weight = NULL
 
     res <- .moment_of_inertia_core(st_geometry(tri), tri_area, rho, poly)
     if (!is.null(raw_total)) res$total_weight <- raw_total
@@ -95,8 +97,7 @@ moment_of_inertia_index <- function(poly, prep = NULL, weight = NULL, simplify_t
 #' one - computing Ixx/Iyy about the wrong point inflates J by
 #' mass * distance^2 (parallel axis theorem) whenever density is
 #' non-uniform. For uniform density this is identical to
-#' st_centroid(st_union(poly)) (verified to floating-point precision), so
-#' unweighted behaviour is unchanged.
+#' st_centroid(st_union(poly)), so unweighted behaviour is unchanged.
 #' @param tri_geom sfc of triangle POLYGON geometries
 #' @param tri_area numeric vector, each triangle's own physical area
 #' @param rho numeric vector, each triangle's density (weight / tri_area);
@@ -113,7 +114,7 @@ moment_of_inertia_index <- function(poly, prep = NULL, weight = NULL, simplify_t
     mass <- rho * tri_area
     G <- .mass_centroid(tri_geom, mass)
 
-    moms <- vapply(tri_geom, function(t) {
+    moms <- vapply(tri_geom, \(t) {
         v <- st_coordinates(t)[1:3, 1:2, drop = FALSE]
         v[, 1] <- v[, 1] - G[1]
         v[, 2] <- v[, 2] - G[2]
@@ -122,36 +123,42 @@ moment_of_inertia_index <- function(poly, prep = NULL, weight = NULL, simplify_t
         signed2A <- sum(v[, 1] * v[c(2, 3, 1), 2] - v[c(2, 3, 1), 1] * v[, 2])
         if (signed2A < 0) v <- v[c(1, 3, 2), ]
 
-        x <- v[, 1]; y <- v[, 2]
-        xn <- x[c(2, 3, 1)]; yn <- y[c(2, 3, 1)]
+        x <- v[, 1]
+        y <- v[, 2]
+        xn <- x[c(2, 3, 1)]
+        yn <- y[c(2, 3, 1)]
         cross <- x * yn - xn * y
-        c(Ixx = sum((y^2 + y * yn + yn^2) * cross) / 12,
-          Iyy = sum((x^2 + x * xn + xn^2) * cross) / 12,
-          # standard polygon product-of-inertia formula (e.g. Eberly,
-          # "Polygon Mass Properties") - same cross/winding setup as
-          # Ixx/Iyy above, just the xy cross term instead of x^2/y^2
-          Ixy = sum((x * yn + 2 * x * y + 2 * xn * yn + xn * y) * cross) / 24)
+        c(
+            Ixx = sum((y^2 + y * yn + yn^2) * cross) / 12,
+            Iyy = sum((x^2 + x * xn + xn^2) * cross) / 12,
+            # standard polygon product-of-inertia formula (e.g. Eberly,
+            # "Polygon Mass Properties") - same cross/winding setup as
+            # Ixx/Iyy above, just the xy cross term instead of x^2/y^2
+            Ixy = sum((x * yn + 2 * x * y + 2 * xn * yn + xn * y) * cross) / 24
+        )
     }, numeric(3))
 
     Ixx <- sum(rho * moms["Ixx", ])
     Iyy <- sum(rho * moms["Iyy", ])
     Ixy <- sum(rho * moms["Ixy", ])
-    J   <- Ixx + Iyy
-    A   <- sum(tri_area)
-    W   <- sum(rho * tri_area)
+    J <- Ixx + Iyy
+    A <- sum(tri_area)
+    W <- sum(rho * tri_area)
 
     # concentric-rings reference: sort by density descending, cumulative
     # area gives each triangle's annulus, closed-form J of that arrangement
-    ord    <- order(rho, decreasing = TRUE)
-    S      <- cumsum(tri_area[ord])
+    ord <- order(rho, decreasing = TRUE)
+    S <- cumsum(tri_area[ord])
     S_prev <- c(0, S[-length(S)])
-    J_ref  <- sum(rho[ord] * (S^2 - S_prev^2)) / (2 * pi)
+    J_ref <- sum(rho[ord] * (S^2 - S_prev^2)) / (2 * pi)
 
     index <- if (J > 0) J_ref / J else NA_real_
 
-    list(index = index, J = J, Ixx = Ixx, Iyy = Iyy, Ixy = Ixy, J_ref = J_ref,
-         area = A, total_weight = W,
-         centroid = st_sfc(st_point(G), crs = st_crs(poly)), triangles = NULL)
+    list(
+        index = index, J = J, Ixx = Ixx, Iyy = Iyy, Ixy = Ixy, J_ref = J_ref,
+        area = A, total_weight = W,
+        centroid = st_sfc(st_point(G), crs = st_crs(poly)), triangles = NULL
+    )
 }
 
 #' Vectorised wrapper for an sf data frame - each row indexed independently.
@@ -165,9 +172,9 @@ moment_of_inertia_index <- function(poly, prep = NULL, weight = NULL, simplify_t
 #' @export
 moment_of_inertia_index_sf <- function(x, ...) {
     geoms <- st_geometry(x)
-    # geoms[i], not lapply(geoms, .) directly - the latter strips to a bare
-    # sfg with no CRS of its own
-    res <- lapply(seq_along(geoms), function(i) moment_of_inertia_index(geoms[i], ...))
-    x$moi_index <- vapply(res, function(r) r$index, numeric(1))
+    # geoms[i], not purrr::map(geoms, .) directly - the latter strips to a
+    # bare sfg with no CRS of its own
+    res <- purrr::map(seq_along(geoms), \(i) moment_of_inertia_index(geoms[i], ...))
+    x$moi_index <- purrr::map_dbl(res, \(r) r$index)
     x
 }
