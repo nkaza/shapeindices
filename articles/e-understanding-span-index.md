@@ -11,35 +11,37 @@ library(dplyr)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"),
-        legend.position = "bottom")
+    theme(
+        strip.text = element_text(size = 9, face = "bold"),
+        legend.position = "bottom"
+    )
 ```
 
 Code
 
 ``` r
 
-square <- st_polygon(list(rbind(c(0,0), c(10,0), c(10,10), c(0,10), c(0,0))))
+square <- st_polygon(list(rbind(c(0, 0), c(10, 0), c(10, 10), c(0, 10), c(0, 0))))
 
-make_rect <- function(w, h) st_polygon(list(rbind(c(0,0), c(w,0), c(w,h), c(0,h), c(0,0))))
-aspect_seq  <- c(1, 2, 4, 10, 20)
-rectangles  <- lapply(aspect_seq, function(a) make_rect(sqrt(100 * a), sqrt(100 / a)))
+make_rect <- function(w, h) st_polygon(list(rbind(c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
+aspect_seq <- c(1, 2, 4, 10, 20)
+rectangles <- lapply(aspect_seq, function(a) make_rect(sqrt(100 * a), sqrt(100 / a)))
 names(rectangles) <- sprintf("aspect %gx", aspect_seq)
 
 make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
-  n <- n_points * 2
-  angles <- seq(pi/2, pi/2 + 2*pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- center[1] + radii * cos(angles)
-  y <- center[2] + radii * sin(angles)
-  coords <- rbind(cbind(x, y), c(x[1], y[1]))
-  st_polygon(list(coords))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- center[1] + radii * cos(angles)
+    y <- center[2] + radii * sin(angles)
+    coords <- rbind(cbind(x, y), c(x[1], y[1]))
+    st_polygon(list(coords))
 }
 ratio_seq <- c(0.9, 0.7, 0.5, 0.3, 0.15)
-stars_r   <- lapply(ratio_seq, function(r) make_star(6, 5, 5 * r))
+stars_r <- lapply(ratio_seq, function(r) make_star(6, 5, 5 * r))
 names(stars_r) <- sprintf("notch ratio %.2f", ratio_seq)
 
-disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]  # area matches square
+disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]] # area matches square
 
 # a ring of n_arms radial wedges spanning [r_in, r_out], with a FIXED total
 # angular width split evenly among them, so n_arms only changes how finely
@@ -48,15 +50,15 @@ disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]  
 # vignette("f-understanding-radial-concentration-index") to demonstrate
 # those two indices' shared exact invariance to this kind of rearrangement
 make_spokes <- function(r_in, r_out, n_arms, total_angle_frac = 0.5) {
-  angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
-  half_w <- total_angle_frac * pi / n_arms
-  polys <- lapply(angles, function(a0) {
-    th <- seq(a0 - half_w, a0 + half_w, length.out = max(6, 40 %/% n_arms))
-    outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
-    inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
-    st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
-  })
-  Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
+    angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
+    half_w <- total_angle_frac * pi / n_arms
+    polys <- lapply(angles, function(a0) {
+        th <- seq(a0 - half_w, a0 + half_w, length.out = max(6, 40 %/% n_arms))
+        outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
+        inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
+        st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
+    })
+    Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
 }
 arm_counts <- c(2, 4, 8, 16)
 spoke_shapes <- lapply(arm_counts, function(n) make_spokes(3, 5, n))
@@ -358,34 +360,44 @@ subdivision deepens:
 ``` r
 
 subdivide <- function(v) {
-  m_ab <- (v[1,]+v[2,])/2; m_bc <- (v[2,]+v[3,])/2; m_ca <- (v[3,]+v[1,])/2
-  list(rbind(v[1,],m_ab,m_ca), rbind(v[2,],m_bc,m_ab), rbind(v[3,],m_ca,m_bc), rbind(m_ab,m_bc,m_ca))
+    m_ab <- (v[1, ] + v[2, ]) / 2
+    m_bc <- (v[2, ] + v[3, ]) / 2
+    m_ca <- (v[3, ] + v[1, ]) / 2
+    list(rbind(v[1, ], m_ab, m_ca), rbind(v[2, ], m_bc, m_ab), rbind(v[3, ], m_ca, m_bc), rbind(m_ab, m_bc, m_ca))
 }
 centroid_self_D <- function(v, k) {
-  tris <- list(v)
-  for (i in seq_len(k)) tris <- unlist(lapply(tris, subdivide), recursive = FALSE)
-  cen <- t(vapply(tris, colMeans, numeric(2)))
-  mean(as.matrix(dist(cen)))
+    tris <- list(v)
+    for (i in seq_len(k)) tris <- unlist(lapply(tris, subdivide), recursive = FALSE)
+    cen <- t(vapply(tris, colMeans, numeric(2)))
+    mean(as.matrix(dist(cen)))
 }
-v <- rbind(c(0,0), c(4,0), c(0,3))   # an arbitrary right triangle, legs 4 and 3
+v <- rbind(c(0, 0), c(4, 0), c(0, 3)) # an arbitrary right triangle, legs 4 and 3
 set.seed(1)
 n_mc <- 300000
-r1 <- runif(n_mc); r2 <- runif(n_mc); flip <- (r1+r2) > 1
-r1[flip] <- 1-r1[flip]; r2[flip] <- 1-r2[flip]
-P1 <- cbind(v[1,1]+r1*(v[2,1]-v[1,1])+r2*(v[3,1]-v[1,1]), v[1,2]+r1*(v[2,2]-v[1,2])+r2*(v[3,2]-v[1,2]))
-r1 <- runif(n_mc); r2 <- runif(n_mc); flip <- (r1+r2) > 1
-r1[flip] <- 1-r1[flip]; r2[flip] <- 1-r2[flip]
-P2 <- cbind(v[1,1]+r1*(v[2,1]-v[1,1])+r2*(v[3,1]-v[1,1]), v[1,2]+r1*(v[2,2]-v[1,2])+r2*(v[3,2]-v[1,2]))
-D_true <- mean(sqrt(rowSums((P1-P2)^2)))
+r1 <- runif(n_mc)
+r2 <- runif(n_mc)
+flip <- (r1 + r2) > 1
+r1[flip] <- 1 - r1[flip]
+r2[flip] <- 1 - r2[flip]
+P1 <- cbind(v[1, 1] + r1 * (v[2, 1] - v[1, 1]) + r2 * (v[3, 1] - v[1, 1]), v[1, 2] + r1 * (v[2, 2] - v[1, 2]) + r2 * (v[3, 2] - v[1, 2]))
+r1 <- runif(n_mc)
+r2 <- runif(n_mc)
+flip <- (r1 + r2) > 1
+r1[flip] <- 1 - r1[flip]
+r2[flip] <- 1 - r2[flip]
+P2 <- cbind(v[1, 1] + r1 * (v[2, 1] - v[1, 1]) + r2 * (v[3, 1] - v[1, 1]), v[1, 2] + r1 * (v[2, 2] - v[1, 2]) + r2 * (v[3, 2] - v[1, 2]))
+D_true <- mean(sqrt(rowSums((P1 - P2)^2)))
 
 convergence <- data.frame(
-  depth = 0:6,
-  n_centroids = 4^(0:6),
-  D = vapply(0:6, function(k) centroid_self_D(v, k), numeric(1))
+    depth = 0:6,
+    n_centroids = 4^(0:6),
+    D = vapply(0:6, function(k) centroid_self_D(v, k), numeric(1))
 )
 convergence$rel_error_pct <- 100 * (convergence$D - D_true) / D_true
-knitr::kable(format = "html", convergence, digits = c(0, 0, 4, 3),
-             col.names = c("subdivision depth", "centroids", "D estimate", "rel. error (%)"))
+knitr::kable(
+    format = "html", convergence, digits = c(0, 0, 4, 3),
+    col.names = c("subdivision depth", "centroids", "D estimate", "rel. error (%)")
+)
 ```
 
 | subdivision depth | centroids | D estimate | rel. error (%) |
@@ -504,12 +516,16 @@ provably can’t.
 ``` r
 
 tbl_spokes <- do.call(rbind, lapply(names(spoke_shapes), function(nm) {
-  poly <- st_sfc(spoke_shapes[[nm]])
-  data.frame(shape = shape_thumb(spoke_shapes[[nm]]), name = nm,
-             span = span_index(poly)$index,
-             moment_of_inertia = moment_of_inertia_index(poly)$index,
-             convexity = suppressWarnings(convexity_index(poly, deterministic = FALSE,
-                                                            n_lines = 5000, seed = 1)$index))
+    poly <- st_sfc(spoke_shapes[[nm]])
+    data.frame(
+        shape = shape_thumb(spoke_shapes[[nm]]), name = nm,
+        span = span_index(poly)$index,
+        moment_of_inertia = moment_of_inertia_index(poly)$index,
+        convexity = suppressWarnings(convexity_index(poly,
+            deterministic = FALSE,
+            n_lines = 5000, seed = 1
+        )$index)
+    )
 }))
 knitr::kable(format = "html", tbl_spokes, digits = 4, row.names = FALSE, escape = FALSE)
 ```

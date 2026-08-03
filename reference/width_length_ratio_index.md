@@ -10,10 +10,10 @@ box: an earlier version of this function used the axis-aligned box,
 which meant the same shape could score anywhere from its true ratio up
 to a spurious 1 depending purely on which way it happened to be drawn
 relative to the coordinate axes - orientation is not a property of the
-shape itself, so an index built on it shouldn't depend on it either.
-Verified directly: a fixed 2:1 rectangle rotated from 0 to 90 degrees
-now returns the same 0.5 throughout, rather than swinging up to 1.0 at
-45 degrees the way the axis-aligned version did.
+shape itself, so an index built on it shouldn't depend on it either. A
+fixed 2:1 rectangle rotated from 0 to 90 degrees now returns the same
+0.5 throughout, rather than swinging up to 1.0 at 45 degrees the way the
+axis-aligned version did.
 
 ## Usage
 

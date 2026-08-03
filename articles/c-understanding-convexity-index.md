@@ -11,8 +11,10 @@ library(stringr)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"),
-        legend.position = "bottom")
+    theme(
+        strip.text = element_text(size = 9, face = "bold"),
+        legend.position = "bottom"
+    )
 
 # defined here (quietly) so every inline `r CI_DETERMINISTIC_MAX_TRI` /
 # ci_auto() reference resolves regardless of where in the prose it first
@@ -22,16 +24,18 @@ theme_gallery <- theme_void(base_size = 10) +
 # references it earlier
 CI_DETERMINISTIC_MAX_TRI <- 25
 ci_auto <- function(poly, prep = NULL) {
-  if (is.null(prep)) prep <- prepare_polygon(poly)
-  n_tri <- if (is.null(prep$tri)) 0 else nrow(prep$tri)
-  deterministic <- n_tri <= CI_DETERMINISTIC_MAX_TRI
-  # n_quad isn't passed explicitly - convexity_index()'s own default is
-  # n_quad = 3, so the deterministic = TRUE branch here already gets the
-  # quadrature refinement without asking for it
-  res <- suppressWarnings(convexity_index(poly, deterministic = deterministic,
-                                           n_lines = 5000, prep = prep))
-  res$deterministic_used <- deterministic
-  res
+    if (is.null(prep)) prep <- prepare_polygon(poly)
+    n_tri <- if (is.null(prep$tri)) 0 else nrow(prep$tri)
+    deterministic <- n_tri <= CI_DETERMINISTIC_MAX_TRI
+    # n_quad isn't passed explicitly - convexity_index()'s own default is
+    # n_quad = 3, so the deterministic = TRUE branch here already gets the
+    # quadrature refinement without asking for it
+    res <- suppressWarnings(convexity_index(poly,
+        deterministic = deterministic,
+        n_lines = 5000, prep = prep
+    ))
+    res$deterministic_used <- deterministic
+    res
 }
 ```
 
@@ -39,132 +43,142 @@ Code
 
 ``` r
 
-square <- st_polygon(list(rbind(c(0,0), c(10,0), c(10,10), c(0,10), c(0,0))))
+square <- st_polygon(list(rbind(c(0, 0), c(10, 0), c(10, 10), c(0, 10), c(0, 0))))
 
 c_shape <- st_polygon(list(rbind(
-  c(0,0), c(10,0), c(10,10), c(0,10), c(0,7), c(7,7),
-  c(7,3), c(0,3), c(0,0))))
+    c(0, 0), c(10, 0), c(10, 10), c(0, 10), c(0, 7), c(7, 7),
+    c(7, 3), c(0, 3), c(0, 0)
+)))
 
 # turtle-graphics path: turn by a fixed angle each step, optionally growing
 # the step length - the basis for the spiral below.
 make_turtle_path <- function(n_steps, angle_deg, step0 = 1, step_growth = 0) {
-  angle <- 0
-  pos   <- c(0, 0)
-  pts   <- matrix(pos, ncol = 2)
-  step  <- step0
-  for (i in seq_len(n_steps)) {
-    angle <- angle + angle_deg * pi / 180
-    pos   <- pos + step * c(cos(angle), sin(angle))
-    pts   <- rbind(pts, pos)
-    step  <- step + step_growth
-  }
-  st_linestring(pts)
+    angle <- 0
+    pos <- c(0, 0)
+    pts <- matrix(pos, ncol = 2)
+    step <- step0
+    for (i in seq_len(n_steps)) {
+        angle <- angle + angle_deg * pi / 180
+        pos <- pos + step * c(cos(angle), sin(angle))
+        pts <- rbind(pts, pos)
+        step <- step + step_growth
+    }
+    st_linestring(pts)
 }
 
 # spiral: a turtle spiral (fixed turn angle, growing step length) buffered
 # into a thick corridor - a single spiral notch instead of many small ones.
 spiral <- st_buffer(
-  make_turtle_path(n_steps = 48, angle_deg = 24, step0 = 0.35, step_growth = 0.09),
-  dist = 0.35, endCapStyle = "FLAT", joinStyle = "MITRE", mitreLimit = 3
+    make_turtle_path(n_steps = 48, angle_deg = 24, step0 = 0.35, step_growth = 0.09),
+    dist = 0.35, endCapStyle = "FLAT", joinStyle = "MITRE", mitreLimit = 3
 )
 
 # maze: a proper grid maze (recursive-backtracker, like a Pac-Man board),
 # rendered as blocky corridors - lots of turns, branches and dead ends,
 # unlike the spiral's single winding path.
 make_maze <- function(n_rows = 6, n_cols = 6, cell = 1, corridor = 0.6, seed = 1) {
-  set.seed(seed)
-  visited    <- matrix(FALSE, n_rows, n_cols)
-  open_right <- matrix(FALSE, n_rows, n_cols)
-  open_down  <- matrix(FALSE, n_rows, n_cols)
+    set.seed(seed)
+    visited <- matrix(FALSE, n_rows, n_cols)
+    open_right <- matrix(FALSE, n_rows, n_cols)
+    open_down <- matrix(FALSE, n_rows, n_cols)
 
-  # recursive backtracker: carve a spanning-tree maze by random depth-first
-  # search, tracking the path on a stack so it can back up at dead ends
-  stack <- matrix(c(1L, 1L), ncol = 2)
-  visited[1, 1] <- TRUE
-  while (nrow(stack) > 0) {
-    r <- stack[nrow(stack), 1]; cc <- stack[nrow(stack), 2]
-    cand <- list()
-    if (r > 1      && !visited[r - 1, cc]) cand[[length(cand) + 1]] <- c(r - 1L, cc, 1L)
-    if (r < n_rows && !visited[r + 1, cc]) cand[[length(cand) + 1]] <- c(r + 1L, cc, 2L)
-    if (cc > 1     && !visited[r, cc - 1]) cand[[length(cand) + 1]] <- c(r, cc - 1L, 3L)
-    if (cc < n_cols && !visited[r, cc + 1]) cand[[length(cand) + 1]] <- c(r, cc + 1L, 4L)
-    if (length(cand) == 0) {
-      stack <- stack[-nrow(stack), , drop = FALSE]   # dead end: backtrack
-    } else {
-      pick <- cand[[sample.int(length(cand), 1)]]
-      nr <- pick[1]; nc <- pick[2]; dir <- pick[3]
-      if (dir == 1) open_down[nr, cc] <- TRUE
-      if (dir == 2) open_down[r, cc]  <- TRUE
-      if (dir == 3) open_right[r, nc] <- TRUE
-      if (dir == 4) open_right[r, cc] <- TRUE
-      visited[nr, nc] <- TRUE
-      stack <- rbind(stack, c(nr, nc))
+    # recursive backtracker: carve a spanning-tree maze by random depth-first
+    # search, tracking the path on a stack so it can back up at dead ends
+    stack <- matrix(c(1L, 1L), ncol = 2)
+    visited[1, 1] <- TRUE
+    while (nrow(stack) > 0) {
+        r <- stack[nrow(stack), 1]
+        cc <- stack[nrow(stack), 2]
+        cand <- list()
+        if (r > 1 && !visited[r - 1, cc]) cand[[length(cand) + 1]] <- c(r - 1L, cc, 1L)
+        if (r < n_rows && !visited[r + 1, cc]) cand[[length(cand) + 1]] <- c(r + 1L, cc, 2L)
+        if (cc > 1 && !visited[r, cc - 1]) cand[[length(cand) + 1]] <- c(r, cc - 1L, 3L)
+        if (cc < n_cols && !visited[r, cc + 1]) cand[[length(cand) + 1]] <- c(r, cc + 1L, 4L)
+        if (length(cand) == 0) {
+            stack <- stack[-nrow(stack), , drop = FALSE] # dead end: backtrack
+        } else {
+            pick <- cand[[sample.int(length(cand), 1)]]
+            nr <- pick[1]
+            nc <- pick[2]
+            dir <- pick[3]
+            if (dir == 1) open_down[nr, cc] <- TRUE
+            if (dir == 2) open_down[r, cc] <- TRUE
+            if (dir == 3) open_right[r, nc] <- TRUE
+            if (dir == 4) open_right[r, cc] <- TRUE
+            visited[nr, nc] <- TRUE
+            stack <- rbind(stack, c(nr, nc))
+        }
     }
-  }
 
-  # render cells as squares and carved openings as connecting bridges, then
-  # union into one blocky corridor polygon
-  half <- corridor / 2
-  make_square <- function(cx, cy) st_polygon(list(rbind(
-    c(cx - half, cy - half), c(cx + half, cy - half),
-    c(cx + half, cy + half), c(cx - half, cy + half), c(cx - half, cy - half)
-  )))
-  make_bridge <- function(cx1, cy1, cx2, cy2) {
-    xr <- range(cx1, cx2); yr <- range(cy1, cy2)
-    st_polygon(list(rbind(
-      c(xr[1] - half, yr[1] - half), c(xr[2] + half, yr[1] - half),
-      c(xr[2] + half, yr[2] + half), c(xr[1] - half, yr[2] + half),
-      c(xr[1] - half, yr[1] - half)
-    )))
-  }
+    # render cells as squares and carved openings as connecting bridges, then
+    # union into one blocky corridor polygon
+    half <- corridor / 2
+    make_square <- function(cx, cy) {
+        st_polygon(list(rbind(
+            c(cx - half, cy - half), c(cx + half, cy - half),
+            c(cx + half, cy + half), c(cx - half, cy + half), c(cx - half, cy - half)
+        )))
+    }
+    make_bridge <- function(cx1, cy1, cx2, cy2) {
+        xr <- range(cx1, cx2)
+        yr <- range(cy1, cy2)
+        st_polygon(list(rbind(
+            c(xr[1] - half, yr[1] - half), c(xr[2] + half, yr[1] - half),
+            c(xr[2] + half, yr[2] + half), c(xr[1] - half, yr[2] + half),
+            c(xr[1] - half, yr[1] - half)
+        )))
+    }
 
-  pieces <- list()
-  for (r in seq_len(n_rows)) for (cc in seq_len(n_cols)) {
-    cx <- cc * cell; cy <- -r * cell
-    pieces[[length(pieces) + 1]] <- make_square(cx, cy)
-    if (open_right[r, cc]) pieces[[length(pieces) + 1]] <- make_bridge(cx, cy, cx + cell, cy)
-    if (open_down[r, cc])  pieces[[length(pieces) + 1]] <- make_bridge(cx, cy, cx, cy - cell)
-  }
-  st_union(st_sfc(pieces))[[1]]
+    pieces <- list()
+    for (r in seq_len(n_rows)) {
+        for (cc in seq_len(n_cols)) {
+            cx <- cc * cell
+            cy <- -r * cell
+            pieces[[length(pieces) + 1]] <- make_square(cx, cy)
+            if (open_right[r, cc]) pieces[[length(pieces) + 1]] <- make_bridge(cx, cy, cx + cell, cy)
+            if (open_down[r, cc]) pieces[[length(pieces) + 1]] <- make_bridge(cx, cy, cx, cy - cell)
+        }
+    }
+    st_union(st_sfc(pieces))[[1]]
 }
 maze <- make_maze()
 
 # combs: a base bar with several thin rectangular teeth - many deep,
 # straight-sided notches rather than the stars' angled ones.
 make_comb <- function(n_teeth = 6, base_height = 1, tooth_width = 0.6,
-                       tooth_gap = 0.6, tooth_height = 4) {
-  total_width <- n_teeth * tooth_width + (n_teeth - 1) * tooth_gap
-  base <- st_polygon(list(rbind(
-    c(0, 0), c(total_width, 0), c(total_width, base_height), c(0, base_height), c(0, 0)
-  )))
-  teeth <- lapply(seq_len(n_teeth) - 1, function(i) {
-    x0 <- i * (tooth_width + tooth_gap)
-    st_polygon(list(rbind(
-      c(x0, base_height), c(x0 + tooth_width, base_height),
-      c(x0 + tooth_width, base_height + tooth_height), c(x0, base_height + tooth_height),
-      c(x0, base_height)
+                      tooth_gap = 0.6, tooth_height = 4) {
+    total_width <- n_teeth * tooth_width + (n_teeth - 1) * tooth_gap
+    base <- st_polygon(list(rbind(
+        c(0, 0), c(total_width, 0), c(total_width, base_height), c(0, base_height), c(0, 0)
     )))
-  })
-  st_union(st_sfc(c(list(base), teeth)))[[1]]
+    teeth <- lapply(seq_len(n_teeth) - 1, function(i) {
+        x0 <- i * (tooth_width + tooth_gap)
+        st_polygon(list(rbind(
+            c(x0, base_height), c(x0 + tooth_width, base_height),
+            c(x0 + tooth_width, base_height + tooth_height), c(x0, base_height + tooth_height),
+            c(x0, base_height)
+        )))
+    })
+    st_union(st_sfc(c(list(base), teeth)))[[1]]
 }
 comb <- make_comb()
 
 make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
-  n <- n_points * 2
-  angles <- seq(pi/2, pi/2 + 2*pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- center[1] + radii * cos(angles)
-  y <- center[2] + radii * sin(angles)
-  coords <- rbind(cbind(x, y), c(x[1], y[1]))
-  st_polygon(list(coords))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- center[1] + radii * cos(angles)
+    y <- center[2] + radii * sin(angles)
+    coords <- rbind(cbind(x, y), c(x[1], y[1]))
+    st_polygon(list(coords))
 }
 
-n_seq     <- c(3, 4, 5, 6, 8, 10, 15, 20)
-stars_n   <- lapply(n_seq, make_star, r_outer = 1, r_inner = 0.5)
+n_seq <- c(3, 4, 5, 6, 8, 10, 15, 20)
+stars_n <- lapply(n_seq, make_star, r_outer = 1, r_inner = 0.5)
 names(stars_n) <- sprintf("n = %d", n_seq)
 
 ratio_seq <- c(0.9, 0.7, 0.5, 0.3, 0.15, 0.05)
-stars_r   <- lapply(ratio_seq, function(r) make_star(6, 1, r))
+stars_r <- lapply(ratio_seq, function(r) make_star(6, 1, r))
 names(stars_r) <- sprintf("ratio = %.2f", ratio_seq)
 
 # urchin: like make_star, but arms can be irregularly spaced (jitter_frac > 0)
@@ -173,23 +187,24 @@ names(stars_r) <- sprintf("ratio = %.2f", ratio_seq)
 # depth/count, since make_star's evenly-spaced, equal-length arms always
 # have an exact opposite.
 make_urchin <- function(n_arms, r_outer = 1, r_inner = 0.02, jitter_frac = 0, seed = 1) {
-  set.seed(seed)
-  n <- n_arms * 2
-  base_angles <- seq(0, 2 * pi, length.out = n + 1)[1:n]
-  jitter <- if (jitter_frac > 0) runif(n, -jitter_frac, jitter_frac) * (2 * pi / n) else 0
-  angles <- base_angles + jitter
-  radii <- numeric(n)
-  radii[seq(1, n, by = 2)] <- rep(r_outer, length.out = n_arms)
-  radii[seq(2, n, by = 2)] <- r_inner
-  x <- radii * cos(angles); y <- radii * sin(angles)
-  coords <- rbind(cbind(x, y), c(x[1], y[1]))
-  st_polygon(list(coords))
+    set.seed(seed)
+    n <- n_arms * 2
+    base_angles <- seq(0, 2 * pi, length.out = n + 1)[1:n]
+    jitter <- if (jitter_frac > 0) runif(n, -jitter_frac, jitter_frac) * (2 * pi / n) else 0
+    angles <- base_angles + jitter
+    radii <- numeric(n)
+    radii[seq(1, n, by = 2)] <- rep(r_outer, length.out = n_arms)
+    radii[seq(2, n, by = 2)] <- r_inner
+    x <- radii * cos(angles)
+    y <- radii * sin(angles)
+    coords <- rbind(cbind(x, y), c(x[1], y[1]))
+    st_polygon(list(coords))
 }
 
 # even vs odd arm count, same (matched) notch depth, equal-length arms and no
 # angular jitter - isolates the effect of an exact opposite arm existing or not
 urchin_even <- make_urchin(8, r_inner = 0.03, jitter_frac = 0)
-urchin_odd  <- make_urchin(7, r_inner = 0.03, jitter_frac = 0)
+urchin_odd <- make_urchin(7, r_inner = 0.03, jitter_frac = 0)
 
 # irregular arm angles (no exact opposites at all) plus a much deeper notch -
 # used later to show that symmetry, not notch depth, was the floor
@@ -203,64 +218,69 @@ urchin_varylen <- make_urchin(7, r_outer = c(1, 0.55, 1.3, 0.7, 1.15, 0.6, 0.9),
 # around a centre - no repeating angular unit at all, structurally distinct
 # from the whole star/urchin family
 make_blob <- function(n_vertices = 12, seed = 1, roughness = 0.75) {
-  set.seed(seed)
-  angles <- sort(runif(n_vertices, 0, 2 * pi))
-  radii  <- 1 + roughness * (runif(n_vertices) - 0.5) * 2
-  x <- radii * cos(angles); y <- radii * sin(angles)
-  coords <- rbind(cbind(x, y), c(x[1], y[1]))
-  st_polygon(list(coords))
+    set.seed(seed)
+    angles <- sort(runif(n_vertices, 0, 2 * pi))
+    radii <- 1 + roughness * (runif(n_vertices) - 0.5) * 2
+    x <- radii * cos(angles)
+    y <- radii * sin(angles)
+    coords <- rbind(cbind(x, y), c(x[1], y[1]))
+    st_polygon(list(coords))
 }
 blob <- make_blob(12, seed = 3, roughness = 0.75)
 
-star_demo <- make_star(6, 1, 0.3)   # used later in the diagnostic-figure gallery
+star_demo <- make_star(6, 1, 0.3) # used later in the diagnostic-figure gallery
 hexagon_demo <- make_star(6, 1, 1)
 # a family of shapes that are ALL convex, so any drop in convexity_index
 # below 1 here would be a bug, not a feature - these isolate "shape"
 # (elongation, vertex count) from "boundary complexity" (notches)
 basic_shapes <- list(
-  "square"             = square,
-  "rectangle 10x2"     = st_polygon(list(rbind(c(0,0), c(10,0), c(10,2), c(0,2), c(0,0)))),
-  "rectangle 20x1"     = st_polygon(list(rbind(c(0,0), c(20,0), c(20,1), c(0,1), c(0,0)))),
-  "triangle"           = st_polygon(list(rbind(c(0,0), c(10,0), c(5,10), c(0,0)))),
-  "regular hexagon"    = make_star(6, 1, 1),   # ratio = 1 -> no notch -> regular polygon
-  "near-circle"        = st_buffer(st_sfc(st_point(c(0, 0))), dist = 5, nQuadSegs = 30)[[1]]
+    "square"             = square,
+    "rectangle 10x2"     = st_polygon(list(rbind(c(0, 0), c(10, 0), c(10, 2), c(0, 2), c(0, 0)))),
+    "rectangle 20x1"     = st_polygon(list(rbind(c(0, 0), c(20, 0), c(20, 1), c(0, 1), c(0, 0)))),
+    "triangle"           = st_polygon(list(rbind(c(0, 0), c(10, 0), c(5, 10), c(0, 0)))),
+    "regular hexagon"    = make_star(6, 1, 1), # ratio = 1 -> no notch -> regular polygon
+    "near-circle"        = st_buffer(st_sfc(st_point(c(0, 0))), dist = 5, nQuadSegs = 30)[[1]]
 )
 
 make_square_with_hole <- function(outer_half = 5, hole_frac = 0) {
-  outer <- rbind(c(-outer_half, -outer_half), c(outer_half, -outer_half),
-                 c(outer_half,  outer_half),  c(-outer_half,  outer_half),
-                 c(-outer_half, -outer_half))
-  if (hole_frac <= 0) return(st_polygon(list(outer)))
-  hh <- outer_half * sqrt(hole_frac)   # so hole area / outer area == hole_frac
-  hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
-  st_polygon(list(outer, hole))
+    outer <- rbind(
+        c(-outer_half, -outer_half), c(outer_half, -outer_half),
+        c(outer_half, outer_half), c(-outer_half, outer_half),
+        c(-outer_half, -outer_half)
+    )
+    if (hole_frac <= 0) {
+        return(st_polygon(list(outer)))
+    }
+    hh <- outer_half * sqrt(hole_frac) # so hole area / outer area == hole_frac
+    hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
+    st_polygon(list(outer, hole))
 }
 
 hole_fracs <- c(0, 0.1, 0.3, 0.5, 0.7)
-holes      <- lapply(hole_fracs, function(hf) make_square_with_hole(hole_frac = hf))
+holes <- lapply(hole_fracs, function(hf) make_square_with_hole(hole_frac = hf))
 names(holes) <- sprintf("hole = %.0f%%", 100 * hole_fracs)
 
-hole_demo <- make_square_with_hole(5, 0.3)   # used later in the diagnostic-figure gallery
+hole_demo <- make_square_with_hole(5, 0.3) # used later in the diagnostic-figure gallery
 
 make_dispersed <- function(gap) {
-  if (gap <= 0) {
-    return(st_polygon(list(rbind(c(0,0), c(6,0), c(6,6), c(0,6), c(0,0)))))
-  }
-  r1 <- rbind(c(0, 0), c(3, 0), c(3, 6), c(0, 6), c(0, 0))
-  r2 <- rbind(c(3 + gap, 0), c(6 + gap, 0), c(6 + gap, 6), c(3 + gap, 6), c(3 + gap, 0))
-  st_multipolygon(list(list(r1), list(r2)))
+    if (gap <= 0) {
+        return(st_polygon(list(rbind(c(0, 0), c(6, 0), c(6, 6), c(0, 6), c(0, 0)))))
+    }
+    r1 <- rbind(c(0, 0), c(3, 0), c(3, 6), c(0, 6), c(0, 0))
+    r2 <- rbind(c(3 + gap, 0), c(6 + gap, 0), c(6 + gap, 6), c(3 + gap, 6), c(3 + gap, 0))
+    st_multipolygon(list(list(r1), list(r2)))
 }
 
 gaps <- c(0, 0.5, 1, 2, 4, 8)
 disp <- lapply(gaps, make_dispersed)
 names(disp) <- sprintf("gap = %.1f", gaps)
 
-dispersed_demo <- make_dispersed(2)   # used later in the diagnostic-figure gallery
+dispersed_demo <- make_dispersed(2) # used later in the diagnostic-figure gallery
 
 # the same (non-convex) shape at different absolute sizes, to check that
 # convexity_index() is scale-invariant
 size_factors <- c(1, 3, 10)
-size_shapes  <- lapply(size_factors, function(f) c_shape * f)
+size_shapes <- lapply(size_factors, function(f) c_shape * f)
 names(size_shapes) <- sprintf("%gx", size_factors)
 
 # rasterize any target polygon: keep every grid cell whose centre falls
@@ -268,36 +288,40 @@ names(size_shapes) <- sprintf("%gx", size_factors)
 # from vectorizing a raster/classification mask, without needing a raster
 # package at all.
 rasterize_polygon <- function(target, cell = 1) {
-  target_sfc <- st_sfc(target)
-  bb <- st_bbox(target_sfc)
-  xs <- seq(bb["xmin"] + cell / 2, bb["xmax"], by = cell)
-  ys <- seq(bb["ymin"] + cell / 2, bb["ymax"], by = cell)
-  g   <- expand.grid(x = xs, y = ys)
-  pts <- st_as_sf(g, coords = c("x", "y"))
-  keep <- lengths(st_intersects(pts, target_sfc)) > 0
-  g <- g[keep, , drop = FALSE]
-  if (nrow(g) == 0) return(NULL)   # cell too big relative to target: no cell centres fall inside
+    target_sfc <- st_sfc(target)
+    bb <- st_bbox(target_sfc)
+    xs <- seq(bb["xmin"] + cell / 2, bb["xmax"], by = cell)
+    ys <- seq(bb["ymin"] + cell / 2, bb["ymax"], by = cell)
+    g <- expand.grid(x = xs, y = ys)
+    pts <- st_as_sf(g, coords = c("x", "y"))
+    keep <- lengths(st_intersects(pts, target_sfc)) > 0
+    g <- g[keep, , drop = FALSE]
+    if (nrow(g) == 0) {
+        return(NULL)
+    } # cell too big relative to target: no cell centres fall inside
 
-  half <- cell / 2
-  make_cell <- function(cx, cy) {
-    st_polygon(list(rbind(
-      c(cx - half, cy - half), c(cx + half, cy - half),
-      c(cx + half, cy + half), c(cx - half, cy + half),
-      c(cx - half, cy - half)
-    )))
-  }
-  cells <- mapply(make_cell, g$x, g$y, SIMPLIFY = FALSE)
-  st_union(st_sfc(cells))[[1]]
+    half <- cell / 2
+    make_cell <- function(cx, cy) {
+        st_polygon(list(rbind(
+            c(cx - half, cy - half), c(cx + half, cy - half),
+            c(cx + half, cy + half), c(cx - half, cy + half),
+            c(cx - half, cy - half)
+        )))
+    }
+    cells <- mapply(make_cell, g$x, g$y, SIMPLIFY = FALSE)
+    st_union(st_sfc(cells))[[1]]
 }
 
 make_rotated_rect <- function(width = 14, height = 8, angle = 20, center = c(0, 0)) {
-  ang <- angle * pi / 180
-  corners <- rbind(c(-width/2, -height/2), c(width/2, -height/2),
-                    c(width/2,  height/2), c(-width/2,  height/2),
-                    c(-width/2, -height/2))
-  rot <- matrix(c(cos(ang), sin(ang), -sin(ang), cos(ang)), 2, 2)
-  corners <- sweep(corners %*% rot, 2, center, "+")
-  st_polygon(list(corners))
+    ang <- angle * pi / 180
+    corners <- rbind(
+        c(-width / 2, -height / 2), c(width / 2, -height / 2),
+        c(width / 2, height / 2), c(-width / 2, height / 2),
+        c(-width / 2, -height / 2)
+    )
+    rot <- matrix(c(cos(ang), sin(ang), -sin(ang), cos(ang)), 2, 2)
+    corners <- sweep(corners %*% rot, 2, center, "+")
+    st_polygon(list(corners))
 }
 
 # the three "true" (un-pixelated) shapes we'll rasterize at several
@@ -306,9 +330,9 @@ make_rotated_rect <- function(width = 14, height = 8, angle = 20, center = c(0, 
 # rasterize with perfectly straight edges and defeat the point - real-world
 # footprints are almost never grid-aligned either).
 raster_targets <- list(
-  circle    = st_buffer(st_sfc(st_point(c(0, 0))), dist = 8, nQuadSegs = 30)[[1]],
-  star      = make_star(6, r_outer = 8, r_inner = 4),
-  rectangle = make_rotated_rect(width = 14, height = 8, angle = 20)
+    circle    = st_buffer(st_sfc(st_point(c(0, 0))), dist = 8, nQuadSegs = 30)[[1]],
+    star      = make_star(6, r_outer = 8, r_inner = 4),
+    rectangle = make_rotated_rect(width = 14, height = 8, angle = 20)
 )
 
 # each true shape, rasterized at several different grid-cell sizes -
@@ -319,9 +343,9 @@ raster_targets <- list(
 # section exists to correct.
 res_levels <- c(4, 1, 0.25)
 raster_by_res <- lapply(raster_targets, function(target) {
-  r <- lapply(res_levels, function(cell) rasterize_polygon(target, cell = cell))
-  names(r) <- sprintf("cell = %s", res_levels)
-  r
+    r <- lapply(res_levels, function(cell) rasterize_polygon(target, cell = cell))
+    names(r) <- sprintf("cell = %s", res_levels)
+    r
 })
 ```
 
@@ -479,13 +503,15 @@ CI_DETERMINISTIC_MAX_TRI <- 25
 #' so callers can flag approximated values or draw the right kind of line
 #' in a diagnostic plot.
 ci_auto <- function(poly, prep = NULL) {
-  if (is.null(prep)) prep <- prepare_polygon(poly)
-  n_tri <- if (is.null(prep$tri)) 0 else nrow(prep$tri)
-  deterministic <- n_tri <= CI_DETERMINISTIC_MAX_TRI
-  res <- suppressWarnings(convexity_index(poly, deterministic = deterministic,
-                                           n_lines = 5000, prep = prep))
-  res$deterministic_used <- deterministic
-  res
+    if (is.null(prep)) prep <- prepare_polygon(poly)
+    n_tri <- if (is.null(prep$tri)) 0 else nrow(prep$tri)
+    deterministic <- n_tri <= CI_DETERMINISTIC_MAX_TRI
+    res <- suppressWarnings(convexity_index(poly,
+        deterministic = deterministic,
+        n_lines = 5000, prep = prep
+    ))
+    res$deterministic_used <- deterministic
+    res
 }
 ```
 

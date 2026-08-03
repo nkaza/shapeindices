@@ -4,6 +4,9 @@
 
 - [`cdt_triangles()`](https://nkaza.github.io/shapeindices/reference/cdt_triangles.md)
   : Constrained Delaunay triangulation of a (multi)polygon
+- [`constrained_mesh()`](https://nkaza.github.io/shapeindices/reference/constrained_mesh.md)
+  : Build the exact constrained-triangulation mesh for a collection of
+  polygons
 - [`convex_decompose()`](https://nkaza.github.io/shapeindices/reference/convex_decompose.md)
   : Convex decomposition of a (multi)polygon (Hertel-Mehlhorn).
 - [`convexity_index()`](https://nkaza.github.io/shapeindices/reference/convexity_index.md)

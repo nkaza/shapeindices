@@ -153,33 +153,20 @@ nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
 
 # byrow = TRUE (default): index each county independently
 res <- shape_indices_sf(nc[1:5, ])
+#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4454, lon_0 = -79.3819) before computing - pass already-projected data instead if you need a specific CRS.
 #> Warning: parallel_rows = TRUE but no parallel future::plan() is active (still on the default sequential plan) - running in order. Call future::plan(future::multisession, workers = ...) first for actual multi-core speedup.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4314, lon_0 = -81.4982) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4911, lon_0 = -81.1251) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4125, lon_0 = -80.6857) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4071, lon_0 = -76.0272) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4224, lon_0 = -77.4105) before computing - pass already-projected data instead if you need a specific CRS.
 res$convexity_index
-#> [1] 0.9971652 0.9862805 0.9986526 0.8047873 0.9766696
+#> [1] 0.9971651 0.9862806 0.9986527 0.8047807 0.9766673
 
 # a subset, requested the same way as shape_indices()
 shape_indices_sf(nc[1:5, ], which = c("hull_ratio", "reock"))
+#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4454, lon_0 = -79.3819) before computing - pass already-projected data instead if you need a specific CRS.
 #> Warning: parallel_rows = TRUE but no parallel future::plan() is active (still on the default sequential plan) - running in order. Call future::plan(future::multisession, workers = ...) first for actual multi-core speedup.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4314, lon_0 = -81.4982) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4314, lon_0 = -81.4982) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4911, lon_0 = -81.1251) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4911, lon_0 = -81.1251) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4125, lon_0 = -80.6857) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4125, lon_0 = -80.6857) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4071, lon_0 = -76.0272) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4071, lon_0 = -76.0272) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4224, lon_0 = -77.4105) before computing - pass already-projected data instead if you need a specific CRS.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4224, lon_0 = -77.4105) before computing - pass already-projected data instead if you need a specific CRS.
 #> Simple feature collection with 5 features and 16 fields
 #> Geometry type: MULTIPOLYGON
 #> Dimension:     XY
-#> Bounding box:  xmin: -81.74107 ymin: 36.07282 xmax: -75.77316 ymax: 36.58965
-#> Geodetic CRS:  NAD27
+#> Bounding box:  xmin: -211610.7 ymin: -35375.81 xmax: 324352 ymax: 18437.6
+#> Projected CRS: +proj=laea +lat_0=36.4453851314 +lon_0=-79.3818762481 +datum=WGS84 +units=m +no_defs
 #>    AREA PERIMETER CNTY_ CNTY_ID        NAME  FIPS FIPSNO CRESS_ID BIR74 SID74
 #> 1 0.114     1.442  1825    1825        Ashe 37009  37009        5  1091     1
 #> 2 0.061     1.231  1827    1827   Alleghany 37005  37005        3   487     0
@@ -187,42 +174,38 @@ shape_indices_sf(nc[1:5, ], which = c("hull_ratio", "reock"))
 #> 4 0.070     2.968  1831    1831   Currituck 37053  37053       27   508     1
 #> 5 0.153     2.206  1832    1832 Northampton 37131  37131       66  1421     9
 #>   NWBIR74 BIR79 SID79 NWBIR79                       geometry hull_ratio_index
-#> 1      10  1364     0      19 MULTIPOLYGON (((-81.47276 3...        0.9154096
-#> 2      10   542     3      12 MULTIPOLYGON (((-81.23989 3...        0.8256371
-#> 3     208  3616     6     260 MULTIPOLYGON (((-80.45634 3...        0.9176972
-#> 4     123   830     2     145 MULTIPOLYGON (((-76.00897 3...        0.5467063
-#> 5    1066  1606     3    1197 MULTIPOLYGON (((-77.21767 3...        0.8088957
+#> 1      10  1364     0      19 MULTIPOLYGON (((-187924.2 -...        0.9154096
+#> 2      10   542     3      12 MULTIPOLYGON (((-166717.5 -...        0.8256367
+#> 3     208  3616     6     260 MULTIPOLYGON (((-96558.64 -...        0.9176983
+#> 4     123   830     2     145 MULTIPOLYGON (((302822.1 -8...        0.5467008
+#> 5    1066  1606     3    1197 MULTIPOLYGON (((194541 -205...        0.8088926
 #>   reock_index
-#> 1   0.6553073
-#> 2   0.4581459
-#> 3   0.6269183
-#> 4   0.1716233
-#> 5   0.3414909
+#> 1   0.6554071
+#> 2   0.4581952
+#> 3   0.6269464
+#> 4   0.1716064
+#> 5   0.3415237
 
 # byrow = TRUE, with deterministic_max_tri forcing the Monte Carlo
 # estimator once a row's own mesh exceeds it - `...` passes n_lines/seed
 # through to shape_indices() for every row
 res_rli <- shape_indices_sf(nc[1:5, ], byrow = TRUE, deterministic_max_tri = 5,
                              n_lines = 2000, seed = 1)
+#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4454, lon_0 = -79.3819) before computing - pass already-projected data instead if you need a specific CRS.
 #> Warning: parallel_rows = TRUE but no parallel future::plan() is active (still on the default sequential plan) - running in order. Call future::plan(future::multisession, workers = ...) first for actual multi-core speedup.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4314, lon_0 = -81.4982) before computing - pass already-projected data instead if you need a specific CRS.
 #> Warning: n_lines (2000) is not substantially lower than the 276 triangle-pairs that deterministic = TRUE (24 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
 #> Warning: n_lines (2000) is not substantially lower than the 276 triangle-pairs that deterministic = TRUE (24 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4911, lon_0 = -81.1251) before computing - pass already-projected data instead if you need a specific CRS.
 #> Warning: n_lines (2000) is not substantially lower than the 253 triangle-pairs that deterministic = TRUE (23 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
 #> Warning: n_lines (2000) is not substantially lower than the 253 triangle-pairs that deterministic = TRUE (23 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4125, lon_0 = -80.6857) before computing - pass already-projected data instead if you need a specific CRS.
 #> Warning: n_lines (2000) is not substantially lower than the 300 triangle-pairs that deterministic = TRUE (25 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
 #> Warning: n_lines (2000) is not substantially lower than the 300 triangle-pairs that deterministic = TRUE (25 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4071, lon_0 = -76.0272) before computing - pass already-projected data instead if you need a specific CRS.
 #> Warning: n_lines (2000) is not substantially lower than the 406 triangle-pairs that deterministic = TRUE (29 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
 #> Warning: n_lines (2000) is not substantially lower than the 406 triangle-pairs that deterministic = TRUE (29 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
-#> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4224, lon_0 = -77.4105) before computing - pass already-projected data instead if you need a specific CRS.
 #> Warning: n_lines (2000) is not substantially lower than the 465 triangle-pairs that deterministic = TRUE (31 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
 #> Warning: n_lines (2000) is not substantially lower than the 465 triangle-pairs that deterministic = TRUE (31 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
-#> Warning: UNRELIABLE VALUE: Future (<unnamed-3>) unexpectedly generated random numbers without specifying argument 'seed'. There is a risk that those random numbers are not statistically sound and the overall results might be invalid. To fix this, specify 'seed=TRUE'. This ensures that proper, parallel-safe random numbers are produced. To disable this check, use 'seed=NULL', or set option 'future.rng.onMisuse' to "ignore". [future <unnamed-3> (3b7d009adef58a9a0824e36ffb6535c6-3); on 3b7d009adef58a9a0824e36ffb6535c6@runnervm3jd5f<7549>]
+#> Warning: UNRELIABLE VALUE: Future (<unnamed-3>) unexpectedly generated random numbers without specifying argument 'seed'. There is a risk that those random numbers are not statistically sound and the overall results might be invalid. To fix this, specify 'seed=TRUE'. This ensures that proper, parallel-safe random numbers are produced. To disable this check, use 'seed=NULL', or set option 'future.rng.onMisuse' to "ignore". [future <unnamed-3> (9ae228df0010faf4471b4cb273c57d91-3); on 9ae228df0010faf4471b4cb273c57d91@runnervmvrwv9<8198>]
 res_rli$convexity_index
-#> [1] 0.9949545 0.9844751 0.9984327 0.8028660 0.9753344
+#> [1] 0.9950414 0.9834064 0.9987193 0.7963312 0.9703290
 
 # byrow = FALSE: treat several adjacent counties as one weighted shape -
 # Wake, Durham, Orange and Chatham (the Research Triangle) are contiguous

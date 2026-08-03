@@ -10,26 +10,29 @@ library(ggplot2)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"),
-        legend.position = "bottom")
+    theme(
+        strip.text = element_text(size = 9, face = "bold"),
+        legend.position = "bottom"
+    )
 ```
 
 Code
 
 ``` r
 
-square <- st_polygon(list(rbind(c(0,0), c(10,0), c(10,10), c(0,10), c(0,0))))
-make_rect <- function(w, h) st_polygon(list(rbind(c(0,0), c(w,0), c(w,h), c(0,h), c(0,0))))
+square <- st_polygon(list(rbind(c(0, 0), c(10, 0), c(10, 10), c(0, 10), c(0, 0))))
+make_rect <- function(w, h) st_polygon(list(rbind(c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
 aspect_seq <- c(1, 2, 4, 10, 20)
 rectangles <- lapply(aspect_seq, function(a) make_rect(sqrt(100 * a), sqrt(100 / a)))
 names(rectangles) <- sprintf("aspect %gx", aspect_seq)
 
 make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
-  n <- n_points * 2
-  angles <- seq(pi/2, pi/2 + 2*pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- center[1] + radii * cos(angles); y <- center[2] + radii * sin(angles)
-  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- center[1] + radii * cos(angles)
+    y <- center[2] + radii * sin(angles)
+    st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
 }
 ratio_seq <- c(0.9, 0.7, 0.5, 0.3, 0.15)
 stars_r <- lapply(ratio_seq, function(r) make_star(6, 5, 5 * r))
@@ -43,15 +46,15 @@ disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]
 # much of it there is; area and the radius-vs-mass profile stay identical
 # across n_arms by construction
 make_spokes <- function(r_in, r_out, n_arms, total_angle_frac = 0.5) {
-  angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
-  half_w <- total_angle_frac * pi / n_arms
-  polys <- lapply(angles, function(a0) {
-    th <- seq(a0 - half_w, a0 + half_w, length.out = max(6, 40 %/% n_arms))
-    outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
-    inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
-    st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
-  })
-  Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
+    angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
+    half_w <- total_angle_frac * pi / n_arms
+    polys <- lapply(angles, function(a0) {
+        th <- seq(a0 - half_w, a0 + half_w, length.out = max(6, 40 %/% n_arms))
+        outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
+        inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
+        st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
+    })
+    Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
 }
 arm_counts <- c(2, 4, 8, 16)
 spokes <- lapply(arm_counts, function(n) make_spokes(3, 5, n))
@@ -246,18 +249,19 @@ that same weight profile, not against a fixed disk.
 
 star <- st_sfc(make_star(6, 5, 2))
 prep <- prepare_polygon(star)
-tri  <- prep$tri
-d    <- as.numeric(st_distance(st_centroid(st_geometry(tri)), st_centroid(star)))
+tri <- prep$tri
+d <- as.numeric(st_distance(st_centroid(st_geometry(tri)), st_centroid(star)))
 w_centre <- exp(-d / mean(d))
-w_edge   <- exp( d / mean(d))
+w_edge <- exp(d / mean(d))
 
 data.frame(
-  weighting = c(weight_thumb(tri, rep(1, nrow(tri))), weight_thumb(tri, w_centre), weight_thumb(tri, w_edge)),
-  name = c("uniform (area)", "toward centre", "toward edge"),
-  moment_of_inertia = c(
-    moment_of_inertia_index(star, prep = prep, weight = tri$area)$index,
-    moment_of_inertia_index(star, prep = prep, weight = w_centre)$index,
-    moment_of_inertia_index(star, prep = prep, weight = w_edge)$index)
+    weighting = c(weight_thumb(tri, rep(1, nrow(tri))), weight_thumb(tri, w_centre), weight_thumb(tri, w_edge)),
+    name = c("uniform (area)", "toward centre", "toward edge"),
+    moment_of_inertia = c(
+        moment_of_inertia_index(star, prep = prep, weight = tri$area)$index,
+        moment_of_inertia_index(star, prep = prep, weight = w_centre)$index,
+        moment_of_inertia_index(star, prep = prep, weight = w_edge)$index
+    )
 ) |> knitr::kable(format = "html", digits = 3, row.names = FALSE, escape = FALSE)
 ```
 
@@ -284,11 +288,15 @@ symmetry).
 ``` r
 
 tbl_spokes <- do.call(rbind, lapply(names(spokes), function(nm) {
-  poly <- st_sfc(spokes[[nm]])
-  data.frame(shape = shape_thumb(spokes[[nm]]), name = nm,
-             moment_of_inertia = moment_of_inertia_index(poly)$index,
-             convexity = suppressWarnings(convexity_index(poly, deterministic = FALSE,
-                                                            n_lines = 5000, seed = 1)$index))
+    poly <- st_sfc(spokes[[nm]])
+    data.frame(
+        shape = shape_thumb(spokes[[nm]]), name = nm,
+        moment_of_inertia = moment_of_inertia_index(poly)$index,
+        convexity = suppressWarnings(convexity_index(poly,
+            deterministic = FALSE,
+            n_lines = 5000, seed = 1
+        )$index)
+    )
 }))
 knitr::kable(format = "html", tbl_spokes, digits = 4, row.names = FALSE, escape = FALSE)
 ```
@@ -313,19 +321,19 @@ misses, falling steadily as the gaps multiply.
 ``` r
 
 make_spokes_at <- function(r_in, r_out, angles, half_w) {
-  polys <- lapply(angles, function(a0) {
-    th <- seq(a0 - half_w, a0 + half_w, length.out = 12)
-    outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
-    inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
-    st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
-  })
-  Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
+    polys <- lapply(angles, function(a0) {
+        th <- seq(a0 - half_w, a0 + half_w, length.out = 12)
+        outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
+        inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
+        st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
+    })
+    Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
 }
 half_w <- 0.5 * pi / 4
-evenly  <- st_sfc(make_spokes_at(3, 5, seq(0, 2 * pi, length.out = 5)[1:4], half_w))
-bunched <- st_sfc(make_spokes_at(3, 5, c(0, 1.3, 2.7, 4.6), half_w))  # same 4 wedges, uneven bearings
+evenly <- st_sfc(make_spokes_at(3, 5, seq(0, 2 * pi, length.out = 5)[1:4], half_w))
+bunched <- st_sfc(make_spokes_at(3, 5, c(0, 1.3, 2.7, 4.6), half_w)) # same 4 wedges, uneven bearings
 
-moi_evenly  <- moment_of_inertia_index(evenly)$index
+moi_evenly <- moment_of_inertia_index(evenly)$index
 moi_bunched <- moment_of_inertia_index(bunched)$index
 ```
 

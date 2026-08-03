@@ -10,25 +10,26 @@ library(ggplot2)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"))
+    theme(strip.text = element_text(size = 9, face = "bold"))
 ```
 
 Code
 
 ``` r
 
-square <- st_polygon(list(rbind(c(0,0), c(10,0), c(10,10), c(0,10), c(0,0))))
-make_rect <- function(w, h) st_polygon(list(rbind(c(0,0), c(w,0), c(w,h), c(0,h), c(0,0))))
+square <- st_polygon(list(rbind(c(0, 0), c(10, 0), c(10, 10), c(0, 10), c(0, 0))))
+make_rect <- function(w, h) st_polygon(list(rbind(c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
 aspect_seq <- c(1, 2, 4, 10, 20)
 rectangles <- lapply(aspect_seq, function(a) make_rect(sqrt(100 * a), sqrt(100 / a)))
 names(rectangles) <- sprintf("aspect %gx", aspect_seq)
 
 make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
-  n <- n_points * 2
-  angles <- seq(pi/2, pi/2 + 2*pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- center[1] + radii * cos(angles); y <- center[2] + radii * sin(angles)
-  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- center[1] + radii * cos(angles)
+    y <- center[2] + radii * sin(angles)
+    st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
 }
 ratio_seq <- c(0.9, 0.7, 0.5, 0.3, 0.15)
 stars_r <- lapply(ratio_seq, function(r) make_star(6, 5, 5 * r))
@@ -42,15 +43,15 @@ disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]
 # vignette("d-understanding-moment-of-inertia-index") to demonstrate the
 # same underlying effect there
 make_spokes <- function(r_in, r_out, n_arms, total_angle_frac = 0.5) {
-  angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
-  half_w <- total_angle_frac * pi / n_arms
-  polys <- lapply(angles, function(a0) {
-    th <- seq(a0 - half_w, a0 + half_w, length.out = max(6, 40 %/% n_arms))
-    outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
-    inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
-    st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
-  })
-  Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
+    angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
+    half_w <- total_angle_frac * pi / n_arms
+    polys <- lapply(angles, function(a0) {
+        th <- seq(a0 - half_w, a0 + half_w, length.out = max(6, 40 %/% n_arms))
+        outer_pts <- cbind(r_out * cos(th), r_out * sin(th))
+        inner_pts <- cbind(r_in * cos(rev(th)), r_in * sin(rev(th)))
+        st_polygon(list(rbind(outer_pts, inner_pts, outer_pts[1, ])))
+    })
+    Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], polys)
 }
 arm_counts <- c(2, 4, 8, 16)
 spoke_shapes <- lapply(arm_counts, function(n) make_spokes(3, 5, n))
@@ -167,11 +168,11 @@ point.
 
 ``` r
 
-sq1 <- st_polygon(list(rbind(c(0,0), c(2,0), c(2,2), c(0,2), c(0,0))))
-sq2 <- st_polygon(list(rbind(c(10,0), c(12,0), c(12,2), c(10,2), c(10,0))))
+sq1 <- st_polygon(list(rbind(c(0, 0), c(2, 0), c(2, 2), c(0, 2), c(0, 0))))
+sq2 <- st_polygon(list(rbind(c(10, 0), c(12, 0), c(12, 2), c(10, 2), c(10, 0))))
 dumbbell <- st_union(st_sfc(sq1, sq2))
 res <- radial_concentration_index(dumbbell)
-st_coordinates(res$center)   # lands exactly on the connecting midpoint, (6, 1)
+st_coordinates(res$center) # lands exactly on the connecting midpoint, (6, 1)
 ```
 
          X Y
@@ -220,7 +221,7 @@ radial_concentration_index(deep_star)$index
 radial_concentration_index(deep_star, deterministic = FALSE, n_lines = 3000, seed = 1)$index
 ```
 
-    [1] 0.6619143
+    [1] 0.6618933
 
 ## 3 Illustrations
 
@@ -284,10 +285,14 @@ from many thin ones covering the same total angle.
 
 spoke_results <- lapply(spoke_shapes, function(g) radial_concentration_index(st_sfc(g)))
 tbl_spokes <- do.call(rbind, Map(function(nm, res) {
-  data.frame(shape = shape_thumb(spoke_shapes[[nm]]), name = nm,
-             radial_concentration = res$index,
-             convexity = suppressWarnings(convexity_index(st_sfc(spoke_shapes[[nm]]), deterministic = FALSE,
-                                                            n_lines = 5000, seed = 1)$index))
+    data.frame(
+        shape = shape_thumb(spoke_shapes[[nm]]), name = nm,
+        radial_concentration = res$index,
+        convexity = suppressWarnings(convexity_index(st_sfc(spoke_shapes[[nm]]),
+            deterministic = FALSE,
+            n_lines = 5000, seed = 1
+        )$index)
+    )
 }, names(spoke_shapes), spoke_results))
 knitr::kable(format = "html", tbl_spokes, digits = 4, row.names = FALSE, escape = FALSE)
 ```
@@ -304,7 +309,7 @@ knitr::kable(format = "html", tbl_spokes, digits = 4, row.names = FALSE, escape 
 # how far each row's own median landed from the origin - checking that the
 # rotational symmetry really is pinning it there, not just approximately
 center_drift <- vapply(spoke_results, function(res) {
-  as.numeric(sqrt(sum(st_coordinates(res$center)[1, 1:2]^2)))
+    as.numeric(sqrt(sum(st_coordinates(res$center)[1, 1:2]^2)))
 }, numeric(1))
 ```
 

@@ -10,67 +10,82 @@ library(ggplot2)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"))
+    theme(strip.text = element_text(size = 9, face = "bold"))
 ```
 
 Code
 
 ``` r
 
-make_square <- function(half = 5) st_polygon(list(rbind(
-  c(-half, -half), c(half, -half), c(half, half), c(-half, half), c(-half, -half))))
-make_rectangle <- function(w, h) st_polygon(list(rbind(
-  c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
+make_square <- function(half = 5) {
+    st_polygon(list(rbind(
+        c(-half, -half), c(half, -half), c(half, half), c(-half, half), c(-half, -half)
+    )))
+}
+make_rectangle <- function(w, h) {
+    st_polygon(list(rbind(
+        c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0)
+    )))
+}
 make_disk <- function(r = 5, n = 60) st_buffer(st_sfc(st_point(c(0, 0))), dist = r, nQuadSegs = n)[[1]]
 make_star <- function(n_points, r_outer, r_inner) {
-  n <- n_points * 2
-  angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- radii * cos(angles); y <- radii * sin(angles)
-  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- radii * cos(angles)
+    y <- radii * sin(angles)
+    st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
 }
 make_square_with_hole <- function(outer_half = 5, hole_frac = 0.3) {
-  outer <- rbind(c(-outer_half, -outer_half), c(outer_half, -outer_half),
-                 c(outer_half, outer_half), c(-outer_half, outer_half), c(-outer_half, -outer_half))
-  hh <- outer_half * sqrt(hole_frac)
-  hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
-  st_polygon(list(outer, hole))
+    outer <- rbind(
+        c(-outer_half, -outer_half), c(outer_half, -outer_half),
+        c(outer_half, outer_half), c(-outer_half, outer_half), c(-outer_half, -outer_half)
+    )
+    hh <- outer_half * sqrt(hole_frac)
+    hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
+    st_polygon(list(outer, hole))
 }
 make_dumbbell_gap <- function(gap) {
-  sq1 <- st_polygon(list(rbind(c(0, 0), c(2, 0), c(2, 2), c(0, 2), c(0, 0))))
-  sq2 <- st_polygon(list(rbind(c(2 + gap, 0), c(4 + gap, 0), c(4 + gap, 2), c(2 + gap, 2), c(2 + gap, 0))))
-  st_union(st_sfc(sq1, sq2))
+    sq1 <- st_polygon(list(rbind(c(0, 0), c(2, 0), c(2, 2), c(0, 2), c(0, 0))))
+    sq2 <- st_polygon(list(rbind(c(2 + gap, 0), c(4 + gap, 0), c(4 + gap, 2), c(2 + gap, 2), c(2 + gap, 0))))
+    st_union(st_sfc(sq1, sq2))
 }
 # n equal-area squares of total area `total_area`, spaced `gap_mult` times
 # each square's own side apart - for separating "how many pieces" from
 # "how far apart are they" below
 make_n_squares <- function(n, total_area = 16, gap_mult = 3) {
-  side <- sqrt(total_area / n)
-  centers <- lapply(seq_len(n), function(i) c((i - 1) * side * (1 + gap_mult), 0))
-  sqs <- lapply(centers, function(c0) st_polygon(list(rbind(
-    c(c0[1] - side/2, c0[2] - side/2), c(c0[1] + side/2, c0[2] - side/2),
-    c(c0[1] + side/2, c0[2] + side/2), c(c0[1] - side/2, c0[2] + side/2),
-    c(c0[1] - side/2, c0[2] - side/2)))))
-  st_union(st_sfc(sqs))
+    side <- sqrt(total_area / n)
+    centers <- lapply(seq_len(n), function(i) c((i - 1) * side * (1 + gap_mult), 0))
+    sqs <- lapply(centers, function(c0) {
+        st_polygon(list(rbind(
+            c(c0[1] - side / 2, c0[2] - side / 2), c(c0[1] + side / 2, c0[2] - side / 2),
+            c(c0[1] + side / 2, c0[2] + side / 2), c(c0[1] - side / 2, c0[2] + side / 2),
+            c(c0[1] - side / 2, c0[2] - side / 2)
+        )))
+    })
+    st_union(st_sfc(sqs))
 }
 # rasterize a target polygon at a given cell size: keep every grid cell
 # whose centre falls inside it, then union the cells - a stand-in for
 # vectorizing a raster/classification mask, without needing a raster
 # package at all (same construction as vignette("j-understanding-classical-indices"))
 rasterize_polygon <- function(target, cell) {
-  target_sfc <- st_sfc(target)
-  bb <- st_bbox(target_sfc)
-  xs <- seq(bb["xmin"] + cell / 2, bb["xmax"], by = cell)
-  ys <- seq(bb["ymin"] + cell / 2, bb["ymax"], by = cell)
-  g <- expand.grid(x = xs, y = ys)
-  pts <- st_as_sf(g, coords = c("x", "y"))
-  keep <- lengths(st_intersects(pts, target_sfc)) > 0
-  g <- g[keep, , drop = FALSE]
-  half <- cell / 2
-  make_cell <- function(cx, cy) st_polygon(list(rbind(
-    c(cx - half, cy - half), c(cx + half, cy - half),
-    c(cx + half, cy + half), c(cx - half, cy + half), c(cx - half, cy - half))))
-  st_union(st_sfc(mapply(make_cell, g$x, g$y, SIMPLIFY = FALSE)))[[1]]
+    target_sfc <- st_sfc(target)
+    bb <- st_bbox(target_sfc)
+    xs <- seq(bb["xmin"] + cell / 2, bb["xmax"], by = cell)
+    ys <- seq(bb["ymin"] + cell / 2, bb["ymax"], by = cell)
+    g <- expand.grid(x = xs, y = ys)
+    pts <- st_as_sf(g, coords = c("x", "y"))
+    keep <- lengths(st_intersects(pts, target_sfc)) > 0
+    g <- g[keep, , drop = FALSE]
+    half <- cell / 2
+    make_cell <- function(cx, cy) {
+        st_polygon(list(rbind(
+            c(cx - half, cy - half), c(cx + half, cy - half),
+            c(cx + half, cy + half), c(cx - half, cy + half), c(cx - half, cy - half)
+        )))
+    }
+    st_union(st_sfc(mapply(make_cell, g$x, g$y, SIMPLIFY = FALSE)))[[1]]
 }
 ```
 
@@ -266,21 +281,23 @@ on:
 ``` r
 
 notchy <- st_sfc(make_star(6, 5.64, 0.6), crs = 3857)
-prep   <- prepare_polygon(notchy)
+prep <- prepare_polygon(notchy)
 
 # naive: one point (the bare centroid) per triangle, no subdivision at all
 bnd <- st_boundary(prep$poly)
-tc  <- st_coordinates(st_centroid(st_geometry(prep$tri)))[, 1:2]
+tc <- st_coordinates(st_centroid(st_geometry(prep$tri)))[, 1:2]
 d_naive <- as.numeric(st_distance(st_cast(st_sfc(st_multipoint(tc), crs = st_crs(prep$poly)), "POINT"), bnd))
 mean_naive <- sum(prep$tri$area * d_naive) / sum(prep$tri$area)
 
 res_adaptive <- depth_index(notchy, prep = prep)
-res_hires    <- depth_index(notchy, prep = prep, deterministic = FALSE, n_lines = 200000, seed = 1)
+res_hires <- depth_index(notchy, prep = prep, deterministic = FALSE, n_lines = 200000, seed = 1)
 
 data.frame(
-  method = c("naive (bare centroid per triangle)", "adaptive subdivision (the package default)",
-             "Monte Carlo, n = 200,000 (ground truth)"),
-  mean_depth = c(mean_naive, res_adaptive$mean_depth, res_hires$mean_depth)
+    method = c(
+        "naive (bare centroid per triangle)", "adaptive subdivision (the package default)",
+        "Monte Carlo, n = 200,000 (ground truth)"
+    ),
+    mean_depth = c(mean_naive, res_adaptive$mean_depth, res_hires$mean_depth)
 ) |> knitr::kable(format = "html", digits = 4)
 ```
 
@@ -359,17 +376,17 @@ carries, and handled the same way: left alone, not clamped.
 ``` r
 
 disk <- st_sfc(make_disk(5, n = 60), crs = 3857)
-depth_index(disk)$index                                          # deterministic
+depth_index(disk)$index # deterministic
 ```
 
     [1] 1.001851
 
 ``` r
 
-depth_index(disk, deterministic = FALSE, n_lines = 5000, seed = 1)$index  # Monte Carlo
+depth_index(disk, deterministic = FALSE, n_lines = 5000, seed = 1)$index # Monte Carlo
 ```
 
-    [1] 1.007527
+    [1] 1.007533
 
 ## 4 Illustrations
 
@@ -539,12 +556,14 @@ inherits the same problem some other way:
 true_circle <- make_disk(8, 30)
 cells <- c(4, 1, 0.25)
 tbl_px <- do.call(rbind, c(
-  list(data.frame(resolution = "true (unpixelated)",
-                   depth_index = suppressWarnings(depth_index(st_sfc(true_circle))$index))),
-  lapply(cells, function(cell) {
-    g <- st_sfc(rasterize_polygon(true_circle, cell))
-    data.frame(resolution = sprintf("cell = %.2f", cell), depth_index = suppressWarnings(depth_index(g)$index))
-  })
+    list(data.frame(
+        resolution = "true (unpixelated)",
+        depth_index = suppressWarnings(depth_index(st_sfc(true_circle))$index)
+    )),
+    lapply(cells, function(cell) {
+        g <- st_sfc(rasterize_polygon(true_circle, cell))
+        data.frame(resolution = sprintf("cell = %.2f", cell), depth_index = suppressWarnings(depth_index(g)$index))
+    })
 ))
 knitr::kable(format = "html", tbl_px, digits = 3, row.names = FALSE)
 ```

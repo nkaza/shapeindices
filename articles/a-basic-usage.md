@@ -30,54 +30,55 @@ Code
 ``` r
 
 make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
-  n <- n_points * 2
-  angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- center[1] + radii * cos(angles)
-  y <- center[2] + radii * sin(angles)
-  coords <- rbind(cbind(x, y), c(x[1], y[1]))
-  st_polygon(list(coords))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- center[1] + radii * cos(angles)
+    y <- center[2] + radii * sin(angles)
+    coords <- rbind(cbind(x, y), c(x[1], y[1]))
+    st_polygon(list(coords))
 }
 
 make_turtle_path <- function(n_steps, angle_deg, step0 = 1, step_growth = 0) {
-  angle <- 0
-  pos   <- c(0, 0)
-  pts   <- matrix(pos, ncol = 2)
-  step  <- step0
-  for (i in seq_len(n_steps)) {
-    angle <- angle + angle_deg * pi / 180
-    pos   <- pos + step * c(cos(angle), sin(angle))
-    pts   <- rbind(pts, pos)
-    step  <- step + step_growth
-  }
-  st_linestring(pts)
+    angle <- 0
+    pos <- c(0, 0)
+    pts <- matrix(pos, ncol = 2)
+    step <- step0
+    for (i in seq_len(n_steps)) {
+        angle <- angle + angle_deg * pi / 180
+        pos <- pos + step * c(cos(angle), sin(angle))
+        pts <- rbind(pts, pos)
+        step <- step + step_growth
+    }
+    st_linestring(pts)
 }
 
 make_spiral <- function(n_steps = 48, angle_deg = 24, step0 = 0.35,
-                         step_growth = 0.09, width = 0.35) {
-  st_buffer(make_turtle_path(n_steps, angle_deg, step0, step_growth),
-            dist = width, endCapStyle = "FLAT", joinStyle = "MITRE", mitreLimit = 3)
+                        step_growth = 0.09, width = 0.35) {
+    st_buffer(make_turtle_path(n_steps, angle_deg, step0, step_growth),
+        dist = width, endCapStyle = "FLAT", joinStyle = "MITRE", mitreLimit = 3
+    )
 }
 
 make_blob_hole <- function(n = 14, seed = 1, roughness = 0.55, hole_frac = 0.3) {
-  set.seed(seed)
-  angles <- sort(runif(n, 0, 2 * pi))
-  radii  <- 1 + roughness * (runif(n) - 0.5) * 2
-  outer  <- cbind(radii * cos(angles), radii * sin(angles))
-  outer  <- rbind(outer, outer[1, ])
+    set.seed(seed)
+    angles <- sort(runif(n, 0, 2 * pi))
+    radii <- 1 + roughness * (runif(n) - 0.5) * 2
+    outer <- cbind(radii * cos(angles), radii * sin(angles))
+    outer <- rbind(outer, outer[1, ])
 
-  # the hole is the SAME irregular outline scaled down by sqrt(hole_frac)
-  # (so hole area / outer area ~= hole_frac) and traced in reverse, so sf
-  # treats it as an interior ring rather than a second shell. Scaling every
-  # radius by the same constant keeps the hole strictly inside the outer
-  # boundary at every angle, so the result is always a valid polygon.
-  hole <- outer[nrow(outer):1, ] * sqrt(hole_frac)
+    # the hole is the SAME irregular outline scaled down by sqrt(hole_frac)
+    # (so hole area / outer area ~= hole_frac) and traced in reverse, so sf
+    # treats it as an interior ring rather than a second shell. Scaling every
+    # radius by the same constant keeps the hole strictly inside the outer
+    # boundary at every angle, so the result is always a valid polygon.
+    hole <- outer[nrow(outer):1, ] * sqrt(hole_frac)
 
-  st_polygon(list(outer, hole))
+    st_polygon(list(outer, hole))
 }
 
-star      <- make_star(6, r_outer = 1, r_inner = 0.4)
-spiral    <- make_spiral()
+star <- make_star(6, r_outer = 1, r_inner = 0.4)
+spiral <- make_spiral()
 blob_hole <- make_blob_hole()
 
 basic_shapes <- list(star = star, spiral = spiral, "blob with hole" = blob_hole)
@@ -86,19 +87,19 @@ basic_shapes <- list(star = star, spiral = spiral, "blob with hole" = blob_hole)
 # onto a common bounding box (center it, scale to unit span) before faceting
 normalize_geom <- function(geom, center, scale) (geom - center) * scale
 shapes_norm <- lapply(names(basic_shapes), function(nm) {
-  g      <- st_sfc(basic_shapes[[nm]])
-  bb     <- st_bbox(g)
-  center <- unname(c((bb["xmin"] + bb["xmax"]) / 2, (bb["ymin"] + bb["ymax"]) / 2))
-  span   <- max(bb["xmax"] - bb["xmin"], bb["ymax"] - bb["ymin"])
-  st_sf(shape = nm, geometry = normalize_geom(g, center, 1 / span))
+    g <- st_sfc(basic_shapes[[nm]])
+    bb <- st_bbox(g)
+    center <- unname(c((bb["xmin"] + bb["xmax"]) / 2, (bb["ymin"] + bb["ymax"]) / 2))
+    span <- max(bb["xmax"] - bb["xmin"], bb["ymax"] - bb["ymin"])
+    st_sf(shape = nm, geometry = normalize_geom(g, center, 1 / span))
 })
 shapes_sf <- do.call(rbind, shapes_norm)
 
 ggplot(shapes_sf) +
-  geom_sf(fill = "steelblue", alpha = 0.6, color = "grey20") +
-  facet_wrap(~ shape) +
-  theme_void(base_size = 11) +
-  theme(strip.text = element_text(face = "bold"))
+    geom_sf(fill = "steelblue", alpha = 0.6, color = "grey20") +
+    facet_wrap(~shape) +
+    theme_void(base_size = 11) +
+    theme(strip.text = element_text(face = "bold"))
 ```
 
 ![](a-basic-usage_files/figure-html/shapes-1.png)
@@ -257,44 +258,44 @@ library(knitr)
 # Non-deterministic parameters helper
 rand_opts <- list(deterministic = FALSE, n_lines = 3000, seed = 1)
 
-# Helper function to compute metrics for a single shape 
+# Helper function to compute metrics for a single shape
 compute_shape_metrics <- function(nm, g) {
-  ci_det   <- convexity_index(g, deterministic = TRUE)$index
-  ci_rand  <- do.call(convexity_index, c(list(g), rand_opts))$index
-  
-  span_det  <- span_index(g, deterministic = TRUE)$index
-  span_rand <- do.call(span_index, c(list(g), rand_opts))$index
-  
-  rci_det  <- radial_concentration_index(g, deterministic = TRUE)$index
-  rci_rand <- do.call(radial_concentration_index, c(list(g), rand_opts))$index
-  
-  db_det   <- directional_balance_index(g, deterministic = TRUE)$index
-  db_rand  <- do.call(directional_balance_index, c(list(g), rand_opts))$index
-  
-  depth_det  <- depth_index(g, deterministic = TRUE)$index
-  depth_rand <- do.call(depth_index, c(list(g), rand_opts))$index
+    ci_det <- convexity_index(g, deterministic = TRUE)$index
+    ci_rand <- do.call(convexity_index, c(list(g), rand_opts))$index
 
-  tibble::tibble(
-    shape               = nm,
-    ci_deterministic    = ci_det,
-    ci_random_line      = ci_rand,
-    span_deterministic  = span_det,
-    span_random_pair    = span_rand,
-    rci_deterministic   = rci_det,
-    rci_random_point    = rci_rand,
-    db_deterministic    = db_det,
-    db_random_point     = db_rand,
-    depth_deterministic = depth_det,
-    depth_random_point  = depth_rand,
-    moi                 = moment_of_inertia_index(g)$index,
-    moment_isotropy     = moment_isotropy_index(g)$index,
-    hull_ratio          = hull_ratio_index(g)$index
-  )
+    span_det <- span_index(g, deterministic = TRUE)$index
+    span_rand <- do.call(span_index, c(list(g), rand_opts))$index
+
+    rci_det <- radial_concentration_index(g, deterministic = TRUE)$index
+    rci_rand <- do.call(radial_concentration_index, c(list(g), rand_opts))$index
+
+    db_det <- directional_balance_index(g, deterministic = TRUE)$index
+    db_rand <- do.call(directional_balance_index, c(list(g), rand_opts))$index
+
+    depth_det <- depth_index(g, deterministic = TRUE)$index
+    depth_rand <- do.call(depth_index, c(list(g), rand_opts))$index
+
+    tibble::tibble(
+        shape               = nm,
+        ci_deterministic    = ci_det,
+        ci_random_line      = ci_rand,
+        span_deterministic  = span_det,
+        span_random_pair    = span_rand,
+        rci_deterministic   = rci_det,
+        rci_random_point    = rci_rand,
+        db_deterministic    = db_det,
+        db_random_point     = db_rand,
+        depth_deterministic = depth_det,
+        depth_random_point  = depth_rand,
+        moi                 = moment_of_inertia_index(g)$index,
+        moment_isotropy     = moment_isotropy_index(g)$index,
+        hull_ratio          = hull_ratio_index(g)$index
+    )
 }
 
 # 1. Loop over shape names to avoid type confusion with `basic_shapes[[nm]]`
 det_compare <- map_dfr(names(basic_shapes), function(nm) {
-  compute_shape_metrics(nm, basic_shapes[[nm]])
+    compute_shape_metrics(nm, basic_shapes[[nm]])
 })
 
 # 2. Extract matrix cleanly
@@ -303,17 +304,17 @@ rownames(det_mat) <- det_compare$shape
 
 # 3. Create thumbnail headers safely
 headers <- map_chr(names(basic_shapes), function(nm) {
-  paste0(shape_thumb(basic_shapes[[nm]]), nm)
+    paste0(shape_thumb(basic_shapes[[nm]]), nm)
 })
 
 # 4. Render Table
 kable(
-  t(det_mat),
-  format = "html", 
-  digits = 2, 
-  row.names = TRUE,
-  col.names = headers, 
-  escape = FALSE
+    t(det_mat),
+    format = "html",
+    digits = 2,
+    row.names = TRUE,
+    col.names = headers,
+    escape = FALSE
 )
 ```
 
@@ -348,31 +349,26 @@ strip) - show the range:
 ``` r
 
 nc <- st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE) %>%
-  st_transform(32119)   # NC state plane (meters) - nc.shp ships in NAD27 lon/lat
+    st_transform(32119) # NC state plane (meters) - nc.shp ships in NAD27 lon/lat
 
-pair     <- nc[nc$NAME %in% c("Wake", "Dare"), ]
+pair <- nc[nc$NAME %in% c("Wake", "Dare"), ]
 pair_res <- shape_indices_sf(pair)
+pair_res <- pair_res %>%
+    rowwise() %>%
+    mutate(shape = shape_thumb(st_geometry(geometry))) %>%
+    ungroup()
 
 pair_res %>%
-  st_drop_geometry() %>%
-  select(NAME, convexity_index, moment_of_inertia_index, span_index, hull_ratio_index) %>%
-  knitr::kable(format = "html", digits = 3, row.names = FALSE)
+    st_drop_geometry() %>%
+    select(County = NAME, shape, convexity_index, moment_of_inertia_index, span_index, hull_ratio_index) %>%
+    knitr::kable(
+        format = "html", digits = 2, row.names = FALSE,
+        escape = FALSE,
+        align = "clcccc"
+    )
 ```
 
-| NAME | convexity_index | moment_of_inertia_index | span_index | hull_ratio_index |
-|:-----|----------------:|------------------------:|-----------:|-----------------:|
-| Wake |           0.995 |                   0.856 |      0.939 |            0.905 |
-| Dare |           0.738 |                   0.228 |      0.545 |            0.265 |
-
-``` r
-
-ggplot(pair_res) +
-  geom_sf(aes(fill = convexity_index), color = "grey20") +
-  scale_fill_viridis_c(limits = c(0, 1)) +
-  labs(fill = "CI")
-```
-
-![](a-basic-usage_files/figure-html/nc-byrow-plot-1.png)
+[TABLE]
 
 [`shape_indices_sf()`](https://nkaza.github.io/shapeindices/reference/shape_indices_sf.md)
 also supports `byrow = FALSE`, treating a whole collection of rows as
@@ -416,20 +412,24 @@ library(furrr)
 
 future::plan(future::sequential)
 t_seq_rows <- system.time(
-  res_seq <- shape_indices_sf(nc, deterministic_max_tri = 60, n_lines = 6000, seed = 1,
-                               parallel_rows = FALSE)
+    res_seq <- shape_indices_sf(nc,
+        deterministic_max_tri = 60, n_lines = 6000, seed = 1,
+        parallel_rows = FALSE
+    )
 )
 
 future::plan(future::multisession, workers = 4)
 t_par_rows <- system.time(
-  res_par_rows <- shape_indices_sf(nc, deterministic_max_tri = 60, n_lines = 6000, seed = 1,
-                                    parallel_rows = TRUE)
+    res_par_rows <- shape_indices_sf(nc,
+        deterministic_max_tri = 60, n_lines = 6000, seed = 1,
+        parallel_rows = TRUE
+    )
 )
 future::plan(future::sequential)
 
 timing <- data.frame(
-  mode    = c("parallel_rows = FALSE", "parallel_rows = TRUE (4 workers)"),
-  elapsed = c(t_seq_rows[["elapsed"]], t_par_rows[["elapsed"]])
+    mode    = c("parallel_rows = FALSE", "parallel_rows = TRUE (4 workers)"),
+    elapsed = c(t_seq_rows[["elapsed"]], t_par_rows[["elapsed"]])
 )
 timing$speedup <- timing$elapsed[1] / timing$elapsed
 knitr::kable(format = "html", timing, digits = 2, row.names = FALSE)
@@ -437,8 +437,8 @@ knitr::kable(format = "html", timing, digits = 2, row.names = FALSE)
 
 | mode                             | elapsed | speedup |
 |:---------------------------------|--------:|--------:|
-| parallel_rows = FALSE            |   24.81 |    1.00 |
-| parallel_rows = TRUE (4 workers) |   12.49 |    1.99 |
+| parallel_rows = FALSE            |   32.12 |    1.00 |
+| parallel_rows = TRUE (4 workers) |   17.78 |    1.81 |
 
 Both modes agree on every county’s indices (not shown - parallelising
 changes *how* the 100 rows get computed, not the values themselves); the

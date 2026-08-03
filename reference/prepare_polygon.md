@@ -7,7 +7,7 @@ polygon (see shape_indices(), which does this automatically).
 ## Usage
 
 ``` r
-prepare_polygon(poly, simplify_tolerance = NULL)
+prepare_polygon(poly, simplify_tolerance = NULL, already_projected = FALSE)
 ```
 
 ## Arguments
@@ -30,6 +30,18 @@ prepare_polygon(poly, simplify_tolerance = NULL)
   feet, for example. Warns if that unit isn't metres, since a
   silently-wrong unit makes the same tolerance value mean a very
   different amount of simplification than intended.
+
+- already_projected:
+
+  skip `.ensure_projected()`'s own geographic-vs- planar check
+  (`st_is_longlat()`, which re-parses the CRS from scratch on every
+  call, uncached) - only ever safe to set when the CALLER has already
+  confirmed `poly` is planar (e.g. `shape_indices_sf(byrow = TRUE)`
+  projects the whole input once up front, so re-checking every row
+  individually is pure repeated work). Setting this on geographic
+  (lon/lat) input silently skips projection entirely and every
+  downstream length/area/triangulation will be wrong - default `FALSE`
+  keeps today's always-safe behaviour.
 
 ## Value
 

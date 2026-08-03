@@ -10,39 +10,40 @@ library(ggplot2)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"))
+    theme(strip.text = element_text(size = 9, face = "bold"))
 ```
 
 Code
 
 ``` r
 
-square <- st_polygon(list(rbind(c(0,0), c(10,0), c(10,10), c(0,10), c(0,0))))
+square <- st_polygon(list(rbind(c(0, 0), c(10, 0), c(10, 10), c(0, 10), c(0, 0))))
 
 make_regular_ngon <- function(n, r = 1, center = c(0, 0)) {
-  ang <- seq(0, 2*pi, length.out = n + 1)[1:n]
-  st_polygon(list(rbind(cbind(center[1] + r*cos(ang), center[2] + r*sin(ang)), center + c(r, 0))))
+    ang <- seq(0, 2 * pi, length.out = n + 1)[1:n]
+    st_polygon(list(rbind(cbind(center[1] + r * cos(ang), center[2] + r * sin(ang)), center + c(r, 0))))
 }
 hexagon <- make_regular_ngon(6, 5)
 disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]
 
 make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
-  n <- n_points * 2
-  angles <- seq(pi/2, pi/2 + 2*pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- center[1] + radii * cos(angles); y <- center[2] + radii * sin(angles)
-  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- center[1] + radii * cos(angles)
+    y <- center[2] + radii * sin(angles)
+    st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
 }
 star6 <- make_star(6, 5, 2.5)
 
 make_dumbbell <- function(r_top, r_bottom, cy = 10) {
-  top    <- st_buffer(st_sfc(st_point(c(0, cy))), r_top, nQuadSegs = 40)
-  bottom <- st_buffer(st_sfc(st_point(c(0, -cy))), r_bottom, nQuadSegs = 40)
-  neck   <- st_polygon(list(rbind(c(-0.3,-cy), c(0.3,-cy), c(0.3,cy), c(-0.3,cy), c(-0.3,-cy))))
-  st_make_valid(st_union(st_sfc(c(top[[1]], bottom[[1]], neck))))[[1]]
+    top <- st_buffer(st_sfc(st_point(c(0, cy))), r_top, nQuadSegs = 40)
+    bottom <- st_buffer(st_sfc(st_point(c(0, -cy))), r_bottom, nQuadSegs = 40)
+    neck <- st_polygon(list(rbind(c(-0.3, -cy), c(0.3, -cy), c(0.3, cy), c(-0.3, cy), c(-0.3, -cy))))
+    st_make_valid(st_union(st_sfc(c(top[[1]], bottom[[1]], neck))))[[1]]
 }
-dumbbell_sym  <- make_dumbbell(3, 3)     # equal lobes
-dumbbell_asym <- make_dumbbell(4, 1.2)   # unequal lobes
+dumbbell_sym <- make_dumbbell(3, 3) # equal lobes
+dumbbell_asym <- make_dumbbell(4, 1.2) # unequal lobes
 ```
 
 ## 1 Introduction
@@ -148,14 +149,14 @@ directly:
 
 ``` r
 
-directional_balance_index(st_sfc(square))$index   # vertex-exact symmetric shape
+directional_balance_index(st_sfc(square))$index # vertex-exact symmetric shape
 ```
 
     [1] 1
 
 ``` r
 
-directional_balance_index(st_sfc(disk))$index     # curve approximated by 240 segments
+directional_balance_index(st_sfc(disk))$index # curve approximated by 240 segments
 ```
 
     [1] 0.9996764
@@ -223,18 +224,18 @@ for triangle area, exactly like
 ``` r
 
 prep <- prepare_polygon(st_sfc(dumbbell_sym))
-tri  <- prep$tri
-cen  <- st_coordinates(st_centroid(st_geometry(tri)))
-w_top <- ifelse(cen[, 2] > 0, 3, 1)  # 3x weight on the top lobe, still symmetric-shape but not symmetric-mass
+tri <- prep$tri
+cen <- st_coordinates(st_centroid(st_geometry(tri)))
+w_top <- ifelse(cen[, 2] > 0, 3, 1) # 3x weight on the top lobe, still symmetric-shape but not symmetric-mass
 
-plain    <- directional_balance_index(st_sfc(dumbbell_sym), prep = prep)
+plain <- directional_balance_index(st_sfc(dumbbell_sym), prep = prep)
 weighted <- directional_balance_index(st_sfc(dumbbell_sym), prep = prep, weight = w_top)
 
 data.frame(
-  weighting = c(weight_thumb(tri, rep(1, nrow(tri))), weight_thumb(tri, w_top)),
-  name = c("uniform (area)", "3x weight on top lobe"),
-  index = c(plain$index, weighted$index),
-  mean_angle_deg = c(NA, weighted$mean_angle * 180 / pi)
+    weighting = c(weight_thumb(tri, rep(1, nrow(tri))), weight_thumb(tri, w_top)),
+    name = c("uniform (area)", "3x weight on top lobe"),
+    index = c(plain$index, weighted$index),
+    mean_angle_deg = c(NA, weighted$mean_angle * 180 / pi)
 ) |> knitr::kable(format = "html", digits = c(NA, NA, 3, 1), escape = FALSE)
 ```
 
@@ -254,14 +255,14 @@ north, toward the heavier lobe.
 
 ``` r
 
-res_sym  <- directional_balance_index(st_sfc(dumbbell_sym))
+res_sym <- directional_balance_index(st_sfc(dumbbell_sym))
 res_asym <- directional_balance_index(st_sfc(dumbbell_asym))
 data.frame(
-  shape = c(shape_thumb(dumbbell_sym), shape_thumb(dumbbell_asym)),
-  name = c("symmetric dumbbell (equal lobes)", "asymmetric dumbbell (top lobe bigger)"),
-  R = c(res_sym$R, res_asym$R),
-  index = c(res_sym$index, res_asym$index),
-  mean_angle_deg = c(NA, res_asym$mean_angle * 180 / pi)
+    shape = c(shape_thumb(dumbbell_sym), shape_thumb(dumbbell_asym)),
+    name = c("symmetric dumbbell (equal lobes)", "asymmetric dumbbell (top lobe bigger)"),
+    R = c(res_sym$R, res_asym$R),
+    index = c(res_sym$index, res_asym$index),
+    mean_angle_deg = c(NA, res_asym$mean_angle * 180 / pi)
 ) |> knitr::kable(format = "html", digits = c(NA, NA, 6, 4, 1), escape = FALSE)
 ```
 
@@ -282,12 +283,12 @@ a shape this compact can get):
 ``` r
 
 data.frame(
-  shape = shape_thumb(dumbbell_sym),
-  name = "symmetric dumbbell",
-  directional_balance = res_sym$index,
-  moment_isotropy = moment_isotropy_index(st_sfc(dumbbell_sym))$index,
-  moment_of_inertia = moment_of_inertia_index(st_sfc(dumbbell_sym))$index,
-  span = span_index(st_sfc(dumbbell_sym))$index
+    shape = shape_thumb(dumbbell_sym),
+    name = "symmetric dumbbell",
+    directional_balance = res_sym$index,
+    moment_isotropy = moment_isotropy_index(st_sfc(dumbbell_sym))$index,
+    moment_of_inertia = moment_of_inertia_index(st_sfc(dumbbell_sym))$index,
+    span = span_index(st_sfc(dumbbell_sym))$index
 ) |> knitr::kable(format = "html", digits = 3, row.names = FALSE, escape = FALSE)
 ```
 
@@ -327,8 +328,12 @@ finite sample, so the Monte Carlo index sits systematically slightly
 
 ``` r
 
-gap <- function(n) 1 - directional_balance_index(st_sfc(square), deterministic = FALSE,
-                                                   n_lines = n, seed = 1)$index
+gap <- function(n) {
+    1 - directional_balance_index(st_sfc(square),
+        deterministic = FALSE,
+        n_lines = n, seed = 1
+    )$index
+}
 ns <- c(200, 1000, 5000, 20000)
 data.frame(n_lines = ns, gap_from_1 = vapply(ns, gap, numeric(1))) |> knitr::kable(format = "html", digits = 5)
 ```

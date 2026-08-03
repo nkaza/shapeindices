@@ -10,33 +10,34 @@ library(ggplot2)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"))
+    theme(strip.text = element_text(size = 9, face = "bold"))
 ```
 
 Code
 
 ``` r
 
-square <- st_polygon(list(rbind(c(0,0), c(10,0), c(10,10), c(0,10), c(0,0))))
-make_rect <- function(w, h) st_polygon(list(rbind(c(0,0), c(w,0), c(w,h), c(0,h), c(0,0))))
+square <- st_polygon(list(rbind(c(0, 0), c(10, 0), c(10, 10), c(0, 10), c(0, 0))))
+make_rect <- function(w, h) st_polygon(list(rbind(c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
 aspect_seq <- c(1, 2, 4, 10, 20)
 rectangles <- lapply(aspect_seq, function(a) make_rect(sqrt(100 * a), sqrt(100 / a)))
 names(rectangles) <- sprintf("aspect %gx", aspect_seq)
 
 make_star <- function(n_points, r_outer = 1, r_inner = 0.5, center = c(0, 0)) {
-  n <- n_points * 2
-  angles <- seq(pi/2, pi/2 + 2*pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- center[1] + radii * cos(angles); y <- center[2] + radii * sin(angles)
-  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- center[1] + radii * cos(angles)
+    y <- center[2] + radii * sin(angles)
+    st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
 }
 ratio_seq <- c(0.9, 0.7, 0.5, 0.3, 0.15)
 stars_r <- lapply(ratio_seq, function(r) make_star(6, 5, 5 * r))
 names(stars_r) <- sprintf("notch ratio %.2f", ratio_seq)
 
 make_regular_ngon <- function(n, r = 1, center = c(0, 0)) {
-  ang <- seq(0, 2*pi, length.out = n + 1)[1:n]
-  st_polygon(list(rbind(cbind(center[1] + r*cos(ang), center[2] + r*sin(ang)), center + c(r, 0))))
+    ang <- seq(0, 2 * pi, length.out = n + 1)[1:n]
+    st_polygon(list(rbind(cbind(center[1] + r * cos(ang), center[2] + r * sin(ang)), center + c(r, 0))))
 }
 hexagon <- make_regular_ngon(6, 5)
 
@@ -48,14 +49,14 @@ disk <- st_buffer(st_sfc(st_point(c(0, 0))), dist = 5.64, nQuadSegs = 60)[[1]]
 # what makes the effect below visually undeniable rather than a curiosity
 # about squares and hexagons
 make_pinwheel <- function(n_arms, arm_len = 10, arm_width = 1, hub_r = 0.5) {
-  angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
-  hub <- st_buffer(st_sfc(st_point(c(0, 0))), hub_r, nQuadSegs = 30)[[1]]
-  arms <- lapply(angles, function(a) {
-    tip  <- c(arm_len * cos(a), arm_len * sin(a))
-    perp <- c(-sin(a), cos(a)) * arm_width / 2
-    st_polygon(list(rbind(perp, tip + perp, tip - perp, -perp, perp)))
-  })
-  Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], c(list(hub), arms))
+    angles <- seq(0, 2 * pi, length.out = n_arms + 1)[1:n_arms]
+    hub <- st_buffer(st_sfc(st_point(c(0, 0))), hub_r, nQuadSegs = 30)[[1]]
+    arms <- lapply(angles, function(a) {
+        tip <- c(arm_len * cos(a), arm_len * sin(a))
+        perp <- c(-sin(a), cos(a)) * arm_width / 2
+        st_polygon(list(rbind(perp, tip + perp, tip - perp, -perp, perp)))
+    })
+    Reduce(function(p, q) st_union(st_sfc(p), st_sfc(q))[[1]], c(list(hub), arms))
 }
 pinwheels <- lapply(2:6, make_pinwheel)
 names(pinwheels) <- sprintf("%d arms", 2:6)
@@ -188,7 +189,7 @@ just a fact about the algebraic form of $`M`$ itself.
 
 ``` r
 
-rect10 <- make_rect(sqrt(2000), sqrt(20))  # a 10x-aspect rectangle
+rect10 <- make_rect(sqrt(2000), sqrt(20)) # a 10x-aspect rectangle
 res_unrotated <- moment_isotropy_index(st_sfc(rect10))
 
 theta <- 0.37
@@ -197,13 +198,17 @@ rect10_rotated <- st_polygon(list(st_coordinates(rect10)[, 1:2] %*% t(rot)))
 res_rotated <- moment_isotropy_index(st_sfc(rect10_rotated))
 
 data.frame(
-  quantity  = c("Ixx", "Iyy", "Ixy", "index"),
-  unrotated = c(res_unrotated$Ixx, res_unrotated$Iyy, res_unrotated$Ixy, res_unrotated$index),
-  rotated   = c(res_rotated$Ixx, res_rotated$Iyy, res_rotated$Ixy, res_rotated$index)
-) |> knitr::kable(format = "html", digits = c(0, 4, 4, 4), row.names = FALSE, escape = FALSE,
-                   col.names = c("quantity",
-                                 paste0(shape_thumb(rect10), "<br>unrotated"),
-                                 paste0(shape_thumb(rect10_rotated), "<br>rotated 0.37 rad")))
+    quantity  = c("Ixx", "Iyy", "Ixy", "index"),
+    unrotated = c(res_unrotated$Ixx, res_unrotated$Iyy, res_unrotated$Ixy, res_unrotated$index),
+    rotated   = c(res_rotated$Ixx, res_rotated$Iyy, res_rotated$Ixy, res_rotated$index)
+) |> knitr::kable(
+    format = "html", digits = c(0, 4, 4, 4), row.names = FALSE, escape = FALSE,
+    col.names = c(
+        "quantity",
+        paste0(shape_thumb(rect10), "<br>unrotated"),
+        paste0(shape_thumb(rect10_rotated), "<br>rotated 0.37 rad")
+    )
+)
 ```
 
 [TABLE]
@@ -211,7 +216,7 @@ data.frame(
 $`I_{xx}`$, $`I_{yy}`$, and $`I_{xy}`$ all change under rotation - none
 of the three is rotation-invariant on its own. But $`M`$’s
 *eigenvalues*, and so the index built from them, don’t - the difference
-between the two `index` values above is 1.73e-18, floating-point noise
+between the two `index` values above is 1.09e-16, floating-point noise
 rather than any real movement. That’s expected:
 $`\lambda_{\min}`$/$`\lambda_{\max}`$ are properties of the tensor
 itself, not of whatever coordinate axes happened to be used to write it
@@ -222,11 +227,13 @@ down.
 ``` r
 
 data.frame(
-  shape = c(shape_thumb(disk), shape_thumb(square), shape_thumb(hexagon)),
-  name = c("disk", "square", "regular hexagon"),
-  isotropy = c(moment_isotropy_index(st_sfc(disk))$index,
-               moment_isotropy_index(st_sfc(square))$index,
-               moment_isotropy_index(st_sfc(hexagon))$index)
+    shape = c(shape_thumb(disk), shape_thumb(square), shape_thumb(hexagon)),
+    name = c("disk", "square", "regular hexagon"),
+    isotropy = c(
+        moment_isotropy_index(st_sfc(disk))$index,
+        moment_isotropy_index(st_sfc(square))$index,
+        moment_isotropy_index(st_sfc(hexagon))$index
+    )
 ) |> knitr::kable(format = "html", digits = 8, row.names = FALSE, escape = FALSE)
 ```
 
@@ -269,28 +276,33 @@ what a particular triangulator happens to produce.
 # a fan triangulation from every vertex of a convex, irregular heptagon -
 # seven genuinely different triangulations of the exact same region
 ang <- c(10, 50, 100, 160, 210, 270, 320) * pi / 180
-r   <- c(5, 4.2, 5.5, 4.8, 5.1, 4.5, 5.3)
-v   <- cbind(r * cos(ang), r * sin(ang))
+r <- c(5, 4.2, 5.5, 4.8, 5.1, 4.5, 5.3)
+v <- cbind(r * cos(ang), r * sin(ang))
 heptagon <- st_polygon(list(rbind(v, v[1, ])))
 n <- nrow(v)
 
 fan_from <- function(apex) {
-  ord  <- ((apex + 0:(n - 2)) %% n) + 1   # the other n-1 vertices, in cyclic order
-  tris <- lapply(seq_len(n - 2), function(k) {
-    st_polygon(list(rbind(v[apex, ], v[ord[k], ], v[ord[k + 1], ], v[apex, ])))
-  })
-  st_sf(area = vapply(tris, function(t) as.numeric(st_area(st_sfc(t))), numeric(1)),
-        geometry = st_sfc(tris))
+    ord <- ((apex + 0:(n - 2)) %% n) + 1 # the other n-1 vertices, in cyclic order
+    tris <- lapply(seq_len(n - 2), function(k) {
+        st_polygon(list(rbind(v[apex, ], v[ord[k], ], v[ord[k + 1], ], v[apex, ])))
+    })
+    st_sf(
+        area = vapply(tris, function(t) as.numeric(st_area(st_sfc(t))), numeric(1)),
+        geometry = st_sfc(tris)
+    )
 }
 
 idx_cdt <- moment_isotropy_index(st_sfc(heptagon),
-                                  prep = list(poly = heptagon, tri = cdt_triangles(st_sfc(heptagon))))$index
+    prep = list(poly = heptagon, tri = cdt_triangles(st_sfc(heptagon)))
+)$index
 idx_fan <- vapply(1:n, function(apex) {
-  moment_isotropy_index(st_sfc(heptagon), prep = list(poly = heptagon, tri = fan_from(apex)))$index
+    moment_isotropy_index(st_sfc(heptagon), prep = list(poly = heptagon, tri = fan_from(apex)))$index
 }, numeric(1))
 
-data.frame(triangulation = c("CDT", paste("fan from vertex", 1:n)),
-           index = c(idx_cdt, idx_fan)) |> knitr::kable(format = "html", digits = 10, row.names = FALSE)
+data.frame(
+    triangulation = c("CDT", paste("fan from vertex", 1:n)),
+    index = c(idx_cdt, idx_fan)
+) |> knitr::kable(format = "html", digits = 10, row.names = FALSE)
 ```
 
 | triangulation     |     index |
@@ -371,9 +383,11 @@ in the first place.
 
 prep <- prepare_polygon(st_sfc(disk))
 tri <- prep$tri
-ang <- atan2(st_coordinates(st_centroid(st_geometry(tri)))[, 2],
-             st_coordinates(st_centroid(st_geometry(tri)))[, 1])
-w_ew <- 1 + 3 * cos(ang)^2   # weight concentrated along the east-west axis
+ang <- atan2(
+    st_coordinates(st_centroid(st_geometry(tri)))[, 2],
+    st_coordinates(st_centroid(st_geometry(tri)))[, 1]
+)
+w_ew <- 1 + 3 * cos(ang)^2 # weight concentrated along the east-west axis
 
 plain <- moment_isotropy_index(st_sfc(disk), prep = prep)
 weighted <- moment_isotropy_index(st_sfc(disk), prep = prep, weight = w_ew)
@@ -382,9 +396,9 @@ weighted <- moment_isotropy_index(st_sfc(disk), prep = prep, weight = w_ew)
 # distribution (shaded by density) rather than a fixed outline - what
 # varies row to row is where the mass sits, not the boundary
 data.frame(
-  weighting = c(weight_thumb(tri, rep(1, nrow(tri))), weight_thumb(tri, w_ew)),
-  name = c("uniform (area)", "concentrated east-west"),
-  isotropy = c(plain$index, weighted$index)
+    weighting = c(weight_thumb(tri, rep(1, nrow(tri))), weight_thumb(tri, w_ew)),
+    name = c("uniform (area)", "concentrated east-west"),
+    isotropy = c(plain$index, weighted$index)
 ) |> knitr::kable(format = "html", digits = 3, row.names = FALSE, escape = FALSE)
 ```
 

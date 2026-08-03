@@ -11,7 +11,7 @@ polygon (see shape_indices(), which does this automatically)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">shapeindices</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -58,7 +58,7 @@ polygon (see shape_indices(), which does this automatically).</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">prepare_polygon</span><span class="op">(</span><span class="va">poly</span>, simplify_tolerance <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">prepare_polygon</span><span class="op">(</span><span class="va">poly</span>, simplify_tolerance <span class="op">=</span> <span class="cn">NULL</span>, already_projected <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -83,6 +83,17 @@ uses - many US State Plane CRSs are US survey feet, for example.
 Warns if that unit isn't metres, since a silently-wrong unit makes
 the same tolerance value mean a very different amount of
 simplification than intended.</p></dd>
+
+
+<dt id="arg-already-projected">already_projected<a class="anchor" aria-label="anchor" href="#arg-already-projected"></a></dt>
+<dd><p>skip <code>.ensure_projected()</code>'s own geographic-vs-
+planar check (<code>st_is_longlat()</code>, which re-parses the CRS from scratch
+on every call, uncached) - only ever safe to set when the CALLER has
+already confirmed <code>poly</code> is planar (e.g. <code>shape_indices_sf(byrow = TRUE)</code> projects the whole input once up front, so re-checking every
+row individually is pure repeated work). Setting this on geographic
+(lon/lat) input silently skips projection entirely and every
+downstream length/area/triangulation will be wrong - default <code>FALSE</code>
+keeps today's always-safe behaviour.</p></dd>
 
 </dl></div>
     <div class="section level2">

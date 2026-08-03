@@ -10,7 +10,7 @@ library(ggplot2)
 
 theme_set(theme_minimal(base_size = 11))
 theme_gallery <- theme_void(base_size = 10) +
-  theme(strip.text = element_text(size = 9, face = "bold"))
+    theme(strip.text = element_text(size = 9, face = "bold"))
 ```
 
 ## 1 Introduction
@@ -111,28 +111,37 @@ Code
 
 ``` r
 
-make_square <- function(half = 5) st_polygon(list(rbind(
-  c(-half, -half), c(half, -half), c(half, half), c(-half, half), c(-half, -half))))
-make_rectangle <- function(w, h) st_polygon(list(rbind(
-  c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0))))
+make_square <- function(half = 5) {
+    st_polygon(list(rbind(
+        c(-half, -half), c(half, -half), c(half, half), c(-half, half), c(-half, -half)
+    )))
+}
+make_rectangle <- function(w, h) {
+    st_polygon(list(rbind(
+        c(0, 0), c(w, 0), c(w, h), c(0, h), c(0, 0)
+    )))
+}
 make_disk <- function(r = 5, n = 60) st_buffer(st_sfc(st_point(c(0, 0))), dist = r, nQuadSegs = n)[[1]]
 make_star <- function(n_points, r_outer, r_inner) {
-  n <- n_points * 2
-  angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
-  radii  <- rep(c(r_outer, r_inner), n_points)
-  x <- radii * cos(angles); y <- radii * sin(angles)
-  st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
+    n <- n_points * 2
+    angles <- seq(pi / 2, pi / 2 + 2 * pi, length.out = n + 1)[1:n]
+    radii <- rep(c(r_outer, r_inner), n_points)
+    x <- radii * cos(angles)
+    y <- radii * sin(angles)
+    st_polygon(list(rbind(cbind(x, y), c(x[1], y[1]))))
 }
 
 canonical <- list(
-  square         = make_square(5),
-  disk           = make_disk(5.64),   # same area as the square, for a fair side-by-side
-  `rect 2:1`     = make_rectangle(14.14, 7.07),
-  `rect 10:1`    = make_rectangle(31.6, 3.16),
-  `hexagon`      = st_polygon(list(rbind(t(sapply(seq(0, 300, 60) * pi / 180,
-                     function(a) c(5.5 * cos(a), 5.5 * sin(a)))), c(5.5, 0)))),
-  `star (mild)`  = make_star(6, 5.64, 3.5),
-  `star (sharp)` = make_star(6, 5.64, 0.6)
+    square = make_square(5),
+    disk = make_disk(5.64), # same area as the square, for a fair side-by-side
+    `rect 2:1` = make_rectangle(14.14, 7.07),
+    `rect 10:1` = make_rectangle(31.6, 3.16),
+    `hexagon` = st_polygon(list(rbind(t(sapply(
+        seq(0, 300, 60) * pi / 180,
+        function(a) c(5.5 * cos(a), 5.5 * sin(a))
+    )), c(5.5, 0)))),
+    `star (mild)` = make_star(6, 5.64, 3.5),
+    `star (sharp)` = make_star(6, 5.64, 0.6)
 )
 ```
 
@@ -169,16 +178,18 @@ properties” below for why.
 ``` r
 
 make_square_with_hole <- function(outer_half = 5, hole_frac = 0.3) {
-  outer <- rbind(c(-outer_half, -outer_half), c(outer_half, -outer_half),
-                 c(outer_half, outer_half), c(-outer_half, outer_half), c(-outer_half, -outer_half))
-  hh <- outer_half * sqrt(hole_frac)
-  hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
-  st_polygon(list(outer, hole))
+    outer <- rbind(
+        c(-outer_half, -outer_half), c(outer_half, -outer_half),
+        c(outer_half, outer_half), c(-outer_half, outer_half), c(-outer_half, -outer_half)
+    )
+    hh <- outer_half * sqrt(hole_frac)
+    hole <- rbind(c(-hh, -hh), c(-hh, hh), c(hh, hh), c(hh, -hh), c(-hh, -hh))
+    st_polygon(list(outer, hole))
 }
 make_dumbbell_gap <- function(gap) {
-  sq1 <- st_polygon(list(rbind(c(0, 0), c(2, 0), c(2, 2), c(0, 2), c(0, 0))))
-  sq2 <- st_polygon(list(rbind(c(2 + gap, 0), c(4 + gap, 0), c(4 + gap, 2), c(2 + gap, 2), c(2 + gap, 0))))
-  st_union(st_sfc(sq1, sq2))
+    sq1 <- st_polygon(list(rbind(c(0, 0), c(2, 0), c(2, 2), c(0, 2), c(0, 0))))
+    sq2 <- st_polygon(list(rbind(c(2 + gap, 0), c(4 + gap, 0), c(4 + gap, 2), c(2 + gap, 2), c(2 + gap, 0))))
+    st_union(st_sfc(sq1, sq2))
 }
 ```
 
@@ -259,18 +270,26 @@ sq1 <- st_polygon(list(rbind(c(0, 0), c(2, 0), c(2, 2), c(0, 2), c(0, 0))))
 sq2 <- st_polygon(list(rbind(c(2, 0), c(4, 0), c(4, 2), c(2, 2), c(2, 0))))
 x <- st_sf(name = c("a", "b"), geometry = st_sfc(sq1, sq2, crs = 3857))
 
-equal_weights   <- suppressWarnings(shape_indices_sf(x, byrow = FALSE, weights = c(1, 1),
-                                                       which = c("hull_ratio", "detour", "exchange"), id = "z"))
-unequal_weights <- suppressWarnings(shape_indices_sf(x, byrow = FALSE, weights = c(1, 1000),
-                                                       which = c("hull_ratio", "detour", "exchange"), id = "z"))
-zeroed_weight   <- suppressWarnings(shape_indices_sf(x, byrow = FALSE, weights = c(1, 0),
-                                                       which = c("hull_ratio", "detour", "exchange"), id = "z"))
+equal_weights <- suppressWarnings(shape_indices_sf(x,
+    byrow = FALSE, weights = c(1, 1),
+    which = c("hull_ratio", "detour", "exchange"), id = "z"
+))
+unequal_weights <- suppressWarnings(shape_indices_sf(x,
+    byrow = FALSE, weights = c(1, 1000),
+    which = c("hull_ratio", "detour", "exchange"), id = "z"
+))
+zeroed_weight <- suppressWarnings(shape_indices_sf(x,
+    byrow = FALSE, weights = c(1, 0),
+    which = c("hull_ratio", "detour", "exchange"), id = "z"
+))
 
 data.frame(
-  case = c("weights = c(1, 1)", "weights = c(1, 1000)", "weights = c(1, 0)"),
-  rbind(st_drop_geometry(equal_weights)[, c("hull_ratio_index", "detour_index", "exchange_index")],
+    case = c("weights = c(1, 1)", "weights = c(1, 1000)", "weights = c(1, 0)"),
+    rbind(
+        st_drop_geometry(equal_weights)[, c("hull_ratio_index", "detour_index", "exchange_index")],
         st_drop_geometry(unequal_weights)[, c("hull_ratio_index", "detour_index", "exchange_index")],
-        st_drop_geometry(zeroed_weight)[, c("hull_ratio_index", "detour_index", "exchange_index")])
+        st_drop_geometry(zeroed_weight)[, c("hull_ratio_index", "detour_index", "exchange_index")]
+    )
 ) |> knitr::kable(format = "html", digits = 4, row.names = FALSE)
 ```
 

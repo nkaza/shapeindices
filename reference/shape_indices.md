@@ -10,6 +10,7 @@ shape_indices(
   which = "all",
   deterministic_max_tri = NULL,
   simplify_tolerance = NULL,
+  already_projected = FALSE,
   ...
 )
 ```
@@ -89,6 +90,13 @@ shape_indices(
   [`prepare_polygon()`](https://nkaza.github.io/shapeindices/reference/prepare_polygon.md) -
   see its own doc. Has no effect when `which` requests only the six
   classic metrics, since no mesh is built for those to begin with.
+
+- already_projected:
+
+  passed to
+  [`prepare_polygon()`](https://nkaza.github.io/shapeindices/reference/prepare_polygon.md) -
+  see its own doc for the (real, but caller-verified-only) risk of
+  setting this.
 
 - ...:
 
