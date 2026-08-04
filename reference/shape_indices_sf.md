@@ -189,8 +189,10 @@ shape_indices_sf(nc[1:5, ], which = c("hull_ratio", "reock"))
 # byrow = TRUE, with deterministic_max_tri forcing the Monte Carlo
 # estimator once a row's own mesh exceeds it - `...` passes n_lines/seed
 # through to shape_indices() for every row
-res_rli <- shape_indices_sf(nc[1:5, ], byrow = TRUE, deterministic_max_tri = 5,
-                             n_lines = 2000, seed = 1)
+res_rli <- shape_indices_sf(nc[1:5, ],
+    byrow = TRUE, deterministic_max_tri = 5,
+    n_lines = 2000, seed = 1
+)
 #> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 36.4454, lon_0 = -79.3819) before computing - pass already-projected data instead if you need a specific CRS.
 #> Warning: parallel_rows = TRUE but no parallel future::plan() is active (still on the default sequential plan) - running in order. Call future::plan(future::multisession, workers = ...) first for actual multi-core speedup.
 #> Warning: n_lines (2000) is not substantially lower than the 276 triangle-pairs that deterministic = TRUE (24 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
@@ -203,7 +205,7 @@ res_rli <- shape_indices_sf(nc[1:5, ], byrow = TRUE, deterministic_max_tri = 5,
 #> Warning: n_lines (2000) is not substantially lower than the 406 triangle-pairs that deterministic = TRUE (29 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
 #> Warning: n_lines (2000) is not substantially lower than the 465 triangle-pairs that deterministic = TRUE (31 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
 #> Warning: n_lines (2000) is not substantially lower than the 465 triangle-pairs that deterministic = TRUE (31 triangles) would evaluate for this same polygon; deterministic = FALSE is meant as a cheaper approximation for meshes too large to enumerate exhaustively - consider deterministic = TRUE instead, or a smaller n_lines.
-#> Warning: UNRELIABLE VALUE: Future (<unnamed-3>) unexpectedly generated random numbers without specifying argument 'seed'. There is a risk that those random numbers are not statistically sound and the overall results might be invalid. To fix this, specify 'seed=TRUE'. This ensures that proper, parallel-safe random numbers are produced. To disable this check, use 'seed=NULL', or set option 'future.rng.onMisuse' to "ignore". [future <unnamed-3> (9ae228df0010faf4471b4cb273c57d91-3); on 9ae228df0010faf4471b4cb273c57d91@runnervmvrwv9<8198>]
+#> Warning: UNRELIABLE VALUE: Future (<unnamed-3>) unexpectedly generated random numbers without specifying argument 'seed'. There is a risk that those random numbers are not statistically sound and the overall results might be invalid. To fix this, specify 'seed=TRUE'. This ensures that proper, parallel-safe random numbers are produced. To disable this check, use 'seed=NULL', or set option 'future.rng.onMisuse' to "ignore". [future <unnamed-3> (cf5c99e991435809e493f7832432f9a2-3); on cf5c99e991435809e493f7832432f9a2@runnervmvrwv9<7868>]
 res_rli$convexity_index
 #> [1] 0.9950414 0.9834064 0.9987193 0.7963312 0.9703290
 
@@ -227,8 +229,10 @@ shape_indices_sf(triangle, byrow = FALSE, id = "triangle_by_area")
 #> 1                0.6856106   0.4828814    0.8297133      0.8073051   5812126377
 #>                         geometry
 #> 1 POLYGON ((-25588.04 -0.0077...
-shape_indices_sf(triangle, byrow = FALSE, weights = "BIR74",
-                  id = "triangle_by_births")
+shape_indices_sf(triangle,
+    byrow = FALSE, weights = "BIR74",
+    id = "triangle_by_births"
+)
 #> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 35.8377, lon_0 = -78.9545) before computing - pass already-projected data instead if you need a specific CRS.
 #> Warning: hull_ratio/polsby_popper/width_length_ratio/reock/detour/exchange don't use `weights` in their own formula at all - only whether a row's weight is exactly 0/NA (excluded as a hole, which changes poly_u itself) has any effect. The magnitude of a nonzero weight (5 vs 5000) is completely invisible to any of the six classic metrics; if you meant them to reflect the weighting itself, they won't.
 #> Warning: Large mesh: 69 pieces, 2346 pairs, 21114 candidate lines to evaluate at n_quad = 3 (deterministic = TRUE is O(n_quad^2 * n^2)) - this can be slow. If it is, try: n_quad = 1 (drops the 9x quadrature multiplier), deterministic = FALSE (random-line estimate instead of exhaustive), or shape_indices()/shape_indices_sf()'s deterministic_max_tri to switch to deterministic = FALSE automatically above a size threshold.
@@ -279,14 +283,20 @@ shape_indices_sf(triangle, byrow = FALSE, weights = w, id = "triangle_minus_chat
 # 1 -> 0.86, hull_ratio_index 1 -> 0.89 = 8/9) - two calls differing only in
 # `weights` can disagree on hull_ratio_index despite hull_ratio_index having no
 # weighted form of its own.
-cell <- function(cx, cy) sf::st_polygon(list(rbind(
-  c(cx - 0.5, cy - 0.5), c(cx + 0.5, cy - 0.5),
-  c(cx + 0.5, cy + 0.5), c(cx - 0.5, cy + 0.5), c(cx - 0.5, cy - 0.5))))
+cell <- function(cx, cy) {
+    sf::st_polygon(list(rbind(
+        c(cx - 0.5, cy - 0.5), c(cx + 0.5, cy - 0.5),
+        c(cx + 0.5, cy + 0.5), c(cx - 0.5, cy + 0.5), c(cx - 0.5, cy - 0.5)
+    )))
+}
 ctr <- expand.grid(x = -1:1, y = -1:1)
-grid9 <- sf::st_sf(pop = ifelse(ctr$x == 0 & ctr$y == 0, 0, 10),
-                    geometry = sf::st_sfc(mapply(cell, ctr$x, ctr$y, SIMPLIFY = FALSE),
-                                           crs = 3857))
-shape_indices_sf(grid9, byrow = FALSE, id = "solid_block")            # weights = NULL: keeps all 9
+grid9 <- sf::st_sf(
+    pop = ifelse(ctr$x == 0 & ctr$y == 0, 0, 10),
+    geometry = sf::st_sfc(mapply(cell, ctr$x, ctr$y, SIMPLIFY = FALSE),
+        crs = 3857
+    )
+)
+shape_indices_sf(grid9, byrow = FALSE, id = "solid_block") # weights = NULL: keeps all 9
 #> Simple feature collection with 1 feature and 15 fields
 #> Geometry type: POLYGON
 #> Dimension:     XY
@@ -300,7 +310,7 @@ shape_indices_sf(grid9, byrow = FALSE, id = "solid_block")            # weights 
 #> 1                1           0.7853982                        1   0.6366198
 #>   detour_index exchange_index total_weight                       geometry
 #> 1    0.8862269      0.9094344            9 POLYGON ((1.5 -1.5, 0.5 -1....
-shape_indices_sf(grid9, byrow = FALSE, weights = "pop", id = "ring")  # centre cell excluded
+shape_indices_sf(grid9, byrow = FALSE, weights = "pop", id = "ring") # centre cell excluded
 #> Warning: 1 of 9 rows have zero or NA weight; treating them as holes - excluded from the triangulated union entirely (not just zero-weighted area). Pass weights without zeros/NA for those rows if you want that area included with zero weight instead.
 #> Warning: hull_ratio/polsby_popper/width_length_ratio/reock/detour/exchange don't use `weights` in their own formula at all - only whether a row's weight is exactly 0/NA (excluded as a hole, which changes poly_u itself) has any effect. The magnitude of a nonzero weight (5 vs 5000) is completely invisible to any of the six classic metrics; if you meant them to reflect the weighting itself, they won't.
 #> Simple feature collection with 1 feature and 15 fields

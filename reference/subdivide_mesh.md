@@ -52,11 +52,11 @@ no pieces
 
 ``` r
 nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
-tri  <- cdt_triangles(nc[nc$NAME == "Dare", ])
+tri <- cdt_triangles(nc[nc$NAME == "Dare", ])
 fine <- subdivide_mesh(nc[nc$NAME == "Dare", ])
 #> Input is in geographic (lon/lat) coordinates; auto-projecting to a local azimuthal-equal-area CRS centred on the data (lat_0 = 35.7353, lon_0 = -75.8095) before computing - pass already-projected data instead if you need a specific CRS.
-nrow(tri)    # coarse CDT triangles
+nrow(tri) # coarse CDT triangles
 #> [1] 15
-nrow(fine)   # more, smaller triangles
+nrow(fine) # more, smaller triangles
 #> [1] 1296
 ```
