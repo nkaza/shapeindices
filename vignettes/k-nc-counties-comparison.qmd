@@ -123,6 +123,42 @@ Width-length ratio agrees too, now: `r sprintf("%.2f", nc_df$width_length_ratio_
 
 **Lincoln** sharpens that same point with no boundary complexity at all involved: convexity is a perfect `r sprintf("%.2f", nc_df$convexity_index[nc_df$NAME == "Lincoln"])` and hull ratio `r sprintf("%.2f", nc_df$hull_ratio_index[nc_df$NAME == "Lincoln"])`. Yet Reock is `r sprintf("%.2f", nc_df$reock_index[nc_df$NAME == "Lincoln"])`, width-length ratio `r sprintf("%.2f", nc_df$width_length_ratio_index[nc_df$NAME == "Lincoln"])`, and moment isotropy `r sprintf("%.2f", nc_df$moment_isotropy_index[nc_df$NAME == "Lincoln"])`; all three elongation-sensitive measures still penalise it for being stretched, each via a different route (bounding circle, bounding box, mass tensor). **Convex and compact are different properties**, and a shape can score perfectly on one while scoring poorly on the other.
 
+# Rescaling convexity for one corpus
+
+`vignette("c-understanding-convexity-index")`'s "Why the index compresses toward convex" section shows that CI stays near 1 for any shape that keeps a substantial convex core, which is most real polygons. This dataset is a clean demonstration of exactly that:
+
+```{r rescale-summary, echo=TRUE}
+summary(nc_df$convexity_index)
+```
+
+Raw convexity never drops below `r sprintf("%.2f", min(nc_df$convexity_index))` (Dare, the barrier-island county above) across all 100 counties, and `r sprintf("%.0f%%", 100 * mean(nc_df$convexity_index > 0.9))` of them score above 0.9. Median convexity is `r sprintf("%.4f", median(nc_df$convexity_index))`, and even the 90th percentile only reaches `r sprintf("%.5f", quantile(nc_df$convexity_index, 0.9))` - practically a perfect square. That's correct: these are surveyed county boundaries, not hand-drawn stars, and almost none of them lose their convex core the way it takes to pull CI down (see the linked section above). But it makes raw CI a poor scale for a task like a choropleth map or a ranked list, where 96 counties reading as "about 0.99" is not a useful map even though it's an accurate one.
+
+## Percentile rescaling
+
+The fix isn't to alter `convexity_index` itself - a value of 0.9992 versus 0.9999 is a real, if tiny, geometric difference, and rescaling the definition to manufacture spread would misrepresent it (the same reasoning `vignette("c-understanding-convexity-index")` gives for not clamping or rescaling CI's compressed region directly). Instead, compute a second, corpus-relative statistic on top of it: each county's percentile rank within this specific set of 100.
+
+```{r rescale-percentile, echo=TRUE}
+nc_df$convexity_percentile <- rank(nc_df$convexity_index, ties.method = "average") / nrow(nc_df)
+```
+
+That spreads the same 100 counties uniformly across `[0, 1]` by construction - one unit of the rescaled value always means "10 more counties," regardless of how bunched the raw values are:
+
+```{r rescale-table, echo=TRUE}
+#| code-fold: TRUE
+rescale_counties <- c("Dare", "Currituck", "Camden", "Lincoln", "Caswell")
+knitr::kable(
+    nc_df[match(rescale_counties, nc_df$NAME), c("NAME", "convexity_index", "convexity_percentile")],
+    digits = c(NA, 6, 3), col.names = c("County", "Raw convexity", "Percentile (this corpus)"),
+    row.names = FALSE
+)
+```
+
+Dare and Currituck, at raw `r sprintf("%.3f", nc_df$convexity_index[nc_df$NAME == "Dare"])` and `r sprintf("%.3f", nc_df$convexity_index[nc_df$NAME == "Currituck"])`, land at the `r sprintf("%.0f", 100 * nc_df$convexity_percentile[nc_df$NAME == "Dare"])`th and `r sprintf("%.0f", 100 * nc_df$convexity_percentile[nc_df$NAME == "Currituck"])`th percentiles - clearly the least convex counties in the state, which the raw scores already showed well enough on their own. The more useful case is the middle of the distribution: Camden, at a raw `r sprintf("%.3f", nc_df$convexity_index[nc_df$NAME == "Camden"])` that reads as "basically convex" next to Lincoln's and Caswell's near-perfect scores, actually sits at only the `r sprintf("%.0f", 100 * nc_df$convexity_percentile[nc_df$NAME == "Camden"])`th percentile - noticeably less convex than most of the state, a distinction raw CI compresses almost out of view. Lincoln and Caswell themselves make the same point at the opposite extreme: both round to 1.000 at three decimal places, yet sit five percentile points apart, because so much of the state is packed into that last ten-thousandth of raw score.
+
+## When to use which
+
+Keep raw `convexity_index` for anything that needs to be comparable outside this dataset: a fixed threshold, a cross-study comparison, or any claim about the shape itself ("this county is 99.9% as convex as physically possible"). Reach for the percentile version only for within-corpus tasks where the audience is these 100 counties specifically - a choropleth that needs to use its full colour ramp, or a ranked table of "most/least convex NC counties." Percentile rescaling is corpus-relative by definition: add a state with more fragmented coastal counties to the dataset and every percentile shifts, even though no county's own geometry changed.
+
 # How do the indices relate to each other?
 
 ```{r nc-corr, fig.width=7, fig.height=5.8}
