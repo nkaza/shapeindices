@@ -120,16 +120,20 @@ shape_indices_sf(nc[1:5, ], which = c("hull_ratio", "reock"))
 # byrow = TRUE, with deterministic_max_tri forcing the Monte Carlo
 # estimator once a row's own mesh exceeds it - `...` passes n_lines/seed
 # through to shape_indices() for every row
-res_rli <- shape_indices_sf(nc[1:5, ], byrow = TRUE, deterministic_max_tri = 5,
-                             n_lines = 2000, seed = 1)
+res_rli <- shape_indices_sf(nc[1:5, ],
+    byrow = TRUE, deterministic_max_tri = 5,
+    n_lines = 2000, seed = 1
+)
 res_rli$convexity_index
 
 # byrow = FALSE: treat several adjacent counties as one weighted shape -
 # Wake, Durham, Orange and Chatham (the Research Triangle) are contiguous
 triangle <- nc[nc$NAME \%in\% c("Wake", "Durham", "Orange", "Chatham"), ]
 shape_indices_sf(triangle, byrow = FALSE, id = "triangle_by_area")
-shape_indices_sf(triangle, byrow = FALSE, weights = "BIR74",
-                  id = "triangle_by_births")
+shape_indices_sf(triangle,
+    byrow = FALSE, weights = "BIR74",
+    id = "triangle_by_births"
+)
 
 # weight 0/NA treats a row as a hole - excluded from the shape itself,
 # not just zero-weighted - e.g. dropping Chatham (the least urban/most
@@ -144,13 +148,19 @@ shape_indices_sf(triangle, byrow = FALSE, weights = w, id = "triangle_minus_chat
 # 1 -> 0.86, hull_ratio_index 1 -> 0.89 = 8/9) - two calls differing only in
 # `weights` can disagree on hull_ratio_index despite hull_ratio_index having no
 # weighted form of its own.
-cell <- function(cx, cy) sf::st_polygon(list(rbind(
-  c(cx - 0.5, cy - 0.5), c(cx + 0.5, cy - 0.5),
-  c(cx + 0.5, cy + 0.5), c(cx - 0.5, cy + 0.5), c(cx - 0.5, cy - 0.5))))
+cell <- function(cx, cy) {
+    sf::st_polygon(list(rbind(
+        c(cx - 0.5, cy - 0.5), c(cx + 0.5, cy - 0.5),
+        c(cx + 0.5, cy + 0.5), c(cx - 0.5, cy + 0.5), c(cx - 0.5, cy - 0.5)
+    )))
+}
 ctr <- expand.grid(x = -1:1, y = -1:1)
-grid9 <- sf::st_sf(pop = ifelse(ctr$x == 0 & ctr$y == 0, 0, 10),
-                    geometry = sf::st_sfc(mapply(cell, ctr$x, ctr$y, SIMPLIFY = FALSE),
-                                           crs = 3857))
-shape_indices_sf(grid9, byrow = FALSE, id = "solid_block")            # weights = NULL: keeps all 9
-shape_indices_sf(grid9, byrow = FALSE, weights = "pop", id = "ring")  # centre cell excluded
+grid9 <- sf::st_sf(
+    pop = ifelse(ctr$x == 0 & ctr$y == 0, 0, 10),
+    geometry = sf::st_sfc(mapply(cell, ctr$x, ctr$y, SIMPLIFY = FALSE),
+        crs = 3857
+    )
+)
+shape_indices_sf(grid9, byrow = FALSE, id = "solid_block") # weights = NULL: keeps all 9
+shape_indices_sf(grid9, byrow = FALSE, weights = "pop", id = "ring") # centre cell excluded
 }

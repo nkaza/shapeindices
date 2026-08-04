@@ -32,6 +32,21 @@
 #' than recomputing an equivalent mesh independently or re-deriving index
 #' values already available via `shape_indices_sf()`.
 #'
+#' **`weights` convention, worth stating explicitly for anyone using this
+#' package alongside its raster sibling `gridmorph`**: `weights` here is a
+#' raw, EXTENSIVE per-row total (e.g. a population COUNT column like
+#' `"pop"`) - this function divides by each row's own area internally to
+#' get a density, exactly reproducing the row's raw weight value when
+#' triangle weights are summed back up (see the worked example below).
+#' `gridmorph`'s own raster indices (`weighted = TRUE`) instead require an
+#' already-computed per-cell DENSITY value - a raster cell has no natural
+#' "this cell's own share of a polygon total" the way a row does, so
+#' passing a raw count raster there produces a different, resolution-
+#' dependent result. If you're translating a `weights = "some_count_column"`
+#' workflow from this package (or its regionalization sibling `reseam`)
+#' into a raster one (`gridmorph`, or its own regionalization sibling
+#' `restitch`), divide by area first.
+#'
 #' @param x an sf data frame of (multi)polygons
 #' @param weights NULL (each row weighted by its own area - uniform
 #'   density), a column-name string, or a numeric vector, one entry per row

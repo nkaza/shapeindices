@@ -32,8 +32,8 @@ larger convex pieces).
 }
 \examples{
 nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
-tri    <- cdt_triangles(nc[nc$NAME == "Dare", ])
+tri <- cdt_triangles(nc[nc$NAME == "Dare", ])
 pieces <- convex_decompose(nc[nc$NAME == "Dare", ])
-nrow(tri)     # many small triangles
-nrow(pieces)  # fewer, larger convex pieces
+nrow(tri) # many small triangles
+nrow(pieces) # fewer, larger convex pieces
 }

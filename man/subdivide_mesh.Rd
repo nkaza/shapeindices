@@ -36,8 +36,8 @@ more, smaller triangles).
 }
 \examples{
 nc <- sf::st_read(system.file("shape/nc.shp", package = "sf"), quiet = TRUE)
-tri  <- cdt_triangles(nc[nc$NAME == "Dare", ])
+tri <- cdt_triangles(nc[nc$NAME == "Dare", ])
 fine <- subdivide_mesh(nc[nc$NAME == "Dare", ])
-nrow(tri)    # coarse CDT triangles
-nrow(fine)   # more, smaller triangles
+nrow(tri) # coarse CDT triangles
+nrow(fine) # more, smaller triangles
 }
