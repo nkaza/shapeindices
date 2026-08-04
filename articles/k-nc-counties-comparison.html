@@ -239,8 +239,80 @@ Lincoln</th>
 <p>Width-length ratio agrees too, now: 0.40 for Dare and 0.43 for Currituck, both low like every other elongation-sensitive measure here. That agreement is itself worth a note: this index used to score Currituck at 0.96 - nearly a perfect square - because its old axis-aligned bounding box happened to line up close to the coordinate axes, an accident of how the county is drawn on the map, not a property of its actual shape. Switching to the minimum-area bounding rectangle at any rotation (<code><a href="https://r-spatial.github.io/sf/reference/geos_unary.html" class="external-link">sf::st_minimum_rotated_rectangle()</a></code>) fixes this: Currituck’s true elongation, independent of orientation, is close to Dare’s own, not the 0.96 the old orientation-sensitive version reported.</p>
 <p><strong>Camden</strong> is the classic split: convexity 0.99, essentially convex, no real notches for a line to cross. Span/radial concentration agree (0.61/0.61): Camden is a long, narrow diagonal sliver, and convexity/span/radial-concentration agree broadly. On the other hand, moment isotropy as well as moment of inertia isolates that elongation directly and puts a sharp number on it: 0.04/0.32. Camden’s own principal moments differ by roughly 27-to-1.</p>
 <p><strong>Lincoln</strong> sharpens that same point with no boundary complexity at all involved: convexity is a perfect 1.00 and hull ratio 0.99. Yet Reock is 0.34, width-length ratio 0.30, and moment isotropy 0.11; all three elongation-sensitive measures still penalise it for being stretched, each via a different route (bounding circle, bounding box, mass tensor). <strong>Convex and compact are different properties</strong>, and a shape can score perfectly on one while scoring poorly on the other.</p>
-</section><section class="section level2" data-number="3"><h2 data-number="3" id="how-do-the-indices-relate-to-each-other">
-<span class="header-section-number">3</span> How do the indices relate to each other?<a class="anchor" aria-label="anchor" href="#how-do-the-indices-relate-to-each-other"></a>
+</section><section class="section level2" data-number="3"><h2 data-number="3" id="rescaling-convexity-for-one-corpus">
+<span class="header-section-number">3</span> Rescaling convexity for one corpus<a class="anchor" aria-label="anchor" href="#rescaling-convexity-for-one-corpus"></a>
+</h2>
+<p><code><a href="../articles/c-understanding-convexity-index.html">vignette("c-understanding-convexity-index")</a></code>’s “Why the index compresses toward convex” section shows that CI stays near 1 for any shape that keeps a substantial convex core, which is most real polygons. This dataset is a clean demonstration of exactly that:</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">nc_df</span><span class="op">$</span><span class="va">convexity_index</span><span class="op">)</span></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+ 0.7375  0.9918  0.9970  0.9854  0.9992  1.0000 </code></pre>
+</div>
+</div>
+<p>Raw convexity never drops below 0.74 (Dare, the barrier-island county above) across all 100 counties, and 96% of them score above 0.9. Median convexity is 0.9970, and even the 90th percentile only reaches 0.99993 - practically a perfect square. That’s correct: these are surveyed county boundaries, not hand-drawn stars, and almost none of them lose their convex core the way it takes to pull CI down (see the linked section above). But it makes raw CI a poor scale for a task like a choropleth map or a ranked list, where 96 counties reading as “about 0.99” is not a useful map even though it’s an accurate one.</p>
+<section class="level2" data-number="3.1"><h3 data-number="3.1" id="percentile-rescaling">
+<span class="header-section-number">3.1</span> Percentile rescaling<a class="anchor" aria-label="anchor" href="#percentile-rescaling"></a>
+</h3>
+<p>The fix isn’t to alter <code>convexity_index</code> itself - a value of 0.9992 versus 0.9999 is a real, if tiny, geometric difference, and rescaling the definition to manufacture spread would misrepresent it (the same reasoning <code><a href="../articles/c-understanding-convexity-index.html">vignette("c-understanding-convexity-index")</a></code> gives for not clamping or rescaling CI’s compressed region directly). Instead, compute a second, corpus-relative statistic on top of it: each county’s percentile rank within this specific set of 100.</p>
+<div class="cell" data-layout-align="center">
+<div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">nc_df</span><span class="op">$</span><span class="va">convexity_percentile</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rank.html" class="external-link">rank</a></span><span class="op">(</span><span class="va">nc_df</span><span class="op">$</span><span class="va">convexity_index</span>, ties.method <span class="op">=</span> <span class="st">"average"</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">nc_df</span><span class="op">)</span></span></code></pre></div>
+</div>
+<p>That spreads the same 100 counties uniformly across <code>[0, 1]</code> by construction - one unit of the rescaled value always means “10 more counties,” regardless of how bunched the raw values are:</p>
+<div class="cell" data-layout-align="center">
+<details class="code-fold"><summary>Code</summary><div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rescale_counties</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Dare"</span>, <span class="st">"Currituck"</span>, <span class="st">"Camden"</span>, <span class="st">"Lincoln"</span>, <span class="st">"Caswell"</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>    <span class="va">nc_df</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="va">rescale_counties</span>, <span class="va">nc_df</span><span class="op">$</span><span class="va">NAME</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"NAME"</span>, <span class="st">"convexity_index"</span>, <span class="st">"convexity_percentile"</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>    digits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="fl">6</span>, <span class="fl">3</span><span class="op">)</span>, col.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"County"</span>, <span class="st">"Raw convexity"</span>, <span class="st">"Percentile (this corpus)"</span><span class="op">)</span>,</span>
+<span>    row.names <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</details><div class="cell-output-display">
+<table class="table caption-top">
+<thead><tr class="header">
+<th style="text-align: left;">County</th>
+<th style="text-align: right;">Raw convexity</th>
+<th style="text-align: right;">Percentile (this corpus)</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Dare</td>
+<td style="text-align: right;">0.737548</td>
+<td style="text-align: right;">0.01</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Currituck</td>
+<td style="text-align: right;">0.804788</td>
+<td style="text-align: right;">0.02</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Camden</td>
+<td style="text-align: right;">0.987415</td>
+<td style="text-align: right;">0.21</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Lincoln</td>
+<td style="text-align: right;">0.999996</td>
+<td style="text-align: right;">0.91</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Caswell</td>
+<td style="text-align: right;">1.000000</td>
+<td style="text-align: right;">0.96</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Dare and Currituck, at raw 0.738 and 0.805, land at the 1th and 2th percentiles - clearly the least convex counties in the state, which the raw scores already showed well enough on their own. The more useful case is the middle of the distribution: Camden, at a raw 0.987 that reads as “basically convex” next to Lincoln’s and Caswell’s near-perfect scores, actually sits at only the 21th percentile - noticeably less convex than most of the state, a distinction raw CI compresses almost out of view. Lincoln and Caswell themselves make the same point at the opposite extreme: both round to 1.000 at three decimal places, yet sit five percentile points apart, because so much of the state is packed into that last ten-thousandth of raw score.</p>
+</section><section class="level2" data-number="3.2"><h3 data-number="3.2" id="when-to-use-which">
+<span class="header-section-number">3.2</span> When to use which<a class="anchor" aria-label="anchor" href="#when-to-use-which"></a>
+</h3>
+<p>Keep raw <code>convexity_index</code> for anything that needs to be comparable outside this dataset: a fixed threshold, a cross-study comparison, or any claim about the shape itself (“this county is 99.9% as convex as physically possible”). Reach for the percentile version only for within-corpus tasks where the audience is these 100 counties specifically - a choropleth that needs to use its full colour ramp, or a ranked table of “most/least convex NC counties.” Percentile rescaling is corpus-relative by definition: add a state with more fragmented coastal counties to the dataset and every percentile shifts, even though no county’s own geometry changed.</p>
+</section></section><section class="section level2" data-number="4"><h2 data-number="4" id="how-do-the-indices-relate-to-each-other">
+<span class="header-section-number">4</span> How do the indices relate to each other?<a class="anchor" aria-label="anchor" href="#how-do-the-indices-relate-to-each-other"></a>
 </h2>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
@@ -254,8 +326,8 @@ Lincoln</th>
 <p><strong>Convexity and hull ratio</strong> form a second, distinct cluster (0.84) that isolates concave boundary departures while ignoring elongation entirely. The near-zero correlation between moment isotropy and convexity (0.24) provides clean empirical proof that elongation and concavity are independent structural properties on real geography rather than redundant descriptions. Similarly, directional balance tracks first-harmonic bearing preference rather than axis shape; its weak tie to moment isotropy (0.46) confirms that bearing preference and mass-distribution symmetry operate as independent axes despite both belonging to the elongation-adjacent family.</p>
 <p>Connecting these groups, Polsby-Popper acts as a hybrid bridge between the convexity and elongation clusters (0.90 with hull ratio; 0.84 with MOI) because perimeter length is inherently inflated by both boundary roughness and stretched geometries.</p>
 <p><code>width_length_ratio_index</code> is no longer the outlier it once was. An earlier, axis-aligned version of this index correlated weakly with almost everything in this dataset, because its own orientation noise - which way a county happens to be drawn relative to the coordinate axes, not a property of its shape - swamped the real elongation signal underneath. With that noise removed, its strongest ties sit squarely inside the elongation cluster: 0.80 with moment isotropy, 0.78 with exchange, 0.76 with moment of inertia. It still correlates more loosely with the boundary-complexity side of things (0.31 with convexity, 0.31 with hull ratio) - a bounding rectangle, however it’s computed, still can’t see concavity the way a convex-hull-based measure can - but it is a member of a real cluster now, not an island of its own.</p>
-</section><section class="section level2" data-number="4"><h2 data-number="4" id="weighting-a-collection-of-polygons">
-<span class="header-section-number">4</span> Weighting a collection of polygons<a class="anchor" aria-label="anchor" href="#weighting-a-collection-of-polygons"></a>
+</section><section class="section level2" data-number="5"><h2 data-number="5" id="weighting-a-collection-of-polygons">
+<span class="header-section-number">5</span> Weighting a collection of polygons<a class="anchor" aria-label="anchor" href="#weighting-a-collection-of-polygons"></a>
 </h2>
 <p><code>byrow = FALSE</code> treats every row instead as a weighted sub-polygon of <strong>one</strong> overall shape (<code>st_union(x)</code>), returning a single-row result. <code>weights = NULL</code> (the default) weights each row by its own physical area, which reproduces the plain unweighted indices on the union; a column name or numeric vector weights rows by something else instead - here, births (<code>BIR74</code>) as a population proxy for four contiguous Research Triangle counties:</p>
 <div class="cell" data-layout-align="center">
@@ -344,8 +416,8 @@ Lincoln</th>
 <p>Same union geometry results in the same <code>hull_ratio_index</code> (it has no weighted form - it’s a property of the convex hull’s boundary, not a sum over pieces) - but <code>convexity_index</code>, <code>moment_of_inertia_index</code>, and <code>span_index</code> all shift once births, rather than raw land area, decide how much each county’s shape “counts”.</p>
 <p>Weighted by each county’s own area (<code>weights = NULL</code>, the default), the four-county union scores convexity 0.983 and MOI 0.815. Switching the weight to 1974 births, so that Wake dominates in one part of the union, moves MOI, span, and radial concentration all <em>down</em> together (0.697, 0.849, 0.852). Convexity moves the other way, slightly <em>up</em> (0.990). It does not depend on where the centre of mass is at all and therefore behaves as expected.</p>
 <p>Reweighting the mesh reveals that moment isotropy and directional balance capture fundamentally different spatial mechanisms when mass shifts toward a dominant county like Wake. <strong>Moment isotropy moves up</strong> (0.507 to 0.643), shifting opposite to MOI, span, and radial concentration. While center-relative metrics penalize how far mass drifts from the union’s geometric middle, moment isotropy evaluates only the <em>shape</em> of the distribution around its own center—concentrating weight into Wake (a relatively round county within a long four-county strip) makes the core mass footprint more isotropic even as its center drifts. Conversely, <strong>directional balance moves down</strong> (0.984 to 0.960), tracking alongside MOI and span because shifting weight toward Wake creates an asymmetric angular pull from the new centroid. Moment isotropy acts as the lone outlier here precisely because it ignores center-relative displacement, proving it operates as an independent axis rather than a redundant metric. <em>(Note: <code>total_weight</code> reflects raw area in</em> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>m</mi><mn>2</mn></msup><annotation encoding="application/x-tex">m^2</annotation></semantics></math> versus total births, so row totals represent different scales).</p>
-</section><section class="section level2" data-number="5"><h2 data-number="5" id="conclusion">
-<span class="header-section-number">5</span> Conclusion<a class="anchor" aria-label="anchor" href="#conclusion"></a>
+</section><section class="section level2" data-number="6"><h2 data-number="6" id="conclusion">
+<span class="header-section-number">6</span> Conclusion<a class="anchor" aria-label="anchor" href="#conclusion"></a>
 </h2>
 <p>No single shape index here is redundant: real-world geographies split metrics into distinct structural behaviors rather than a simple continuum. While Moment of Inertia (MOI), span, and radial concentration cluster tightly around overall elongation, measures like convexity and hull ratio track a fundamentally different property—concavity—explaining why a shape can be nearly convex (e.g., Lincoln) while scoring poorly on circle-referenced compactness. Moment isotropy sits loosely in the elongation group but acts as an independent axis: it is virtually immune to boundary concavity and can shift in the opposite direction from its cluster under population reweighting because it ignores centroid offset entirely, evaluating only the symmetry of the mass footprint itself.</p>
 <p>Directional balance is about angular bearing preference (whether mass leans toward one direction) rather than axis preference (whether mass aligns along a line), yielding a remarkably weak correlation with moment isotropy (0.46). Under mesh reweighting, directional balance aligns with MOI and span because all three respond to centroid-relative mass drift—making it uniquely sensitive to split geometries like Dare and Currituck’s mainland-and-barrier-island shapes. Ultimately, <code>width_length_ratio_index</code> - once corrected to use the minimum-area bounding rectangle at any rotation rather than an axis-aligned one - joins the elongation cluster rather than sitting apart from it, and population-weighting doesn’t just tweak scores across the mesh-based indices—it fundamentally alters which spatial property each one reveals.</p>
@@ -432,7 +504,8 @@ Lincoln</th>
       }
     }
   });
-  </script></main>
+  </script></main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 

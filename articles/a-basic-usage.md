@@ -437,8 +437,8 @@ knitr::kable(format = "html", timing, digits = 2, row.names = FALSE)
 
 | mode                             | elapsed | speedup |
 |:---------------------------------|--------:|--------:|
-| parallel_rows = FALSE            |   30.07 |     1.0 |
-| parallel_rows = TRUE (4 workers) |   16.68 |     1.8 |
+| parallel_rows = FALSE            |   31.76 |    1.00 |
+| parallel_rows = TRUE (4 workers) |   17.32 |    1.83 |
 
 Both modes agree on every county’s indices (not shown - parallelising
 changes *how* the 100 rows get computed, not the values themselves); the

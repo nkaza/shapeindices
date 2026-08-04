@@ -699,7 +699,126 @@ narrows to 0.234. Worth a check on manufactured or engineered shapes
 with genuine symmetry; a minor consideration for organic, real-world
 footprints.
 
-## 4 Key takeaways
+## 4 Why the index compresses toward convex
+
+Across every sweep above, CI is reluctant to leave the top half of
+`[0, 1]`. The most tortuous single-piece shape here, the spiral, only
+gets to 0.30; the maze and comb, despite looking about as concave as a
+hand-drawn shape gets, reach just 0.68 and 0.65; even the 6-point star
+with its arms whittled down to a ratio of 0.05 (needle-thin, see “Same
+point count, deeper notches” above) lands at 0.50, not far above that
+same neighbourhood. Getting meaningfully below roughly 0.5 takes
+something structurally different from “very concave” - it takes removing
+the convex core entirely.
+
+### 4.1 The exact limit for disjoint pieces
+
+The multi-part sweep above stopped at `gap = 8`, already down to 0.632.
+Push the same two equal rectangles much further apart and the curve
+visibly levels off rather than continuing toward 0:
+
+``` r
+
+gap_wide <- c(32, 128, 1024, 100000)
+disp_wide <- lapply(gap_wide, make_dispersed)
+names(disp_wide) <- sprintf("gap = %s", gap_wide)
+idx_disp_wide <- vapply(disp_wide, function(s) ci_auto(s)$index, numeric(1))
+```
+
+0.542 at gap 32, 0.511 at gap 128, 0.5015 at gap 1024, 0.5000 at gap
+100000 - the index is converging on 0.5, not 0, no matter how far apart
+the two pieces get.
+
+That isn’t numerical drift; it follows directly from the same-piece
+diagonal term already derived above. As the gap grows, a line between
+the two pieces spends an ever-larger share of its length crossing empty
+space, so cross-piece $`g_{ij} \to 1`$. A line between two points in the
+*same* piece, meanwhile, stays at $`g_{ij} = 0`$ throughout - each piece
+here is itself a rectangle, and CDT triangles inside one convex piece
+are always mutually visible regardless of what the other piece is doing.
+Substituting $`g_{ij} \to 1`$ for every cross-piece pair into
+$`\text{CI} = 1 - \sum_{i<j} w_iw_j g_{ij} / (W^2/2)`$ collapses the
+cross-piece sum to $`W_AW_B`$ (piece $`A`$’s total weight times piece
+$`B`$’s), giving
+
+``` math
+\text{CI} \to 1 - \frac{2\,W_AW_B}{W^2} = \frac{W_A^2 + W_B^2}{W^2} = p_A^2 + p_B^2
+```
+
+where $`p_A = W_A/W`$ and $`p_B = W_B/W`$ are the two pieces’ area
+shares. For an equal split, $`p_A = p_B = 1/2`$, so the limit is exactly
+$`1/4 + 1/4 = 1/2`$: the floor observed above. The same argument for
+$`K`$ disjoint convex pieces gives $`\text{CI} \to \sum_a p_a^2`$ - the
+Herfindahl-Hirschman concentration index[^5] of the pieces’ area shares,
+minimised (for fixed $`K`$) exactly when every piece is the same size,
+at $`1/K`$.
+
+``` r
+
+make_dispersed_uneq <- function(gap, w1, w2, h = 6) {
+    r1 <- rbind(c(0, 0), c(w1, 0), c(w1, h), c(0, h), c(0, 0))
+    r2 <- rbind(
+        c(w1 + gap, 0), c(w1 + gap + w2, 0),
+        c(w1 + gap + w2, h), c(w1 + gap, h), c(w1 + gap, 0)
+    )
+    st_multipolygon(list(list(r1), list(r2)))
+}
+make_dispersed_k <- function(gap, k, w = 3, h = 6) {
+    pieces <- lapply(seq_len(k) - 1, function(i) {
+        x0 <- i * (w + gap)
+        list(rbind(c(x0, 0), c(x0 + w, 0), c(x0 + w, h), c(x0, h), c(x0, 0)))
+    })
+    st_multipolygon(pieces)
+}
+ci_uneq <- ci_auto(make_dispersed_uneq(1e5, 2, 4))$index # shares 1/3, 2/3
+ci_3 <- ci_auto(make_dispersed_k(1e5, 3))$index # three equal pieces
+```
+
+The formula holds beyond the equal-split case: a 2:4 split predicts
+$`\big(\tfrac13\big)^2+\big(\tfrac23\big)^2 = \tfrac{5}{9} \approx 0.556`$
+and measures 0.556; three equal pieces predict $`1/3`$ and measure
+0.333. Two comparably-sized parts, in other words, can never separate CI
+below 0.5, no matter the distance between them - only an uneven split
+(one piece shrinking toward nothing, pushing the limit back up toward 1)
+or several comparably-sized parts (pushing it down toward $`1/K`$) moves
+that floor.
+
+### 4.2 Single-piece shapes: it’s the hub, not the distance
+
+Single-piece shapes don’t decompose into separately-weighted regions the
+way the multi-part sweep does, but the same mechanism operates
+informally. Any leftover convex “hub” - a chunk of the polygon where
+most lines stay comfortably interior - behaves like one of the dominant
+pieces above, anchoring a large share of the pairwise average at
+$`g_{ij}=0`$ and keeping CI close to 1 no matter how elaborate the
+periphery gets. Maze (0.68) and comb (0.65) both keep a connected
+backbone that most centroid-pairs can route through without leaving the
+shape; even the 6-point star at its thinnest arm ratio (0.50) still has
+a solid hexagonal core at the centre.
+
+The spiral (0.30) is the outlier precisely because it has no such core -
+it’s a corridor of roughly constant width from one end to the other,
+with nothing convex left to anchor the average. That’s the real dividing
+line: not how concave a shape looks, but whether any substantial convex
+remainder survives.
+
+### 4.3 Practical implication
+
+The compressed region isn’t a flaw to patch: $`1 - \mathbb{E}[f]`$ is
+exactly the quantity CI is defined to report, and rescaling or clamping
+it after the fact would misrepresent what it measures - the same
+reasoning as the diagonal term above, where the extra mass isn’t a
+correction bolted on but a direct consequence of the definition. What it
+does mean is that CI alone won’t discriminate well among shapes that are
+all “fairly concave but still hub-dominated,” which covers most everyday
+non-convex geometries. `hull_ratio_index` is the sharper instrument in
+exactly that regime (see “Boundary Complexity” above, where it separates
+4- and 5-point stars that CI reads as nearly identical). For a single
+0-1-spanning summary calibrated to one specific dataset instead of the
+general-purpose definition here, see the empirical rescaling approach in
+[`vignette("k-nc-counties-comparison")`](https://nkaza.github.io/shapeindices/articles/k-nc-counties-comparison.md).
+
+## 5 Key takeaways
 
 - CI is 1 for any convex shape and falls as a shape gets more concave,
   holed, or spatially dispersed.
@@ -736,6 +855,13 @@ footprints.
 - HRI catches real non-convexity in low-point-count stars that CI’s mesh
   misses entirely, but it is far more sensitive to boundary digitisation
   errors.
+- CI compresses toward 1: a disjoint multi-part shape can never fall
+  below the Herfindahl index of its pieces’ area shares (1/2 for two
+  equal pieces, however far apart), and a single-piece shape stays close
+  to 1 as long as it keeps any substantial convex hub. Reaching the
+  lower half of the range takes removing that hub entirely, not just
+  adding more concavity (see “Why the index compresses toward convex”
+  above).
 
 None of the three indices is a strictly better version of the others.
 Each fails differently. So the right choice depends on which failure
@@ -769,3 +895,10 @@ mode you can least afford.
     territory the polygon doesn’t cover. This index is very sensitive to
     extreme vertices, since a single long narrow sliver can drag the
     convex hull out to enormous size.
+
+[^5]: The sum of squared shares $`\sum_a p_a^2`$ is the same
+    construction as the Herfindahl-Hirschman Index used to measure
+    market concentration in industrial economics: 1 when a single
+    actor - or, here, a single convex piece - holds the entire total,
+    falling toward $`1/K`$ as $`K`$ equally-sized actors split it
+    evenly.
